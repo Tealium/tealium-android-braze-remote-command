@@ -1,0 +1,27 @@
+<resources>
+    <string name="app_name">TealiumBrazeExample</string>
+
+    <string name="hint_first_name">First Name</string>
+    <string name="hint_last_name">Last Name</string>
+    <string name="hint_user_email">you@email.com</string>
+    <string name="hint_gender">Gender</string>
+    <string name="hint_home_city">Home City</string>
+    <string name="hint_birthday">Birthday</string>
+    <string name="hint_user_id">User Id</string>
+    <string name="hint_user_alias">User Alias</string>
+    <string name="hint_user_alias_label">Alias Label</string>
+
+
+    <string name="btn_send_events">Events and Attributes</string>
+    <string name="btn_edit_user_details">Edit User Details</string>
+    <string name="btn_save_user_details">Save User Details</string>
+
+    <string name="btn_log_event">Log Event</string>
+    <string name="btn_log_event_with_properties">Log Event with Properties</string>
+
+    <string name="btn_set_custom_attributes">Set Custom Attributes</string>
+    <string name="btn_unset_custom_attributes">Unset Custom Attributes</string>
+    <string name="btn_increment_custom_attributes">Increment Custom Attributes</string>
+
+    <string name="btn_log_purchase">Log Purchase</string>
+</resources>
