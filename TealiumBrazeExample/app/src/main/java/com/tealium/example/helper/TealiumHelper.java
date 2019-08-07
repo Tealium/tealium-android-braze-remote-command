@@ -15,6 +15,9 @@ import com.tealium.library.DispatchValidator;
 import com.tealium.library.Tealium;
 import com.tealium.remotecommands.braze.BrazeRemoteCommand;
 
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
@@ -62,12 +65,12 @@ public final class TealiumHelper {
         instance.addRemoteCommand(createLoggerRemoteCommand());
 
         BrazeRemoteCommand brc = new BrazeRemoteCommand(config, false);
-        brc.registerConfigOverride(new BrazeRemoteCommand.ConfigOverrider() {
-            @Override
-            public void onOverride(AppboyConfig.Builder b) {
-                b.setApiKey("");
-            }
-        });
+        // brc.registerConfigOverride(new BrazeRemoteCommand.ConfigOverrider() {
+        //     @Override
+        //     public void onOverride(AppboyConfig.Builder b) {
+        //         b.setApiKey("");
+        //     }
+        // });
         instance.addRemoteCommand(brc);
 
         // (OPTIONAL) Use tealium.getDataSources().getPersistentDataSources() to set/modify lifetime values

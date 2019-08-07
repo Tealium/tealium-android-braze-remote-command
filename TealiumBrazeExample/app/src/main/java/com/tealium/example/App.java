@@ -11,5 +11,7 @@ public class App extends Application {
         super.onCreate();
 
         TealiumHelper.initialize(this);
+
+
     }
 }

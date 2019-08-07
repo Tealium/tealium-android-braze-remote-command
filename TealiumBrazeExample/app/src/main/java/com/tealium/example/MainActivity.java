@@ -11,6 +11,7 @@ public class MainActivity extends AppCompatActivity {
 
     AppCompatButton mEditUserDetailsButton;
     AppCompatButton mEventsAndAttributesButton;
+    AppCompatButton mEditUsetEngagementsButton;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -30,6 +31,14 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 startActivity(new Intent(MainActivity.this, EventsActivity.class));
+            }
+        });
+
+        mEditUsetEngagementsButton = findViewById(R.id.btn_edit_user_engagement);
+        mEditUsetEngagementsButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                startActivity(new Intent(MainActivity.this, EngagementActivity.class));
             }
         });
     }

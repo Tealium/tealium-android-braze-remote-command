@@ -24,4 +24,13 @@
         app:layout_constraintRight_toRightOf="parent"
         app:layout_constraintTop_toBottomOf="@id/btn_edit_user_details"/>
 
+    <androidx.appcompat.widget.AppCompatButton
+        android:id="@+id/btn_edit_user_engagement"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/btn_edit_user_engagements"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintRight_toRightOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/btn_send_events"/>
+
 </androidx.constraintlayout.widget.ConstraintLayout>

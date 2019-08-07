@@ -21,6 +21,8 @@
         </activity>
         <activity android:name=".EventsActivity">
         </activity>
+        <activity android:name=".EngagementActivity">
+        </activity>
     </application>
 
 </manifest>

@@ -115,21 +115,21 @@ public class EventsActivity extends AppCompatActivity {
         TealiumHelper.trackEvent("custom_attribute", data);
 
         Map<String, Object> arrayData = new HashMap<>();
-        data.put("pet_names", new String[]{"Rosia", "Elsa", "Kawai"});
+        arrayData.put("pet_names", new String[]{"Rosia", "Elsa", "Kawai"});
 
         TealiumHelper.trackEvent("custom_array_attribute", arrayData);
     }
 
     private void unsetCustomAttributes() {
         Map<String, Object> data = new HashMap<>();
-        data.put("pet_count_unset", "pet_count");
+        data.put("pet_count_unset", new String[]{"pet_count"});
 
         TealiumHelper.trackEvent("unset_custom_attribute", data);
 
         Map<String, Object> arrayData = new HashMap<>();
-        data.put("pet_names_remove", "Kawai");
+        arrayData.put("pet_names_remove", "Kawai");
 
-        TealiumHelper.trackEvent("unset_custom_array_attribute", arrayData);
+        TealiumHelper.trackEvent("remove_custom_array_attribute", arrayData);
     }
 
     private void incrementCustomAttributes() {
@@ -139,7 +139,7 @@ public class EventsActivity extends AppCompatActivity {
         TealiumHelper.trackEvent("increment_custom_attribute", data);
 
         Map<String, Object> appendData = new HashMap<>();
-        data.put("pet_names_append", "petname" + mPetNameCounter++);
+        appendData.put("pet_names_append", "petname" + mPetNameCounter++);
 
         TealiumHelper.trackEvent("append_custom_array_attribute", appendData);
     }
