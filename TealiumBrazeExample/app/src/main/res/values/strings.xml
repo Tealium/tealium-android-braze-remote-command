@@ -1,0 +1,43 @@
+<resources>
+    <string name="app_name">TealiumBrazeExample</string>
+
+    <string name="hint_first_name">First Name</string>
+    <string name="hint_last_name">Last Name</string>
+    <string name="hint_user_email">you@email.com</string>
+    <string name="hint_gender">Gender</string>
+    <string name="hint_home_city">Home City</string>
+    <string name="hint_birthday">Birthday</string>
+    <string name="hint_user_id">User Id</string>
+    <string name="hint_user_alias">User Alias</string>
+    <string name="hint_user_alias_label">Alias Label</string>
+
+    <string name="hint_facebook_username">Facebook Username</string>
+    <string name="hint_facebook_friend_count">Facebook Friend Count</string>
+    <string name="hint_twitter_user_id">Twitter User Id</string>
+    <string name="hint_twitter_user_description">Twitter User Description</string>
+    <string name="hint_email_subscription">Email Subscription</string>
+    <string name="hint_push_subscription">Push Notifications</string>
+
+    <string name="hint_subscribed">Subscribed</string>
+    <string name="hint_subscribed_value" translatable="false">subscribed</string>
+    <string name="hint_unsubscribed">Unsubscribed</string>
+    <string name="hint_unsubscribed_value" translatable="false">unsubscribed</string>
+    <string name="hint_opted_in">Opted-In</string>
+    <string name="hint_opted_in_value" translatable="false">opted_in</string>
+
+
+    <string name="btn_send_events">Events and Attributes</string>
+    <string name="btn_edit_user_details">Edit User Details</string>
+    <string name="btn_save_user_details">Save User Details</string>
+
+    <string name="btn_log_event">Log Event</string>
+    <string name="btn_log_event_with_properties">Log Event with Properties</string>
+
+    <string name="btn_set_custom_attributes">Set Custom Attributes</string>
+    <string name="btn_unset_custom_attributes">Unset Custom Attributes</string>
+    <string name="btn_increment_custom_attributes">Increment Custom Attributes</string>
+
+    <string name="btn_log_purchase">Log Purchase</string>
+
+    <string name="btn_edit_user_engagements">Edit user engagements</string>
+</resources>
