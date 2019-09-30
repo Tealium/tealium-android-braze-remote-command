@@ -21,8 +21,8 @@ android {
 dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
 
-    implementation project(path: ':braze')
     implementation 'com.tealium:library:5.5.+'
+    implementation 'com.tealium.remotecommands:braze:0.0.1'
     implementation 'com.appboy:android-sdk-ui:3.5.+'
 
     implementation 'androidx.appcompat:appcompat:1.0.2'

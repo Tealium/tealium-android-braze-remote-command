@@ -1,4 +1,5 @@
 apply plugin: 'com.android.library'
+apply plugin: 'maven-publish'
 
 android {
     compileSdkVersion 28
@@ -16,8 +17,8 @@ android {
     buildTypes {
 
         release {
-            minifyEnabled true
-            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+//            minifyEnabled false
+//            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
 
         debug {
@@ -49,21 +50,4 @@ dependencies {
     //testImplementation 'junit:junit:4.12'
     androidTestImplementation 'com.android.support.test:runner:1.0.2'
     androidTestImplementation 'com.android.support.test:rules:1.0.2'
-    //androidTestImplementation 'com.android.support.test.espresso:espresso-core:3.0.2'
 }
-
-//Copy the braze-release.aar into the test app.
-//In Release mode, the app will use the .aar instead of the :braze project reference so we can
-//do some basic verification.
-afterEvaluate {
-    assembleRelease.doLast {
-        copy {
-            println "Copying " + file("$buildDir/outputs/aar/braze-release.aar")
-            from file("$buildDir/outputs/aar/braze-release.aar")
-            println "to " + file("../app/libs")
-            into file("../app/libs")
-        }
-    }
-}
-
-

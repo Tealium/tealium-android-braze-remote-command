@@ -1,13 +1,17 @@
 package com.tealium.remotecommands.braze;
 
 import androidx.annotation.NonNull;
+import androidx.test.rule.ActivityTestRule;
 import androidx.test.runner.AndroidJUnit4;
 
 import com.appboy.Appboy;
+import com.appboy.configuration.AppboyConfig;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.junit.Assert;
+import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
 
 import org.junit.runner.RunWith;
@@ -18,15 +22,17 @@ import java.util.Collection;
 import java.util.List;
 
 @RunWith(AndroidJUnit4.class)
-public class BrazeDirectTests extends BaseTest {
+public class BrazeRemoteCommandTests {
 
-    public BrazeDirectTests() {
-        super();
-    }
+    @Rule
+    public ActivityTestRule<QAActivity> QAActivity = new ActivityTestRule<>(com.tealium.remotecommands.braze.QAActivity.class);
 
-    @Override
+    @Before
     public void setup() {
-        super.setup();
+        TestUtils.setupInstance(QAActivity.getActivity().getApplication());
+
+        Appboy.enableSdk(TestUtils.getDefaultConfig().getApplication().getApplicationContext());
+        Appboy.enableMockAppboyNetworkRequestsAndDropEventsMode();
     }
 
     @Test
@@ -514,5 +520,72 @@ public class BrazeDirectTests extends BaseTest {
             e.printStackTrace();
             Assert.fail();
         }
+    }
+
+    public MockBrazeRemoteCommand newMockRemoteCommand() {
+        return new MockBrazeRemoteCommand(TestUtils.getDefaultConfig(), true);
+    }
+
+    public MockBrazeWrapperImpl newMockBrazeWrapper() {
+        return new MockBrazeWrapperImpl(TestUtils.getDefaultConfig(), QAActivity.getActivity());
+    }
+
+    public void setupInitTestWithApiKey(BrazeRemoteCommand brc) {
+
+        brc.registerConfigOverride(new BrazeRemoteCommand.ConfigOverrider() {
+            @Override
+            public void onOverride(AppboyConfig.Builder b) {
+                AppboyConfig appboyConfig = b.build();
+
+                Assert.assertEquals(appboyConfig.getApiKey(), TestData.Values.API_KEY);
+            }
+        });
+    }
+
+    public void setupInitTestWithOverrides(BrazeRemoteCommand brc) {
+        brc.registerConfigOverride(new BrazeRemoteCommand.ConfigOverrider() {
+            @Override
+            public void onOverride(AppboyConfig.Builder b) {
+                b.setFirebaseCloudMessagingSenderIdKey(TestData.Values.FIREBASE_SENDER_ID);
+                b.setIsFirebaseCloudMessagingRegistrationEnabled(TestData.Values.FIREBASE_ENABLED);
+            }
+        });
+        brc.registerConfigOverride(new BrazeRemoteCommand.ConfigOverrider() {
+            @Override
+            public void onOverride(AppboyConfig.Builder b) {
+                AppboyConfig appboyConfig = b.build();
+
+                Assert.assertEquals(appboyConfig.getApiKey(), TestData.Values.API_KEY);
+                Assert.assertEquals(appboyConfig.getFirebaseCloudMessagingSenderIdKey(), TestData.Values.FIREBASE_SENDER_ID);
+                Assert.assertEquals(appboyConfig.getIsFirebaseCloudMessagingRegistrationEnabled(), TestData.Values.FIREBASE_ENABLED);
+            }
+        });
+    }
+
+    public void setupInitTestWithAllSettings(BrazeRemoteCommand brc) {
+        brc.registerConfigOverride(new BrazeRemoteCommand.ConfigOverrider() {
+            @Override
+            public void onOverride(AppboyConfig.Builder b) {
+                AppboyConfig appboyConfig = b.build();
+
+                Assert.assertEquals(appboyConfig.getApiKey(), TestData.Values.API_KEY);
+                Assert.assertEquals(appboyConfig.getFirebaseCloudMessagingSenderIdKey(), TestData.Values.FIREBASE_SENDER_ID);
+                Assert.assertEquals(appboyConfig.getIsFirebaseCloudMessagingRegistrationEnabled(), TestData.Values.FIREBASE_ENABLED);
+                Assert.assertEquals(appboyConfig.getAdmMessagingRegistrationEnabled(), TestData.Values.ADM_ENABLED);
+                Assert.assertEquals(appboyConfig.getDisableLocationCollection(), TestData.Values.DISABLE_LOCATION);
+                Assert.assertEquals(appboyConfig.getHandlePushDeepLinksAutomatically(), TestData.Values.AUTO_DEEP_LINKS);
+                Assert.assertEquals(appboyConfig.getBadNetworkDataFlushInterval(), TestData.Values.BAD_NETWORK_INTERVAL);
+                Assert.assertEquals(appboyConfig.getGoodNetworkDataFlushInterval(), TestData.Values.GOOD_NETWORK_INTERVAL);
+                Assert.assertEquals(appboyConfig.getGreatNetworkDataFlushInterval(), TestData.Values.GREAT_NETWORK_INTERVAL);
+                Assert.assertEquals(appboyConfig.getLargeNotificationIcon(), TestData.Values.LARGE_NOTIFICATION_ICON);
+                Assert.assertEquals(appboyConfig.getSmallNotificationIcon(), TestData.Values.SMALL_NOTIFICATION_ICON);
+                Assert.assertEquals(appboyConfig.getLocaleToApiMapping(), TestData.Values.LOCALE_MAPPING);
+                Assert.assertEquals(appboyConfig.getSessionTimeout(), TestData.Values.SESSION_TIMEOUT);
+                Assert.assertEquals(appboyConfig.getCustomEndpoint(), TestData.Values.CUSTOM_ENDPOINT);
+                Assert.assertEquals(appboyConfig.getTriggerActionMinimumTimeIntervalSeconds(), TestData.Values.TRIGGER_INTERVAL_SECONDS);
+                Assert.assertEquals(appboyConfig.getDefaultNotificationAccentColor(), TestData.Values.DEFAULT_NOTIFICATION_COLOR);
+                Assert.assertEquals(appboyConfig.getIsNewsFeedVisualIndicatorOn(), TestData.Values.ENABLE_NEWS_FEED_INDICATOR);
+            }
+        });
     }
 }
