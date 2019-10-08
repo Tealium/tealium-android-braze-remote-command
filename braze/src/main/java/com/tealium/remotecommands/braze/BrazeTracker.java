@@ -675,39 +675,4 @@ class BrazeTracker implements BrazeTrackable, Application.ActivityLifecycleCallb
     public void onActivityDestroyed(Activity activity) {
 
     }
-
-    // private class BrazeLifecycleListener extends AppboyLifecycleCallbackListener {
-    //
-    //     private boolean isInitialized = false;
-    //     private Activity mCurrentActivity;
-    //     private Bundle mCurrentBundle;
-    //
-    //     public BrazeLifecycleListener(boolean sessionHandlingEnabled, boolean registerInAppMessageManager) {
-    //         super(sessionHandlingEnabled, registerInAppMessageManager);
-    //     }
-    //
-    //     void setInitialized(boolean isInitialized) {
-    //         this.isInitialized = isInitialized;
-    //
-    //         if (isInitialized && mCurrentActivity != null) {
-    //             onActivityCreated(mCurrentActivity, mCurrentBundle);
-    //         }
-    //     }
-    //
-    //     @Override
-    //     public void onActivityStarted(Activity activity) {
-    //         mCurrentActivity = activity;
-    //
-    //         if (this.isInitialized) {
-    //             super.onActivityStarted(activity);
-    //         }
-    //     }
-    //
-    //     @Override
-    //     public void onActivityStopped(Activity activity) {
-    //         if (this.isInitialized) {
-    //             super.onActivityStopped(activity);
-    //         }
-    //     }
-    // }
 }
