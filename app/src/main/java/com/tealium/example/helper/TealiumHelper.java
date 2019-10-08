@@ -6,7 +6,6 @@ import android.os.Build;
 import android.util.Log;
 import android.webkit.WebView;
 
-import com.appboy.configuration.AppboyConfig;
 import com.tealium.example.BuildConfig;
 import com.tealium.internal.data.Dispatch;
 import com.tealium.internal.listeners.WebViewLoadedListener;
@@ -14,9 +13,6 @@ import com.tealium.internal.tagbridge.RemoteCommand;
 import com.tealium.library.DispatchValidator;
 import com.tealium.library.Tealium;
 import com.tealium.remotecommands.braze.BrazeRemoteCommand;
-
-import org.json.JSONException;
-import org.json.JSONObject;
 
 import java.util.HashMap;
 import java.util.Locale;

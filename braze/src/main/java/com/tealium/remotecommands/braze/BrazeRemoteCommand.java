@@ -26,7 +26,6 @@ import java.util.LinkedList;
 import java.util.List;
 
 import static com.tealium.remotecommands.braze.BrazeConstants.TAG;
-import static com.tealium.remotecommands.braze.BrazeConstants.SEPARATOR;
 import static com.tealium.remotecommands.braze.BrazeConstants.Commands;
 import static com.tealium.remotecommands.braze.BrazeConstants.Config;
 import static com.tealium.remotecommands.braze.BrazeConstants.User;
@@ -42,7 +41,7 @@ public class BrazeRemoteCommand extends RemoteCommand {
     public static final String DEFAULT_COMMAND_ID = "braze";
     public static final String DEFAULT_COMMAND_DESCRIPTION = "Tealium-Braze Remote Command";
 
-    BrazeWrapper mBraze;
+    BrazeTrackable mBraze;
     Tealium.Config mConfig;
     List<ConfigOverrider> configOverriders = new LinkedList<>();
 
@@ -81,7 +80,7 @@ public class BrazeRemoteCommand extends RemoteCommand {
         super(
                 !BrazeUtils.isNullOrEmpty(commandId) ? commandId : DEFAULT_COMMAND_ID,
                 !BrazeUtils.isNullOrEmpty(description) ? description : DEFAULT_COMMAND_DESCRIPTION);
-        mBraze = new BrazeWrapperImpl(config, registerInAppMessageManager);
+        mBraze = new BrazeTracker(config, registerInAppMessageManager);
         mConfig = config;
 
     }
@@ -217,18 +216,22 @@ public class BrazeRemoteCommand extends RemoteCommand {
     @Override
     protected void onInvoke(Response response) throws Exception {
         JSONObject payload = response.getRequestPayload();
+        String[] commands = splitCommands(payload);
+        parseCommands(commands, payload);
+        response.send();
+    }
 
-        String commandString = payload.getString(Commands.COMMAND_KEY);
+    private String[] splitCommands(JSONObject payload) {
+        String commandString = payload.optString(Commands.COMMAND_KEY, "");
+        return commandString.split(BrazeConstants.SEPARATOR);
+    }
 
-        if (commandString != null && !commandString.isEmpty()) {
-
-            String[] commands = commandString.split(SEPARATOR);
-
-            for (String cmd : commands) {
-                Log.d(TAG, "Executing command: " + cmd);
-
-                switch (cmd) {
-
+    private void parseCommands(String[] commandList, JSONObject payload) {
+        for (String command : commandList) {
+            command = command.trim();
+            Log.d(TAG, "Executing command: " + command);
+            try {
+                switch (command) {
                     case Commands.INITIALIZE:
                         String apiKey = payload.optString(Config.API_KEY);
                         mBraze.initialize(
@@ -337,7 +340,6 @@ public class BrazeRemoteCommand extends RemoteCommand {
                                     payload.optJSONObject(Purchase.PURCHASE_PROPERTIES)
                             );
                         }
-
                         break;
                     case Commands.FACEBOOK_USER:
                         mBraze.setFacebookData(
@@ -379,6 +381,8 @@ public class BrazeRemoteCommand extends RemoteCommand {
                         mBraze.requestFlush();
                         break;
                 }
+            } catch (Exception ex) {
+                Log.w(TAG, "Error processing command: " + command, ex);
             }
         }
     }
@@ -541,7 +545,6 @@ public class BrazeRemoteCommand extends RemoteCommand {
         return mPropertyUpdateListener;
     }
 
-
     /**
      * Interface to allow users to inject additional configuration items that may not be present
      * in the data supplied back from the RemoteCommand. This method is called after all LaunchOption
@@ -549,10 +552,6 @@ public class BrazeRemoteCommand extends RemoteCommand {
      * overwrite any configuration properties that have already been setup.
      */
     public interface ConfigOverrider {
-
         void onOverride(AppboyConfig.Builder b);
-
     }
-
-
 }

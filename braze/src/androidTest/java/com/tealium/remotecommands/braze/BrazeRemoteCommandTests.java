@@ -46,7 +46,7 @@ public class BrazeRemoteCommandTests {
 
         try {
             MockBrazeRemoteCommand brc = newMockRemoteCommand();
-            MockBrazeWrapperImpl mockBrazeWrapper = new MockBrazeWrapperImpl(TestUtils.getDefaultConfig(), QAActivity.getActivity()) {
+            MockBrazeTracker mockBrazeTracker = new MockBrazeTracker(TestUtils.getDefaultConfig(), QAActivity.getActivity()) {
                 @Override
                 public void initialize(String apiKey, JSONObject launchOptions) {
                     Assert.assertEquals("apiKey does not match.", TestData.Values.API_KEY, apiKey);
@@ -55,11 +55,11 @@ public class BrazeRemoteCommandTests {
                 }
             };
 
-            brc.setBrazeWrapper(mockBrazeWrapper);
+            brc.setBrazeTrackable(mockBrazeTracker);
             setupInitTestWithApiKey(brc);
 
             brc.onInvoke(TestData.Responses.initalizeWithApiKeyOnly());
-            TestUtils.assertContainsAllAndOnly(mockBrazeWrapper.methodsCalled, expectedMethods);
+            TestUtils.assertContainsAllAndOnly(mockBrazeTracker.methodsCalled, expectedMethods);
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -74,7 +74,7 @@ public class BrazeRemoteCommandTests {
 
         try {
             MockBrazeRemoteCommand brc = newMockRemoteCommand();
-            MockBrazeWrapperImpl mockBrazeWrapper = new MockBrazeWrapperImpl(TestUtils.getDefaultConfig(), QAActivity.getActivity()) {
+            MockBrazeTracker mockBrazeTracker = new MockBrazeTracker(TestUtils.getDefaultConfig(), QAActivity.getActivity()) {
                 @Override
                 public void initialize(@NonNull String apiKey, JSONObject launchOptions, List<BrazeRemoteCommand.ConfigOverrider> overrides) {
                     Assert.assertEquals("apiKey does not match.", TestData.Values.API_KEY, apiKey);
@@ -84,11 +84,11 @@ public class BrazeRemoteCommandTests {
                     super.initialize(apiKey, launchOptions, overrides);
                 }
             };
-            brc.setBrazeWrapper(mockBrazeWrapper);
+            brc.setBrazeTrackable(mockBrazeTracker);
             setupInitTestWithOverrides(brc);
 
             brc.onInvoke(TestData.Responses.initalizeWithApiKeyOnly());
-            TestUtils.assertContainsAllAndOnly(mockBrazeWrapper.methodsCalled, expectedMethods);
+            TestUtils.assertContainsAllAndOnly(mockBrazeTracker.methodsCalled, expectedMethods);
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -103,14 +103,14 @@ public class BrazeRemoteCommandTests {
 
         try {
             MockBrazeRemoteCommand brc = newMockRemoteCommand();
-            MockBrazeWrapperImpl mockBrazeWrapper = new MockBrazeWrapperImpl(TestUtils.getDefaultConfig(), QAActivity.getActivity()) {
+            MockBrazeTracker mockBrazeTracker = new MockBrazeTracker(TestUtils.getDefaultConfig(), QAActivity.getActivity()) {
                 // all settings are verified in an override created by setupInitTestWithAllSettings(..)
             };
-            brc.setBrazeWrapper(mockBrazeWrapper);
+            brc.setBrazeTrackable(mockBrazeTracker);
             setupInitTestWithAllSettings(brc);
 
             brc.onInvoke(TestData.Responses.initializeWithAllSettings());
-            TestUtils.assertContainsAllAndOnly(mockBrazeWrapper.methodsCalled, expectedMethods);
+            TestUtils.assertContainsAllAndOnly(mockBrazeTracker.methodsCalled, expectedMethods);
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -125,7 +125,7 @@ public class BrazeRemoteCommandTests {
 
         try {
             MockBrazeRemoteCommand brazeRemoteCommand = newMockRemoteCommand();
-            MockBrazeWrapperImpl mockBrazeWrapper = new MockBrazeWrapperImpl(TestUtils.getDefaultConfig(), QAActivity.getActivity()) {
+            MockBrazeTracker mockBrazeTracker = new MockBrazeTracker(TestUtils.getDefaultConfig(), QAActivity.getActivity()) {
                 @Override
                 public void logCustomEvent(@NonNull String eventName, JSONObject eventProperties) {
                     Assert.assertTrue("eventName parameter does not match what was sent", eventName.equals(TestData.Values.EVENT_NAME));
@@ -133,10 +133,10 @@ public class BrazeRemoteCommandTests {
                     super.logCustomEvent(eventName, eventProperties);
                 }
             };
-            brazeRemoteCommand.setBrazeWrapper(mockBrazeWrapper);
+            brazeRemoteCommand.setBrazeTrackable(mockBrazeTracker);
 
             brazeRemoteCommand.onInvoke(TestData.Responses.customEventWithProperties());
-            TestUtils.assertContainsAllAndOnly(mockBrazeWrapper.methodsCalled, expectedMethods);
+            TestUtils.assertContainsAllAndOnly(mockBrazeTracker.methodsCalled, expectedMethods);
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -151,7 +151,7 @@ public class BrazeRemoteCommandTests {
 
         try {
             MockBrazeRemoteCommand brazeRemoteCommand = newMockRemoteCommand();
-            MockBrazeWrapperImpl mockBrazeWrapper = new MockBrazeWrapperImpl(TestUtils.getDefaultConfig(), QAActivity.getActivity()) {
+            MockBrazeTracker mockBrazeTracker = new MockBrazeTracker(TestUtils.getDefaultConfig(), QAActivity.getActivity()) {
                 @Override
                 public void logCustomEvent(@NonNull String eventName, JSONObject eventProperties) {
                     Assert.assertTrue("eventName parameter does not match what was sent", eventName.equals(TestData.Values.EVENT_NAME));
@@ -159,10 +159,10 @@ public class BrazeRemoteCommandTests {
                     super.logCustomEvent(eventName, eventProperties);
                 }
             };
-            brazeRemoteCommand.setBrazeWrapper(mockBrazeWrapper);
+            brazeRemoteCommand.setBrazeTrackable(mockBrazeTracker);
 
             brazeRemoteCommand.onInvoke(TestData.Responses.customEvent());
-            TestUtils.assertContainsAllAndOnly(mockBrazeWrapper.methodsCalled, expectedMethods);
+            TestUtils.assertContainsAllAndOnly(mockBrazeTracker.methodsCalled, expectedMethods);
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -177,7 +177,7 @@ public class BrazeRemoteCommandTests {
 
         try {
             MockBrazeRemoteCommand brazeRemoteCommand = newMockRemoteCommand();
-            MockBrazeWrapperImpl mockBrazeWrapper = new MockBrazeWrapperImpl(TestUtils.getDefaultConfig(), QAActivity.getActivity()) {
+            MockBrazeTracker mockBrazeTracker = new MockBrazeTracker(TestUtils.getDefaultConfig(), QAActivity.getActivity()) {
                 @Override
                 public void logPurchase(@NonNull String productId, String currency, @NonNull BigDecimal unitPrice, Integer quantity, JSONObject purchaseProerties) {
                     Assert.assertEquals("productId does not match what was sent.", TestData.Values.PRODUCT_ID, productId);
@@ -189,10 +189,10 @@ public class BrazeRemoteCommandTests {
                     super.logPurchase(productId, currency, unitPrice, quantity, purchaseProerties);
                 }
             };
-            brazeRemoteCommand.setBrazeWrapper(mockBrazeWrapper);
+            brazeRemoteCommand.setBrazeTrackable(mockBrazeTracker);
 
             brazeRemoteCommand.onInvoke(TestData.Responses.purchaseEvent());
-            TestUtils.assertContainsAllAndOnly(mockBrazeWrapper.methodsCalled, expectedMethods);
+            TestUtils.assertContainsAllAndOnly(mockBrazeTracker.methodsCalled, expectedMethods);
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -207,7 +207,7 @@ public class BrazeRemoteCommandTests {
 
         try {
             MockBrazeRemoteCommand brazeRemoteCommand = newMockRemoteCommand();
-            MockBrazeWrapperImpl mockBrazeWrapper = new MockBrazeWrapperImpl(TestUtils.getDefaultConfig(), QAActivity.getActivity()) {
+            MockBrazeTracker mockBrazeTracker = new MockBrazeTracker(TestUtils.getDefaultConfig(), QAActivity.getActivity()) {
                 @Override
                 public void logPurchase(@NonNull String productId, String currency, @NonNull BigDecimal unitPrice, Integer quantity, JSONObject purchaseProerties) {
                     Assert.assertEquals("productId does not match what was sent.", TestData.Values.PRODUCT_ID, productId);
@@ -219,10 +219,10 @@ public class BrazeRemoteCommandTests {
                     super.logPurchase(productId, currency, unitPrice, quantity, purchaseProerties);
                 }
             };
-            brazeRemoteCommand.setBrazeWrapper(mockBrazeWrapper);
+            brazeRemoteCommand.setBrazeTrackable(mockBrazeTracker);
 
             brazeRemoteCommand.onInvoke(TestData.Responses.purchaseEventWithProperties());
-            TestUtils.assertContainsAllAndOnly(mockBrazeWrapper.methodsCalled, expectedMethods);
+            TestUtils.assertContainsAllAndOnly(mockBrazeTracker.methodsCalled, expectedMethods);
         } catch (Exception e) {
             e.printStackTrace();
             Assert.fail();
@@ -236,17 +236,17 @@ public class BrazeRemoteCommandTests {
 
         try {
             MockBrazeRemoteCommand brazeRemoteCommand = newMockRemoteCommand();
-            MockBrazeWrapperImpl mockBrazeWrapper = new MockBrazeWrapperImpl(TestUtils.getDefaultConfig(), QAActivity.getActivity()) {
+            MockBrazeTracker mockBrazeTracker = new MockBrazeTracker(TestUtils.getDefaultConfig(), QAActivity.getActivity()) {
                 @Override
                 public void wipeData() {
                     // nothing to test here - just need to verify it's been called
                     super.wipeData();
                 }
             };
-            brazeRemoteCommand.setBrazeWrapper(mockBrazeWrapper);
+            brazeRemoteCommand.setBrazeTrackable(mockBrazeTracker);
 
             brazeRemoteCommand.onInvoke(TestData.Responses.wipeData());
-            TestUtils.assertContainsAllAndOnly(mockBrazeWrapper.methodsCalled, expectedMethods);
+            TestUtils.assertContainsAllAndOnly(mockBrazeTracker.methodsCalled, expectedMethods);
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -261,17 +261,17 @@ public class BrazeRemoteCommandTests {
 
         try {
             MockBrazeRemoteCommand brazeRemoteCommand = newMockRemoteCommand();
-            MockBrazeWrapperImpl mockBrazeWrapper = new MockBrazeWrapperImpl(TestUtils.getDefaultConfig(), QAActivity.getActivity()) {
+            MockBrazeTracker mockBrazeTracker = new MockBrazeTracker(TestUtils.getDefaultConfig(), QAActivity.getActivity()) {
                 @Override
                 public void enableSdk(Boolean enabled) {
                     Assert.assertFalse("enabled should be false", enabled);
                     super.enableSdk(enabled);
                 }
             };
-            brazeRemoteCommand.setBrazeWrapper(mockBrazeWrapper);
+            brazeRemoteCommand.setBrazeTrackable(mockBrazeTracker);
 
             brazeRemoteCommand.onInvoke(TestData.Responses.disableSdk());
-            TestUtils.assertContainsAllAndOnly(mockBrazeWrapper.methodsCalled, expectedMethods);
+            TestUtils.assertContainsAllAndOnly(mockBrazeTracker.methodsCalled, expectedMethods);
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -286,17 +286,17 @@ public class BrazeRemoteCommandTests {
 
         try {
             MockBrazeRemoteCommand brazeRemoteCommand = newMockRemoteCommand();
-            MockBrazeWrapperImpl mockBrazeWrapper = new MockBrazeWrapperImpl(TestUtils.getDefaultConfig(), QAActivity.getActivity()) {
+            MockBrazeTracker mockBrazeTracker = new MockBrazeTracker(TestUtils.getDefaultConfig(), QAActivity.getActivity()) {
                 @Override
                 public void enableSdk(Boolean enabled) {
                     Assert.assertTrue("enabled should be true", enabled);
                     super.enableSdk(enabled);
                 }
             };
-            brazeRemoteCommand.setBrazeWrapper(mockBrazeWrapper);
+            brazeRemoteCommand.setBrazeTrackable(mockBrazeTracker);
 
             brazeRemoteCommand.onInvoke(TestData.Responses.enableSdk());
-            TestUtils.assertContainsAllAndOnly(mockBrazeWrapper.methodsCalled, expectedMethods);
+            TestUtils.assertContainsAllAndOnly(mockBrazeTracker.methodsCalled, expectedMethods);
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -311,7 +311,7 @@ public class BrazeRemoteCommandTests {
 
         try {
             MockBrazeRemoteCommand brazeRemoteCommand = newMockRemoteCommand();
-            MockBrazeWrapperImpl mockBrazeWrapper = new MockBrazeWrapperImpl(TestUtils.getDefaultConfig(), QAActivity.getActivity()) {
+            MockBrazeTracker mockBrazeTracker = new MockBrazeTracker(TestUtils.getDefaultConfig(), QAActivity.getActivity()) {
                 @Override
                 public void setUserAlias(String userAlias, String aliasLabel) {
                     Assert.assertEquals("userAlias does not match what was sent", TestData.Values.USER_ALIAS, userAlias);
@@ -319,10 +319,10 @@ public class BrazeRemoteCommandTests {
                     super.setUserAlias(userAlias, aliasLabel);
                 }
             };
-            brazeRemoteCommand.setBrazeWrapper(mockBrazeWrapper);
+            brazeRemoteCommand.setBrazeTrackable(mockBrazeTracker);
 
             brazeRemoteCommand.onInvoke(TestData.Responses.userAlias());
-            TestUtils.assertContainsAllAndOnly(mockBrazeWrapper.methodsCalled, expectedMethods);
+            TestUtils.assertContainsAllAndOnly(mockBrazeTracker.methodsCalled, expectedMethods);
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -337,17 +337,17 @@ public class BrazeRemoteCommandTests {
 
         try {
             MockBrazeRemoteCommand brazeRemoteCommand = newMockRemoteCommand();
-            MockBrazeWrapperImpl mockBrazeWrapper = new MockBrazeWrapperImpl(TestUtils.getDefaultConfig(), QAActivity.getActivity()) {
+            MockBrazeTracker mockBrazeTracker = new MockBrazeTracker(TestUtils.getDefaultConfig(), QAActivity.getActivity()) {
                 @Override
                 public void setUserId(String userId) {
                     Assert.assertEquals("userId does not match what was sent", TestData.Values.USER_ID, userId);
                     super.setUserId(userId);
                 }
             };
-            brazeRemoteCommand.setBrazeWrapper(mockBrazeWrapper);
+            brazeRemoteCommand.setBrazeTrackable(mockBrazeTracker);
 
             brazeRemoteCommand.onInvoke(TestData.Responses.userId());
-            TestUtils.assertContainsAllAndOnly(mockBrazeWrapper.methodsCalled, expectedMethods);
+            TestUtils.assertContainsAllAndOnly(mockBrazeTracker.methodsCalled, expectedMethods);
             Assert.assertEquals("testUserId: User ID's do not match", TestData.Values.USER_ID, Appboy.getInstance(TestUtils.getDefaultConfig().getApplication().getApplicationContext()).getCurrentUser().getUserId());
 
         } catch (Exception e) {
@@ -371,7 +371,7 @@ public class BrazeRemoteCommandTests {
 
         try {
             MockBrazeRemoteCommand brazeRemoteCommand = newMockRemoteCommand();
-            MockBrazeWrapperImpl mockBrazeWrapper = new MockBrazeWrapperImpl(TestUtils.getDefaultConfig(), QAActivity.getActivity()) {
+            MockBrazeTracker mockBrazeTracker = new MockBrazeTracker(TestUtils.getDefaultConfig(), QAActivity.getActivity()) {
                 @Override
                 public void setUserId(String userId) {
                     Assert.assertEquals("userId does not match what was sent", TestData.Values.USER_ID, userId);
@@ -421,10 +421,10 @@ public class BrazeRemoteCommandTests {
                     super.setUserLanguage(language);
                 }
             };
-            brazeRemoteCommand.setBrazeWrapper(mockBrazeWrapper);
+            brazeRemoteCommand.setBrazeTrackable(mockBrazeTracker);
 
             brazeRemoteCommand.onInvoke(TestData.Responses.userAllAttributes());
-            TestUtils.assertContainsAllAndOnly(mockBrazeWrapper.methodsCalled, expectedMethods);
+            TestUtils.assertContainsAllAndOnly(mockBrazeTracker.methodsCalled, expectedMethods);
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -445,7 +445,7 @@ public class BrazeRemoteCommandTests {
 
         try {
             MockBrazeRemoteCommand brazeRemoteCommand = newMockRemoteCommand();
-            MockBrazeWrapperImpl mockBrazeWrapper = new MockBrazeWrapperImpl(TestUtils.getDefaultConfig(), QAActivity.getActivity()) {
+            MockBrazeTracker mockBrazeTracker = new MockBrazeTracker(TestUtils.getDefaultConfig(), QAActivity.getActivity()) {
                 @Override
                 public void setUserCustomAttributeArray(String key, String[] attributeArray) {
                     JSONArray jsonArray = new JSONArray();
@@ -457,10 +457,10 @@ public class BrazeRemoteCommandTests {
                     super.setUserCustomAttributeArray(key, attributeArray);
                 }
             };
-            brazeRemoteCommand.setBrazeWrapper(mockBrazeWrapper);
+            brazeRemoteCommand.setBrazeTrackable(mockBrazeTracker);
 
             brazeRemoteCommand.onInvoke(TestData.Responses.userAllCustomAttributes());
-            TestUtils.assertContainsAllAndOnly(mockBrazeWrapper.methodsCalled, expectedMethods);
+            TestUtils.assertContainsAllAndOnly(mockBrazeTracker.methodsCalled, expectedMethods);
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -481,7 +481,7 @@ public class BrazeRemoteCommandTests {
 
         try {
             MockBrazeRemoteCommand brazeRemoteCommand = newMockRemoteCommand();
-            MockBrazeWrapperImpl mockBrazeWrapper = new MockBrazeWrapperImpl(TestUtils.getDefaultConfig(), QAActivity.getActivity()) {
+            MockBrazeTracker mockBrazeTracker = new MockBrazeTracker(TestUtils.getDefaultConfig(), QAActivity.getActivity()) {
                 @Override
                 public void setUserCustomAttributeArray(String key, String[] attributeArray) {
                     JSONArray jsonArray = new JSONArray();
@@ -493,10 +493,10 @@ public class BrazeRemoteCommandTests {
                     super.setUserCustomAttributeArray(key, attributeArray);
                 }
             };
-            brazeRemoteCommand.setBrazeWrapper(mockBrazeWrapper);
+            brazeRemoteCommand.setBrazeTrackable(mockBrazeTracker);
 
             brazeRemoteCommand.onInvoke(TestData.Responses.userAllCustomArrayAttributes());
-            TestUtils.assertContainsAllAndOnly(mockBrazeWrapper.methodsCalled, expectedMethods);
+            TestUtils.assertContainsAllAndOnly(mockBrazeTracker.methodsCalled, expectedMethods);
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -513,12 +513,12 @@ public class BrazeRemoteCommandTests {
 
         try {
             MockBrazeRemoteCommand brazeRemoteCommand = newMockRemoteCommand();
-            MockBrazeWrapperImpl mockBrazeWrapper = new MockBrazeWrapperImpl(TestUtils.getDefaultConfig(), QAActivity.getActivity()) {
+            MockBrazeTracker mockBrazeTracker = new MockBrazeTracker(TestUtils.getDefaultConfig(), QAActivity.getActivity()) {
             };
-            brazeRemoteCommand.setBrazeWrapper(mockBrazeWrapper);
+            brazeRemoteCommand.setBrazeTrackable(mockBrazeTracker);
 
             brazeRemoteCommand.onInvoke(TestData.Responses.socialData());
-            TestUtils.assertContainsAllAndOnly(mockBrazeWrapper.methodsCalled, expectedMethods);
+            TestUtils.assertContainsAllAndOnly(mockBrazeTracker.methodsCalled, expectedMethods);
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -530,8 +530,8 @@ public class BrazeRemoteCommandTests {
         return new MockBrazeRemoteCommand(TestUtils.getDefaultConfig(), true);
     }
 
-    public MockBrazeWrapperImpl newMockBrazeWrapper() {
-        return new MockBrazeWrapperImpl(TestUtils.getDefaultConfig(), QAActivity.getActivity());
+    public MockBrazeTracker newMockBrazeTracker() {
+        return new MockBrazeTracker(TestUtils.getDefaultConfig(), QAActivity.getActivity());
     }
 
     public void setupInitTestWithApiKey(BrazeRemoteCommand brc) {

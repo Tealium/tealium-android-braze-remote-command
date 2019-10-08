@@ -22,7 +22,7 @@ dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
 
     implementation 'com.tealium:library:5.5.5'
-    releaseImplementation 'com.tealium.remotecommands:braze:0.0.1'
+    releaseImplementation 'com.tealium.remotecommands:braze:0.0.2'
     debugImplementation project(path: ':braze')
 
     implementation 'com.appboy:android-sdk-ui:3.5.0'

@@ -12,9 +12,9 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 
-public class MockBrazeWrapperImpl extends BrazeWrapperImpl {
+public class MockBrazeTracker extends BrazeTracker {
 
-    public MockBrazeWrapperImpl(Tealium.Config config, Activity activity) {
+    public MockBrazeTracker(Tealium.Config config, Activity activity) {
         super(config);
         // allow for overriding of activity for QA purposes
         if (mCurrentActivity == null) {

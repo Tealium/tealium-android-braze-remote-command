@@ -31,7 +31,6 @@ class BrazeUtils {
      */
     public static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("E MMM dd HH:mm:ss z yyyy");
 
-
     /**
      * At the time of writing, the Android SDK will stringify values in a HashMap such that
      * the native type is lost. The method being tested here will attempt to recover that.
@@ -225,7 +224,6 @@ class BrazeUtils {
 
         return genderEnum;
     }
-
 
     /**
      * Helper to convert a JSONArray to and array of Strings

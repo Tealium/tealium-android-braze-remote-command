@@ -1,9 +1,11 @@
 package com.tealium.remotecommands.braze;
 
 import android.app.Activity;
+
+import androidx.annotation.NonNull;
+
 import android.app.Application;
 import android.os.Bundle;
-import androidx.annotation.NonNull;
 import android.util.Log;
 
 import com.appboy.Appboy;
@@ -30,22 +32,22 @@ import java.util.List;
 import static com.tealium.remotecommands.braze.BrazeConstants.TAG;
 import static com.tealium.remotecommands.braze.BrazeConstants.Config;
 
-
-class BrazeWrapperImpl implements BrazeWrapper {
+class BrazeTracker implements BrazeTrackable, Application.ActivityLifecycleCallbacks {
 
     Tealium.Config mTealiumConfig;
     Activity mCurrentActivity;
+    boolean mRegisterInAppMessageManager;
 
-    public BrazeWrapperImpl(Tealium.Config config) {
+    public BrazeTracker(Tealium.Config config) {
         this(config, true);
     }
 
-    public BrazeWrapperImpl(Tealium.Config config, boolean registerInAppMessageManager) {
+    public BrazeTracker(Tealium.Config config, boolean registerInAppMessageManager) {
         this.mTealiumConfig = config;
+        mRegisterInAppMessageManager = registerInAppMessageManager;
 
-        mTealiumConfig.getApplication().registerActivityLifecycleCallbacks(new AppboyLifecycleCallbackListener(true, registerInAppMessageManager));
+        mTealiumConfig.getApplication().registerActivityLifecycleCallbacks(this);
     }
-
 
     @Override
     public void initialize(String apiKey) {
@@ -86,7 +88,6 @@ class BrazeWrapperImpl implements BrazeWrapper {
                 builder.setLargeNotificationIcon(launchOptions.optString(Config.LARGE_NOTIFICATION_ICON));
             }
 
-
             // Booleans
             if (BrazeUtils.keyHasValue(launchOptions, Config.FIREBASE_ENABLED)) {
                 builder.setIsFirebaseCloudMessagingRegistrationEnabled(launchOptions.optBoolean(Config.FIREBASE_ENABLED));
@@ -107,7 +108,6 @@ class BrazeWrapperImpl implements BrazeWrapper {
             if (BrazeUtils.keyHasValue(launchOptions, Config.ENABLE_NEWS_FEED_INDICATOR)) {
                 builder.setNewsfeedVisualIndicatorOn(launchOptions.optBoolean(Config.ENABLE_NEWS_FEED_INDICATOR));
             }
-
 
             // Integers
             if (BrazeUtils.keyHasValue(launchOptions, Config.SESSION_TIMEOUT)) {
@@ -160,6 +160,9 @@ class BrazeWrapperImpl implements BrazeWrapper {
             }
         }
 
+        // configure the instance.
+        Appboy.configure(mTealiumConfig.getApplication().getApplicationContext(), builder.build());
+
         // Go through all the config overrides..
         if (overrides != null) {
             for (BrazeRemoteCommand.ConfigOverrider c : overrides) {
@@ -167,8 +170,14 @@ class BrazeWrapperImpl implements BrazeWrapper {
             }
         }
 
-        // configure the instance.
-        Appboy.configure(mTealiumConfig.getApplication().getApplicationContext(), builder.build());
+        // No longer need a temporary listener.
+        if (mCurrentActivity != null) {
+            getAppboyInstance().openSession(mCurrentActivity);
+            mTealiumConfig.getApplication().unregisterActivityLifecycleCallbacks(this);
+        }
+
+        // register Braze listeners so they can take over the session handling.
+        mTealiumConfig.getApplication().registerActivityLifecycleCallbacks(new AppboyLifecycleCallbackListener(true, mRegisterInAppMessageManager));
     }
 
     @Override
@@ -555,7 +564,6 @@ class BrazeWrapperImpl implements BrazeWrapper {
         getAppboyUser().setTwitterData(twitterUser);
     }
 
-
     @Override
     public void logCustomEvent(@NonNull String eventName) {
         logCustomEvent(eventName, null);
@@ -632,4 +640,74 @@ class BrazeWrapperImpl implements BrazeWrapper {
     private Appboy getAppboyInstance() {
         return Appboy.getInstance(mTealiumConfig.getApplication().getApplicationContext());
     }
+
+    @Override
+    public void onActivityCreated(Activity activity, Bundle savedInstanceState) {
+        mCurrentActivity = activity;
+    }
+
+    @Override
+    public void onActivityStarted(Activity activity) {
+        mCurrentActivity = activity;
+    }
+
+    @Override
+    public void onActivityResumed(Activity activity) {
+        mCurrentActivity = activity;
+    }
+
+    @Override
+    public void onActivityPaused(Activity activity) {
+
+    }
+
+    @Override
+    public void onActivityStopped(Activity activity) {
+
+    }
+
+    @Override
+    public void onActivitySaveInstanceState(Activity activity, Bundle outState) {
+
+    }
+
+    @Override
+    public void onActivityDestroyed(Activity activity) {
+
+    }
+
+    // private class BrazeLifecycleListener extends AppboyLifecycleCallbackListener {
+    //
+    //     private boolean isInitialized = false;
+    //     private Activity mCurrentActivity;
+    //     private Bundle mCurrentBundle;
+    //
+    //     public BrazeLifecycleListener(boolean sessionHandlingEnabled, boolean registerInAppMessageManager) {
+    //         super(sessionHandlingEnabled, registerInAppMessageManager);
+    //     }
+    //
+    //     void setInitialized(boolean isInitialized) {
+    //         this.isInitialized = isInitialized;
+    //
+    //         if (isInitialized && mCurrentActivity != null) {
+    //             onActivityCreated(mCurrentActivity, mCurrentBundle);
+    //         }
+    //     }
+    //
+    //     @Override
+    //     public void onActivityStarted(Activity activity) {
+    //         mCurrentActivity = activity;
+    //
+    //         if (this.isInitialized) {
+    //             super.onActivityStarted(activity);
+    //         }
+    //     }
+    //
+    //     @Override
+    //     public void onActivityStopped(Activity activity) {
+    //         if (this.isInitialized) {
+    //             super.onActivityStopped(activity);
+    //         }
+    //     }
+    // }
 }

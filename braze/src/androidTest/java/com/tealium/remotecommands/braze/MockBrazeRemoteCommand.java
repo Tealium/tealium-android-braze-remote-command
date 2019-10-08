@@ -36,8 +36,8 @@ public class MockBrazeRemoteCommand extends BrazeRemoteCommand {
         }
     }
 
-    public void setBrazeWrapper(BrazeWrapper brazeWrapper) {
-        this.mBraze = brazeWrapper;
+    public void setBrazeTrackable(BrazeTrackable brazeTrackable) {
+        this.mBraze = brazeTrackable;
     }
 
     public void addValidator(Validator validator) {
