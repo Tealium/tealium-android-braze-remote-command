@@ -348,7 +348,6 @@ public class BrazeRemoteCommandTests {
 
             brazeRemoteCommand.onInvoke(TestData.Responses.userId());
             TestUtils.assertContainsAllAndOnly(mockBrazeTracker.methodsCalled, expectedMethods);
-            Assert.assertEquals("testUserId: User ID's do not match", TestData.Values.USER_ID, Appboy.getInstance(TestUtils.getDefaultConfig().getApplication().getApplicationContext()).getCurrentUser().getUserId());
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -527,7 +526,7 @@ public class BrazeRemoteCommandTests {
     }
 
     public MockBrazeRemoteCommand newMockRemoteCommand() {
-        return new MockBrazeRemoteCommand(TestUtils.getDefaultConfig(), true);
+        return new MockBrazeRemoteCommand(TestUtils.getDefaultConfig(), false, null, false, null);
     }
 
     public MockBrazeTracker newMockBrazeTracker() {
@@ -576,7 +575,7 @@ public class BrazeRemoteCommandTests {
                 Assert.assertEquals(appboyConfig.getFirebaseCloudMessagingSenderIdKey(), TestData.Values.FIREBASE_SENDER_ID);
                 Assert.assertEquals(appboyConfig.getIsFirebaseCloudMessagingRegistrationEnabled(), TestData.Values.FIREBASE_ENABLED);
                 Assert.assertEquals(appboyConfig.getAdmMessagingRegistrationEnabled(), TestData.Values.ADM_ENABLED);
-                Assert.assertEquals(appboyConfig.getDisableLocationCollection(), TestData.Values.DISABLE_LOCATION);
+                Assert.assertEquals(appboyConfig.getIsLocationCollectionEnabled(), !TestData.Values.DISABLE_LOCATION);
                 Assert.assertEquals(appboyConfig.getHandlePushDeepLinksAutomatically(), TestData.Values.AUTO_DEEP_LINKS);
                 Assert.assertEquals(appboyConfig.getBadNetworkDataFlushInterval(), TestData.Values.BAD_NETWORK_INTERVAL);
                 Assert.assertEquals(appboyConfig.getGoodNetworkDataFlushInterval(), TestData.Values.GOOD_NETWORK_INTERVAL);

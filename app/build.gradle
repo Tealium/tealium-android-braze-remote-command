@@ -22,10 +22,10 @@ dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
 
     implementation 'com.tealium:library:5.5.5'
-    releaseImplementation 'com.tealium.remotecommands:braze:0.0.2'
+    releaseImplementation 'com.tealium.remotecommands:braze:0.0.3'
     debugImplementation project(path: ':braze')
 
-    implementation 'com.appboy:android-sdk-ui:3.5.0'
+    implementation 'com.appboy:android-sdk-ui:3.8.0'
 
     implementation 'androidx.appcompat:appcompat:1.0.2'
     implementation 'androidx.constraintlayout:constraintlayout:1.1.3'

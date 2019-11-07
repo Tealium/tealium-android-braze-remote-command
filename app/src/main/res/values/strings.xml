@@ -25,6 +25,8 @@
     <string name="hint_opted_in">Opted-In</string>
     <string name="hint_opted_in_value" translatable="false">opted_in</string>
 
+    <string name="btn_location">Location Data</string>
+    <string name="txt_location_permissions">Location Permissions: %s</string>
 
     <string name="btn_send_events">Events and Attributes</string>
     <string name="btn_edit_user_details">Edit User Details</string>
