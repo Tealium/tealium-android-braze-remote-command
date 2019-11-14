@@ -493,6 +493,27 @@ public final class TestData {
 
             return create(payload);
         }
+
+        public static RemoteCommand.Response requestFlush() throws JSONException {
+            JSONObject payload = new JSONObject();
+            Collection<String> commandList = new LinkedList<>();
+            commandList.add(Commands.FLUSH);
+
+            payload.put(Commands.COMMAND_KEY, String.join(SEPARATOR, commandList));
+
+            return create(payload);
+        }
+
+        public static RemoteCommand.Response registerPush() throws JSONException {
+            JSONObject payload = new JSONObject();
+            Collection<String> commandList = new LinkedList<>();
+            commandList.add(Commands.REGISTER_TOKEN);
+
+            payload.put(Commands.COMMAND_KEY, String.join(SEPARATOR, commandList));
+            payload.put(User.PUSH_TOKEN, "12345");
+
+            return create(payload);
+        }
     }
 
     public static final class Values {
@@ -647,5 +668,7 @@ public final class TestData {
         public static final String APPEND_USER_CUSTOM_ATTRIBUTES_ARRAY = "appendUserCustomAttributeArrays";
         public static final String REMOVE_USER_CUSTOM_ATTRIBUTE_ARRAY = "removeFromUserCustomAttributeArray";
         public static final String REMOVE_USER_CUSTOM_ATTRIBUTES_ARRAY = "removeFromUserCustomAttributeArrays";
+        public static final String REQUEST_FLUSH = "requestFlush";
+        public static final String REGISTER_PUSH = "registerToken";
     }
 }

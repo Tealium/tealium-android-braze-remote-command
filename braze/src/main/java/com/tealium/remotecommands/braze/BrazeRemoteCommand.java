@@ -397,6 +397,10 @@ public class BrazeRemoteCommand extends RemoteCommand {
                     case Commands.FLUSH:
                         mBraze.requestFlush();
                         break;
+                    case Commands.REGISTER_TOKEN:
+                        mBraze.registerToken(
+                                payload.optString(User.PUSH_TOKEN, null)
+                        );
                 }
             } catch (Exception ex) {
                 Log.w(TAG, "Error processing command: " + command, ex);

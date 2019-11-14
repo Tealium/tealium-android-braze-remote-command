@@ -670,6 +670,8 @@ class BrazeTracker implements BrazeTrackable, Application.ActivityLifecycleCallb
 
     @Override
     public void registerToken(String token) {
+        if (token == null) return;
+
         getAppboyInstance().registerAppboyPushMessages(token);
     }
 

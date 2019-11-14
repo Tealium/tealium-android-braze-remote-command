@@ -96,6 +96,7 @@ public final class BrazeConstants {
         public static final String STATUSES_COUNT = "statuses_count";
         public static final String EMAIL_NOTIFICATION = "email_notification";
         public static final String PUSH_NOTIFICATION = "push_notification";
+        public static final String PUSH_TOKEN = "push_token";
     }
 
     public static final class Event {

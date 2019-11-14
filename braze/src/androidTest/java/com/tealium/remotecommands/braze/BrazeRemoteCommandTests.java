@@ -525,6 +525,46 @@ public class BrazeRemoteCommandTests {
         }
     }
 
+    @Test
+    public void testRequestFlush() {
+        Collection<String> expectedMethods = new ArrayList<>();
+        expectedMethods.add(TestData.Methods.REQUEST_FLUSH);
+
+        try {
+            MockBrazeRemoteCommand brazeRemoteCommand = newMockRemoteCommand();
+            MockBrazeTracker mockBrazeTracker = new MockBrazeTracker(TestUtils.getDefaultConfig(), QAActivity.getActivity()) {
+            };
+            brazeRemoteCommand.setBrazeTrackable(mockBrazeTracker);
+
+            brazeRemoteCommand.onInvoke(TestData.Responses.requestFlush());
+            TestUtils.assertContainsAllAndOnly(mockBrazeTracker.methodsCalled, expectedMethods);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
+
+    @Test
+    public void testRegisterPush() {
+        Collection<String> expectedMethods = new ArrayList<>();
+        expectedMethods.add(TestData.Methods.REGISTER_PUSH);
+
+        try {
+            MockBrazeRemoteCommand brazeRemoteCommand = newMockRemoteCommand();
+            MockBrazeTracker mockBrazeTracker = new MockBrazeTracker(TestUtils.getDefaultConfig(), QAActivity.getActivity()) {
+            };
+            brazeRemoteCommand.setBrazeTrackable(mockBrazeTracker);
+
+            brazeRemoteCommand.onInvoke(TestData.Responses.registerPush());
+            TestUtils.assertContainsAllAndOnly(mockBrazeTracker.methodsCalled, expectedMethods);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
+
     public MockBrazeRemoteCommand newMockRemoteCommand() {
         return new MockBrazeRemoteCommand(TestUtils.getDefaultConfig(), false, null, false, null);
     }
