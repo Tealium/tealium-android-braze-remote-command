@@ -59,6 +59,9 @@ public final class BrazeConstants {
         public static final String GOOD_NETWORK_INTERVAL = "good_network_interval";
         public static final String GREAT_NETWORK_INTERVAL = "great_network_interval";
         public static final String TRIGGER_INTERVAL_SECONDS = "trigger_interval_seconds";
+        public static final String ENABLE_GEOFENCES = "enable_geofences";
+        public static final String BACKSTACK_ACTIVITY_ENABLED = "backstack_activity_enabled";
+        public static final String BACKSTACK_ACTIVITY_CLASS = "backstack_activity_class";
     }
 
     public static final class User {
@@ -93,6 +96,7 @@ public final class BrazeConstants {
         public static final String STATUSES_COUNT = "statuses_count";
         public static final String EMAIL_NOTIFICATION = "email_notification";
         public static final String PUSH_NOTIFICATION = "push_notification";
+        public static final String PUSH_TOKEN = "push_token";
     }
 
     public static final class Event {

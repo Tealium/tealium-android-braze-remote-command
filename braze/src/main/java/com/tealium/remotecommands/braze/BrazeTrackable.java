@@ -441,4 +441,11 @@ interface BrazeTrackable {
      * Requests an immediate flush of any queued up events within the Braze SDK.
      */
     void requestFlush();
+
+    /**
+     * Registers for push message using the Token provided - for manual registration.
+     *
+     * @param token
+     */
+    void registerToken(String token);
 }

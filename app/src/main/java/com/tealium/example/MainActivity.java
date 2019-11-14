@@ -12,6 +12,7 @@ public class MainActivity extends AppCompatActivity {
     AppCompatButton mEditUserDetailsButton;
     AppCompatButton mEventsAndAttributesButton;
     AppCompatButton mEditUsetEngagementsButton;
+    AppCompatButton mLocationButton;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -39,6 +40,14 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 startActivity(new Intent(MainActivity.this, EngagementActivity.class));
+            }
+        });
+
+        mLocationButton = findViewById(R.id.btn_location);
+        mLocationButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                startActivity(new Intent(MainActivity.this, LocationActivity.class));
             }
         });
     }

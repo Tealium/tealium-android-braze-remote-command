@@ -1,6 +1,7 @@
 package com.tealium.remotecommands.braze;
 
 import android.app.Activity;
+
 import androidx.annotation.NonNull;
 
 import com.tealium.library.Tealium;
@@ -265,6 +266,18 @@ public class MockBrazeTracker extends BrazeTracker {
     @Override
     public void logPurchase(@NonNull String[] productIds, String[] currencies, @NonNull BigDecimal[] unitPrices, Integer[] quantities, JSONObject[] purchaseProerties) {
         super.logPurchase(productIds, currencies, unitPrices, quantities, purchaseProerties);
+        addCallerName();
+    }
+
+    @Override
+    public void requestFlush() {
+        super.requestFlush();
+        addCallerName();
+    }
+
+    @Override
+    public void registerToken(String token) {
+        super.registerToken(token);
         addCallerName();
     }
 }

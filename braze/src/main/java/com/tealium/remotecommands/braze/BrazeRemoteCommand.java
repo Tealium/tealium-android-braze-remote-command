@@ -24,6 +24,7 @@ import org.json.JSONObject;
 import java.math.BigDecimal;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Set;
 
 import static com.tealium.remotecommands.braze.BrazeConstants.TAG;
 import static com.tealium.remotecommands.braze.BrazeConstants.Commands;
@@ -56,12 +57,10 @@ public class BrazeRemoteCommand extends RemoteCommand {
      * Constructs a RemoteCommand that integrates with the Braze SDK to allow Braze API calls to be
      * implemented through Tealium.
      *
-     * @param config                      - Tealium.Config object for the instance you are registering this command with.
-     * @param registerInAppMessageManager - Automatically registers the Braze InAppMessageManager
-     *                                    through Braze's lifecycle callabacks.
+     * @param config - Tealium.Config object for the instance you are registering this command with.
      */
-    public BrazeRemoteCommand(Tealium.Config config, boolean registerInAppMessageManager) {
-        this(config, registerInAppMessageManager, DEFAULT_COMMAND_ID, DEFAULT_COMMAND_DESCRIPTION);
+    public BrazeRemoteCommand(Tealium.Config config) {
+        this(config, true, null, true, null, DEFAULT_COMMAND_ID, DEFAULT_COMMAND_DESCRIPTION);
     }
 
     /**
@@ -69,20 +68,38 @@ public class BrazeRemoteCommand extends RemoteCommand {
      * implemented through Tealium.
      *
      * @param config                      - Tealium.Config object for the instance you are registering this command with.
+     * @param sessionHandlingEnabled      - Whether session handling should be automatically handled by Braze
+     * @param sessionHandlingBlacklist    - Set of classes not to open/close sessions on.
      * @param registerInAppMessageManager - Automatically registers the Braze InAppMessageManager
      *                                    through Braze's lifecycle callabacks.
+     * @param inAppMessageBlacklist       - Set of classes that should not show in app messages
+     */
+    public BrazeRemoteCommand(Tealium.Config config, boolean sessionHandlingEnabled, Set<Class> sessionHandlingBlacklist, boolean registerInAppMessageManager, Set<Class> inAppMessageBlacklist) {
+        this(config, sessionHandlingEnabled, sessionHandlingBlacklist, registerInAppMessageManager, inAppMessageBlacklist, DEFAULT_COMMAND_ID, DEFAULT_COMMAND_DESCRIPTION);
+
+    }
+
+    /**
+     * Constructs a RemoteCommand that integrates with the Braze SDK to allow Braze API calls to be
+     * implemented through Tealium.
+     *
+     * @param config                      - Tealium.Config object for the instance you are registering this command with.
+     * @param sessionHandlingEnabled      - Whether session handling should be automatically handled by Braze
+     * @param sessionHandlingBlacklist    - Set of classes not to open/close sessions on.
+     * @param registerInAppMessageManager - Automatically registers the Braze InAppMessageManager
+     *                                    through Braze's lifecycle callabacks.
+     * @param inAppMessageBlacklist       - Set of classes that should not show in app messages
      * @param commandId                   - Override for the default command id as set on your TagBridge Custom
      *                                    Command tag in Tealium IQ.
      *                                    Default - "braze"
      * @param description                 - Override description for this Remote Command
      */
-    public BrazeRemoteCommand(Tealium.Config config, boolean registerInAppMessageManager, String commandId, String description) {
+    public BrazeRemoteCommand(Tealium.Config config, boolean sessionHandlingEnabled, Set<Class> sessionHandlingBlacklist, boolean registerInAppMessageManager, Set<Class> inAppMessageBlacklist, String commandId, String description) {
         super(
                 !BrazeUtils.isNullOrEmpty(commandId) ? commandId : DEFAULT_COMMAND_ID,
                 !BrazeUtils.isNullOrEmpty(description) ? description : DEFAULT_COMMAND_DESCRIPTION);
-        mBraze = new BrazeTracker(config, registerInAppMessageManager);
+        mBraze = new BrazeTracker(config, sessionHandlingEnabled, sessionHandlingBlacklist, registerInAppMessageManager, inAppMessageBlacklist);
         mConfig = config;
-
     }
 
     /**
@@ -380,6 +397,10 @@ public class BrazeRemoteCommand extends RemoteCommand {
                     case Commands.FLUSH:
                         mBraze.requestFlush();
                         break;
+                    case Commands.REGISTER_TOKEN:
+                        mBraze.registerToken(
+                                payload.optString(User.PUSH_TOKEN, null)
+                        );
                 }
             } catch (Exception ex) {
                 Log.w(TAG, "Error processing command: " + command, ex);

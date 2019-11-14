@@ -28,6 +28,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Set;
 
 import static com.tealium.remotecommands.braze.BrazeConstants.TAG;
 import static com.tealium.remotecommands.braze.BrazeConstants.Config;
@@ -36,17 +37,29 @@ class BrazeTracker implements BrazeTrackable, Application.ActivityLifecycleCallb
 
     Tealium.Config mTealiumConfig;
     Activity mCurrentActivity;
+
+    boolean mSessionHandlingEnabled;
+    Set<Class> mSessionHandlingBlacklist;
     boolean mRegisterInAppMessageManager;
+    Set<Class> mInAppMessageBlacklist;
 
     public BrazeTracker(Tealium.Config config) {
-        this(config, true);
+        this(config, true, null, true, null);
     }
 
-    public BrazeTracker(Tealium.Config config, boolean registerInAppMessageManager) {
+    public BrazeTracker(Tealium.Config config, boolean sessionHandlingEnabled, Set<Class> sessingHandlingBlacklist, boolean registerInAppMessageManager, Set<Class> inAppMessageBlacklist) {
         this.mTealiumConfig = config;
+        mSessionHandlingEnabled = sessionHandlingEnabled;
+        mSessionHandlingBlacklist = sessingHandlingBlacklist;
         mRegisterInAppMessageManager = registerInAppMessageManager;
+        mInAppMessageBlacklist = inAppMessageBlacklist;
 
-        mTealiumConfig.getApplication().registerActivityLifecycleCallbacks(this);
+        if (sessionHandlingEnabled) {
+            // Init process will be asynchronous; need to register a temporary listener to capture
+            // any Activity that may be loaded for session reporting.
+            // Cannot register the braze listeners before API key is available, which may be later on.
+            mTealiumConfig.getApplication().registerActivityLifecycleCallbacks(this);
+        }
     }
 
     @Override
@@ -88,6 +101,14 @@ class BrazeTracker implements BrazeTrackable, Application.ActivityLifecycleCallb
                 builder.setLargeNotificationIcon(launchOptions.optString(Config.LARGE_NOTIFICATION_ICON));
             }
 
+            if (BrazeUtils.keyHasValue(launchOptions, Config.BACKSTACK_ACTIVITY_CLASS)) {
+                try {
+                    builder.setPushDeepLinkBackStackActivityClass(Class.forName(launchOptions.optString(Config.BACKSTACK_ACTIVITY_CLASS)));
+                } catch (ClassNotFoundException cnf) {
+                    Log.w(TAG, "Backstack Class not found.", cnf);
+                }
+            }
+
             // Booleans
             if (BrazeUtils.keyHasValue(launchOptions, Config.FIREBASE_ENABLED)) {
                 builder.setIsFirebaseCloudMessagingRegistrationEnabled(launchOptions.optBoolean(Config.FIREBASE_ENABLED));
@@ -102,12 +123,21 @@ class BrazeTracker implements BrazeTrackable, Application.ActivityLifecycleCallb
             }
 
             if (BrazeUtils.keyHasValue(launchOptions, Config.DISABLE_LOCATION)) {
-                builder.setDisableLocationCollection(launchOptions.optBoolean(Config.DISABLE_LOCATION));
+                builder.setIsLocationCollectionEnabled(!launchOptions.optBoolean(Config.DISABLE_LOCATION));
             }
 
             if (BrazeUtils.keyHasValue(launchOptions, Config.ENABLE_NEWS_FEED_INDICATOR)) {
                 builder.setNewsfeedVisualIndicatorOn(launchOptions.optBoolean(Config.ENABLE_NEWS_FEED_INDICATOR));
             }
+
+            if (BrazeUtils.keyHasValue(launchOptions, Config.ENABLE_GEOFENCES)) {
+                builder.setGeofencesEnabled(launchOptions.optBoolean(Config.ENABLE_GEOFENCES));
+            }
+
+            if (BrazeUtils.keyHasValue(launchOptions, Config.BACKSTACK_ACTIVITY_ENABLED)) {
+                builder.setPushDeepLinkBackStackActivityEnabled(launchOptions.optBoolean(Config.BACKSTACK_ACTIVITY_ENABLED));
+            }
+
 
             // Integers
             if (BrazeUtils.keyHasValue(launchOptions, Config.SESSION_TIMEOUT)) {
@@ -160,9 +190,6 @@ class BrazeTracker implements BrazeTrackable, Application.ActivityLifecycleCallb
             }
         }
 
-        // configure the instance.
-        Appboy.configure(mTealiumConfig.getApplication().getApplicationContext(), builder.build());
-
         // Go through all the config overrides..
         if (overrides != null) {
             for (BrazeRemoteCommand.ConfigOverrider c : overrides) {
@@ -170,14 +197,23 @@ class BrazeTracker implements BrazeTrackable, Application.ActivityLifecycleCallb
             }
         }
 
-        // No longer need a temporary listener.
-        if (mCurrentActivity != null) {
-            getAppboyInstance().openSession(mCurrentActivity);
-            mTealiumConfig.getApplication().unregisterActivityLifecycleCallbacks(this);
-        }
+        // configure the instance.
+        Appboy.configure(mTealiumConfig.getApplication().getApplicationContext(), builder.build());
 
-        // register Braze listeners so they can take over the session handling.
-        mTealiumConfig.getApplication().registerActivityLifecycleCallbacks(new AppboyLifecycleCallbackListener(true, mRegisterInAppMessageManager));
+        if (mSessionHandlingEnabled) {
+            if (mCurrentActivity != null
+                    && (mSessionHandlingBlacklist == null || !mSessionHandlingBlacklist.contains(mCurrentActivity.getClass()))) {
+                // Current activity found.
+                // No longer need a temporary listener.
+                getAppboyInstance().openSession(mCurrentActivity);
+            }
+            mTealiumConfig.getApplication().unregisterActivityLifecycleCallbacks(this);
+            // register Braze listeners so they can take over the session handling.
+            mTealiumConfig.getApplication().registerActivityLifecycleCallbacks(new AppboyLifecycleCallbackListener(mSessionHandlingEnabled,
+                    mRegisterInAppMessageManager,
+                    mSessionHandlingBlacklist,
+                    mInAppMessageBlacklist));
+        }
     }
 
     @Override
@@ -196,14 +232,16 @@ class BrazeTracker implements BrazeTrackable, Application.ActivityLifecycleCallb
 
     @Override
     public void setUserId(String userId) {
-        if (userId != null && !getAppboyUser().getUserId().equalsIgnoreCase(userId)) {
+        if (userId != null) {
             getAppboyInstance().changeUser(userId);
         }
     }
 
     @Override
     public void setUserAlias(String userAlias, String aliasLabel) {
-        if (BrazeUtils.isNullOrEmpty(userAlias) || BrazeUtils.isNullOrEmpty(aliasLabel)) {
+        if (BrazeUtils.isNullOrEmpty(userAlias) ||
+                BrazeUtils.isNullOrEmpty(aliasLabel) ||
+                getAppboyUser() == null) {
             return;
         }
 
@@ -212,7 +250,7 @@ class BrazeTracker implements BrazeTrackable, Application.ActivityLifecycleCallb
 
     @Override
     public void setUserFirstName(String firstName) {
-        if (BrazeUtils.isNullOrEmpty(firstName)) {
+        if (BrazeUtils.isNullOrEmpty(firstName) || getAppboyUser() == null) {
             return;
         }
 
@@ -221,7 +259,7 @@ class BrazeTracker implements BrazeTrackable, Application.ActivityLifecycleCallb
 
     @Override
     public void setUserLastName(String lastName) {
-        if (BrazeUtils.isNullOrEmpty(lastName)) {
+        if (BrazeUtils.isNullOrEmpty(lastName) || getAppboyUser() == null) {
             return;
         }
 
@@ -230,7 +268,7 @@ class BrazeTracker implements BrazeTrackable, Application.ActivityLifecycleCallb
 
     @Override
     public void setUserEmail(String email) {
-        if (BrazeUtils.isNullOrEmpty(email)) {
+        if (BrazeUtils.isNullOrEmpty(email) || getAppboyUser() == null) {
             return;
         }
 
@@ -239,7 +277,7 @@ class BrazeTracker implements BrazeTrackable, Application.ActivityLifecycleCallb
 
     @Override
     public void setUserLanguage(String language) {
-        if (BrazeUtils.isNullOrEmpty(language)) {
+        if (BrazeUtils.isNullOrEmpty(language) || getAppboyUser() == null) {
             return;
         }
 
@@ -248,7 +286,7 @@ class BrazeTracker implements BrazeTrackable, Application.ActivityLifecycleCallb
 
     @Override
     public void setUserGender(String gender) {
-        if (BrazeUtils.isNullOrEmpty(gender)) {
+        if (BrazeUtils.isNullOrEmpty(gender) || getAppboyUser() == null) {
             return;
         }
 
@@ -259,7 +297,7 @@ class BrazeTracker implements BrazeTrackable, Application.ActivityLifecycleCallb
 
     @Override
     public void setUserHomeCity(String city) {
-        if (BrazeUtils.isNullOrEmpty(city)) {
+        if (BrazeUtils.isNullOrEmpty(city) || getAppboyUser() == null) {
             return;
         }
 
@@ -517,6 +555,10 @@ class BrazeTracker implements BrazeTrackable, Application.ActivityLifecycleCallb
                                 Integer numberOfFriends,
                                 JSONArray listOfLikes,
                                 String birthday) {
+        if (getAppboyUser() == null) {
+            return;
+        }
+
         List<String> likes = new ArrayList<>();
         if (listOfLikes != null && listOfLikes.length() > 0) {
             for (int i = 0; i < listOfLikes.length(); i++) {
@@ -552,6 +594,9 @@ class BrazeTracker implements BrazeTrackable, Application.ActivityLifecycleCallb
                                Integer followingCount,
                                Integer tweetCount,
                                String profileImageUrl) {
+        if (getAppboyUser() == null) {
+            return;
+        }
 
         TwitterUser twitterUser = new TwitterUser(twitterUserId,
                 twitterHandle,
@@ -598,7 +643,7 @@ class BrazeTracker implements BrazeTrackable, Application.ActivityLifecycleCallb
             currency = "USD";// braze default.
         }
 
-        getAppboyInstance().logPurchase(productId, currency, unitPrice, quantity, BrazeUtils.extractCustomProperties(purchaseProerties));
+        getAppboyInstance().logPurchase(productId, currency, unitPrice, quantity > 0 ? quantity : 1, BrazeUtils.extractCustomProperties(purchaseProerties));
     }
 
     @Override
@@ -611,7 +656,7 @@ class BrazeTracker implements BrazeTrackable, Application.ActivityLifecycleCallb
             logPurchase(
                     productIds[i],
                     currencies != null && currencies.length > i ? currencies[i] : null,
-                    unitPrices != null && unitPrices.length > i ? unitPrices[i] : null,
+                    unitPrices != null && unitPrices.length > i ? unitPrices[i] : new BigDecimal(0),
                     quantities != null && quantities.length > i ? quantities[i] : 1,
                     purchaseProperties != null && purchaseProperties.length > i ? purchaseProperties[i] : null
             );
@@ -621,6 +666,13 @@ class BrazeTracker implements BrazeTrackable, Application.ActivityLifecycleCallb
     @Override
     public void requestFlush() {
         getAppboyInstance().requestImmediateDataFlush();
+    }
+
+    @Override
+    public void registerToken(String token) {
+        if (token == null) return;
+
+        getAppboyInstance().registerAppboyPushMessages(token);
     }
 
     /**

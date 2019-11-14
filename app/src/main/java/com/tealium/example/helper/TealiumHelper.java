@@ -1,34 +1,28 @@
 package com.tealium.example.helper;
 
 import android.app.Application;
-import android.content.SharedPreferences;
 import android.os.Build;
 import android.util.Log;
 import android.webkit.WebView;
 
+import com.appboy.configuration.AppboyConfig;
 import com.tealium.example.BuildConfig;
-import com.tealium.internal.data.Dispatch;
-import com.tealium.internal.listeners.WebViewLoadedListener;
-import com.tealium.internal.tagbridge.RemoteCommand;
-import com.tealium.library.DispatchValidator;
+import com.tealium.example.MainActivity;
+import com.tealium.example.UserActivity;
 import com.tealium.library.Tealium;
 import com.tealium.remotecommands.braze.BrazeRemoteCommand;
 
+import java.util.Collections;
 import java.util.HashMap;
-import java.util.Locale;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * This class abstracts interaction with the Tealium library and simplifies comprehension
  */
 public final class TealiumHelper {
 
-    static {
-        Log.i("TagBridge", " --- START --- ");
-    }
-
-    private final static String KEY_TEALIUM_INIT_COUNT = "tealium_init_count";
-    private final static String KEY_TEALIUM_INITIALIZED = "tealium_initialized";
     private final static String TAG = "TealiumHelper";
 
     // Identifier for the main Tealium instance
@@ -49,39 +43,37 @@ public final class TealiumHelper {
         final Tealium.Config config = Tealium.Config.create(application, "tealiummobile", "braze-tag", "qa");
         config.setForceOverrideLogLevel("dev");
 
-        // (OPTIONAL) Get the WebView with UTag loaded
-        config.getEventListeners().add(createWebViewLoadedListener());
-
-        // (OPTIONAL) Control how the library treats views/links
-        config.getDispatchValidators().add(createDispatchValidator());
-
         final Tealium instance = Tealium.createInstance(TEALIUM_MAIN, config);
 
-        // (OPTIONAL) Enhanced integrations
-        instance.addRemoteCommand(createLoggerRemoteCommand());
+        // Optional: Setup Braze blacklists.
+        Set<Class> sessionHandlingBlacklist = new HashSet<>();
+        Set<Class> inAppMessageBlacklist = new HashSet<>();
+        // sessionHandlingBlacklist.add(MainActivity.class);
+        // inAppMessageBlacklist.add(UserActivity.class);
 
-        BrazeRemoteCommand brc = new BrazeRemoteCommand(config, false);
+        BrazeRemoteCommand brc = new BrazeRemoteCommand(config,
+                true,
+                sessionHandlingBlacklist,
+                true,
+                inAppMessageBlacklist);
+
+        // Optional: Set config options that may not be supported yet by the Tag in Tealium IQ
+        //              or simply to override settings locally.
         // brc.registerConfigOverride(new BrazeRemoteCommand.ConfigOverrider() {
         //     @Override
         //     public void onOverride(AppboyConfig.Builder b) {
-        //         b.setApiKey("");
+        //         // b.setIsLocationCollectionEnabled(true);
+        //         // b.setGeofencesEnabled(true);
+        //
+        //         // b.setPushDeepLinkBackStackActivityEnabled(true);
+        //         // b.setPushDeepLinkBackStackActivityClass(UserActivity.class);
         //     }
         // });
+
+        // Required: Add BrazeRemoteCommand object to your Tealium Instance.
         instance.addRemoteCommand(brc);
 
-        // (OPTIONAL) Use tealium.getDataSources().getPersistentDataSources() to set/modify lifetime values
-        SharedPreferences sp = instance.getDataSources().getPersistentDataSources();
-        sp.edit().putInt(KEY_TEALIUM_INIT_COUNT, sp.getInt(KEY_TEALIUM_INIT_COUNT, 0) + 1).commit();
-
-        // (OPTIONAL) Use tealium.getDataSources().getVolatileDataSources() to set/modify runtime only values
-        instance.getDataSources().getVolatileDataSources()
-                .put(KEY_TEALIUM_INITIALIZED, System.currentTimeMillis());
-
-        // (OPTIONAL) tracking initialization
-        final Map<String, Object> data = new HashMap<>(2);
-        data.put("logged_in", false);
-        data.put("visitor_status", new String[]{"new_user", "unregistered"});
-        TealiumHelper.trackEvent("initialization", data);
+        TealiumHelper.trackEvent("initialization", new HashMap<String, Object>());
     }
 
     public static void trackView(String viewName, Map<String, ?> data) {
@@ -100,64 +92,5 @@ public final class TealiumHelper {
         if (instance != null) {
             instance.trackEvent(eventName, data);
         }
-    }
-
-    private static WebViewLoadedListener createWebViewLoadedListener() {
-        return new WebViewLoadedListener() {
-            @Override
-            public void onWebViewLoad(WebView webView, boolean success) {
-                Log.d(TAG, "WebView " + webView +
-                        (success ? " loaded successfully" : "failed to load"));
-            }
-
-            @Override
-            public String toString() {
-                return "LoggingWebViewLoadListener";
-            }
-        };
-    }
-
-    private static DispatchValidator createDispatchValidator() {
-        return new DispatchValidator() {
-            @Override
-            protected boolean shouldDrop(Dispatch dispatch) {
-
-                // Drop any desired dispatches here by returning true. (Never queued nor sent)
-                return super.shouldDrop(dispatch);
-            }
-
-            @Override
-            protected boolean shouldQueue(Dispatch dispatch, boolean shouldQueue) {
-
-                Log.d(TAG, String.format(
-                        Locale.ROOT,
-                        "%s dispatch: %s",
-                        (shouldQueue ? "Queueing" : "Sending"),
-                        dispatch));
-
-                return super.shouldQueue(dispatch, shouldQueue);
-            }
-
-            @Override
-            public String toString() {
-                return "CustomDispatchValidator";
-            }
-        };
-    }
-
-    private static RemoteCommand createLoggerRemoteCommand() {
-        return new RemoteCommand("logger", "Logs dispatches") {
-            @Override
-            protected void onInvoke(Response response) throws Exception {
-                final String message = response.getRequestPayload()
-                        .optString("message", "no_message");
-                Log.i(TAG, "RemoteCommand Message: " + message);
-            }
-
-            @Override
-            public String toString() {
-                return "LoggerRemoteCommand";
-            }
-        };
     }
 }
