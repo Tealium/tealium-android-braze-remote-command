@@ -17,8 +17,6 @@ import com.appboy.models.outgoing.AppboyProperties;
 import com.appboy.models.outgoing.FacebookUser;
 import com.appboy.models.outgoing.TwitterUser;
 
-import com.tealium.library.Tealium;
-
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -35,20 +33,20 @@ import static com.tealium.remotecommands.braze.BrazeConstants.Config;
 
 class BrazeTracker implements BrazeTrackable, Application.ActivityLifecycleCallbacks {
 
-    Tealium.Config mTealiumConfig;
+    Application mApplication;
     Activity mCurrentActivity;
 
     boolean mSessionHandlingEnabled;
-    Set<Class> mSessionHandlingBlacklist;
+    Set<Class<?>> mSessionHandlingBlacklist;
     boolean mRegisterInAppMessageManager;
-    Set<Class> mInAppMessageBlacklist;
+    Set<Class<?>> mInAppMessageBlacklist;
 
-    public BrazeTracker(Tealium.Config config) {
-        this(config, true, null, true, null);
+    public BrazeTracker(Application app) {
+        this(app, true, null, true, null);
     }
 
-    public BrazeTracker(Tealium.Config config, boolean sessionHandlingEnabled, Set<Class> sessingHandlingBlacklist, boolean registerInAppMessageManager, Set<Class> inAppMessageBlacklist) {
-        this.mTealiumConfig = config;
+    public BrazeTracker(Application app, boolean sessionHandlingEnabled, Set<Class<?>> sessingHandlingBlacklist, boolean registerInAppMessageManager, Set<Class<?>> inAppMessageBlacklist) {
+        mApplication = app;
         mSessionHandlingEnabled = sessionHandlingEnabled;
         mSessionHandlingBlacklist = sessingHandlingBlacklist;
         mRegisterInAppMessageManager = registerInAppMessageManager;
@@ -58,7 +56,7 @@ class BrazeTracker implements BrazeTrackable, Application.ActivityLifecycleCallb
             // Init process will be asynchronous; need to register a temporary listener to capture
             // any Activity that may be loaded for session reporting.
             // Cannot register the braze listeners before API key is available, which may be later on.
-            mTealiumConfig.getApplication().registerActivityLifecycleCallbacks(this);
+            mApplication.registerActivityLifecycleCallbacks(this);
         }
     }
 
@@ -198,7 +196,7 @@ class BrazeTracker implements BrazeTrackable, Application.ActivityLifecycleCallb
         }
 
         // configure the instance.
-        Appboy.configure(mTealiumConfig.getApplication().getApplicationContext(), builder.build());
+        Appboy.configure(mApplication.getApplicationContext(), builder.build());
 
         if (mSessionHandlingEnabled) {
             if (mCurrentActivity != null
@@ -207,9 +205,9 @@ class BrazeTracker implements BrazeTrackable, Application.ActivityLifecycleCallb
                 // No longer need a temporary listener.
                 getAppboyInstance().openSession(mCurrentActivity);
             }
-            mTealiumConfig.getApplication().unregisterActivityLifecycleCallbacks(this);
+            mApplication.unregisterActivityLifecycleCallbacks(this);
             // register Braze listeners so they can take over the session handling.
-            mTealiumConfig.getApplication().registerActivityLifecycleCallbacks(new AppboyLifecycleCallbackListener(mSessionHandlingEnabled,
+            mApplication.registerActivityLifecycleCallbacks(new AppboyLifecycleCallbackListener(mSessionHandlingEnabled,
                     mRegisterInAppMessageManager,
                     mSessionHandlingBlacklist,
                     mInAppMessageBlacklist));
@@ -219,15 +217,15 @@ class BrazeTracker implements BrazeTrackable, Application.ActivityLifecycleCallb
     @Override
     public void enableSdk(Boolean enabled) {
         if (enabled) {
-            Appboy.enableSdk(mTealiumConfig.getApplication().getApplicationContext());
+            Appboy.enableSdk(mApplication.getApplicationContext());
         } else {
-            Appboy.disableSdk(mTealiumConfig.getApplication().getApplicationContext());
+            Appboy.disableSdk(mApplication.getApplicationContext());
         }
     }
 
     @Override
     public void wipeData() {
-        Appboy.wipeData(mTealiumConfig.getApplication().getApplicationContext());
+        Appboy.wipeData(mApplication.getApplicationContext());
     }
 
     @Override
@@ -690,7 +688,7 @@ class BrazeTracker implements BrazeTrackable, Application.ActivityLifecycleCallb
      * @return
      */
     private Appboy getAppboyInstance() {
-        return Appboy.getInstance(mTealiumConfig.getApplication().getApplicationContext());
+        return Appboy.getInstance(mApplication.getApplicationContext());
     }
 
     @Override

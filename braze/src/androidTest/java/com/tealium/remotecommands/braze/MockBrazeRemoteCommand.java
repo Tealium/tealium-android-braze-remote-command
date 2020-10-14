@@ -1,6 +1,6 @@
 package com.tealium.remotecommands.braze;
 
-import com.tealium.library.Tealium;
+import android.app.Application;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -12,16 +12,16 @@ public class MockBrazeRemoteCommand extends BrazeRemoteCommand {
     public CompletableFuture<Boolean> future = new CompletableFuture<>();
     private List<Validator> validators = new ArrayList<>();
 
-    public MockBrazeRemoteCommand(Tealium.Config config) {
-        super(config);
+    public MockBrazeRemoteCommand(Application app) {
+        super(app);
     }
 
-    public MockBrazeRemoteCommand(Tealium.Config config, boolean sessionHandlingEnabled, Set<Class> sessionHandlingBlacklist, boolean registerInAppMessageManager, Set<Class> inAppMessageBlacklist) {
-        super(config, sessionHandlingEnabled, sessionHandlingBlacklist, registerInAppMessageManager, inAppMessageBlacklist);
+    public MockBrazeRemoteCommand(Application app, boolean sessionHandlingEnabled, Set<Class<?>> sessionHandlingBlacklist, boolean registerInAppMessageManager, Set<Class<?>> inAppMessageBlacklist) {
+        super(app, sessionHandlingEnabled, sessionHandlingBlacklist, registerInAppMessageManager, inAppMessageBlacklist);
     }
 
-    public MockBrazeRemoteCommand(Tealium.Config config, boolean sessionHandlingEnabled, Set<Class> sessionHandlingBlacklist, boolean registerInAppMessageManager, Set<Class> inAppMessageBlacklist, String commandId, String description) {
-        super(config, sessionHandlingEnabled, sessionHandlingBlacklist, registerInAppMessageManager, inAppMessageBlacklist, commandId, description);
+    public MockBrazeRemoteCommand(Application app, boolean sessionHandlingEnabled, Set<Class<?>> sessionHandlingBlacklist, boolean registerInAppMessageManager, Set<Class<?>> inAppMessageBlacklist, String commandId, String description) {
+        super(app, sessionHandlingEnabled, sessionHandlingBlacklist, registerInAppMessageManager, inAppMessageBlacklist, commandId, description);
     }
 
     @Override

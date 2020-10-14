@@ -40,6 +40,7 @@
     <string name="btn_increment_custom_attributes">Increment Custom Attributes</string>
 
     <string name="btn_log_purchase">Log Purchase</string>
+    <string name="btn_log_multiple_purchase">Log Multiple Purchase</string>
 
     <string name="btn_edit_user_engagements">Edit user engagements</string>
 </resources>

@@ -105,6 +105,7 @@ public final class BrazeConstants {
 
         public static final String EVENT_NAME = "event_name";
         public static final String EVENT_PROPERTIES = "event_properties";
+        public static final String EVENT_PROPERTIES_SHORTHAND = "event";
     }
 
     public static final class Purchase {
@@ -116,6 +117,7 @@ public final class BrazeConstants {
         public static final String PRODUCT_PRICE = "product_unit_price";
         public static final String PRODUCT_CURRENCY = "product_currency";
         public static final String PURCHASE_PROPERTIES = "purchase_properties";
+        public static final String PURCHASE_PROPERTIES_SHORTHAND = "purchase";
     }
 
 }

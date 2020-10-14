@@ -4,13 +4,6 @@ import android.util.Log;
 
 import com.appboy.enums.Gender;
 import com.appboy.models.outgoing.AppboyProperties;
-import com.tealium.collect.attribute.AudienceAttribute;
-import com.tealium.collect.attribute.BadgeAttribute;
-import com.tealium.collect.attribute.BaseAttribute;
-import com.tealium.collect.attribute.DateAttribute;
-import com.tealium.collect.attribute.FlagAttribute;
-import com.tealium.collect.attribute.MetricAttribute;
-import com.tealium.collect.attribute.PropertyAttribute;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -128,40 +121,6 @@ class BrazeUtils {
             }
         }
         return props;
-    }
-
-
-    /**
-     * Helper method to convert a Visitor Attribute into a String representation. For Audience
-     * attributes, the name will be lowercased and any whitespace converted into underscores, where
-     * the format will be:
-     * tealium_{attribute_type}_{audience_name}
-     * e.g. tealium_audience_my_audience_name
-     * <p>
-     * For all other attribute types, the Attribute ID will be used instead:
-     * e.g tealium_badge_105
-     *
-     * @param attribute
-     * @return
-     */
-    public static String getAttributeKeyName(BaseAttribute attribute) {
-        String value = "tealium_";
-
-        if (attribute instanceof AudienceAttribute) {
-            value += "audience_" + ((AudienceAttribute) attribute).getName().toLowerCase().replaceAll(" ", "_");
-        } else if (attribute instanceof BadgeAttribute) {
-            value += "badge_" + attribute.getId();
-        } else if (attribute instanceof MetricAttribute) {
-            value += "metric_" + attribute.getId();
-        } else if (attribute instanceof FlagAttribute) {
-            value += "flag_" + attribute.getId();
-        } else if (attribute instanceof DateAttribute) {
-            value += "date_" + attribute.getId();
-        } else if (attribute instanceof PropertyAttribute) {
-            value += "property_" + attribute.getId();
-        }
-
-        return value;
     }
 
     /**

@@ -67,5 +67,14 @@
         app:layout_constraintRight_toRightOf="parent"
         app:layout_constraintTop_toBottomOf="@id/btn_increment_custom_attributes" />
 
+    <androidx.appcompat.widget.AppCompatButton
+        android:id="@+id/btn_log_multiple_purchase"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_margin="16dp"
+        android:hint="@string/btn_log_multiple_purchase"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintRight_toRightOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/btn_log_purchase" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

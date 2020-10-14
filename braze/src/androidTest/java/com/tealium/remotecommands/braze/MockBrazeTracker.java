@@ -1,10 +1,9 @@
 package com.tealium.remotecommands.braze;
 
 import android.app.Activity;
+import android.app.Application;
 
 import androidx.annotation.NonNull;
-
-import com.tealium.library.Tealium;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -15,8 +14,8 @@ import java.util.List;
 
 public class MockBrazeTracker extends BrazeTracker {
 
-    public MockBrazeTracker(Tealium.Config config, Activity activity) {
-        super(config);
+    public MockBrazeTracker(Application app, Activity activity) {
+        super(app);
         // allow for overriding of activity for QA purposes
         if (mCurrentActivity == null) {
             mCurrentActivity = activity;
