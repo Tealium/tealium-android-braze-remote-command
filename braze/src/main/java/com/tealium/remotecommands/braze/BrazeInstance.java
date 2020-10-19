@@ -31,7 +31,7 @@ import java.util.Set;
 import static com.tealium.remotecommands.braze.BrazeConstants.TAG;
 import static com.tealium.remotecommands.braze.BrazeConstants.Config;
 
-class BrazeTracker implements BrazeTrackable, Application.ActivityLifecycleCallbacks {
+class BrazeInstance implements BrazeCommand, Application.ActivityLifecycleCallbacks {
 
     Application mApplication;
     Activity mCurrentActivity;
@@ -41,11 +41,11 @@ class BrazeTracker implements BrazeTrackable, Application.ActivityLifecycleCallb
     boolean mRegisterInAppMessageManager;
     Set<Class<?>> mInAppMessageBlacklist;
 
-    public BrazeTracker(Application app) {
+    public BrazeInstance(Application app) {
         this(app, true, null, true, null);
     }
 
-    public BrazeTracker(Application app, boolean sessionHandlingEnabled, Set<Class<?>> sessingHandlingBlacklist, boolean registerInAppMessageManager, Set<Class<?>> inAppMessageBlacklist) {
+    public BrazeInstance(Application app, boolean sessionHandlingEnabled, Set<Class<?>> sessingHandlingBlacklist, boolean registerInAppMessageManager, Set<Class<?>> inAppMessageBlacklist) {
         mApplication = app;
         mSessionHandlingEnabled = sessionHandlingEnabled;
         mSessionHandlingBlacklist = sessingHandlingBlacklist;
