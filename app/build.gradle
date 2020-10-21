@@ -27,10 +27,10 @@ android {
 dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
 
-    implementation 'com.tealium:kotlin-core:0.1.2'
-    implementation 'com.tealium:kotlin-lifecycle:0.1.1'
-    implementation 'com.tealium:kotlin-tagmanagement-dispatcher:0.1.2'
-    implementation 'com.tealium:kotlin-remotecommand-dispatcher:0.1.2'
+    implementation 'com.tealium:kotlin-core:1.0.0'
+    implementation 'com.tealium:kotlin-lifecycle:1.0.0'
+    implementation 'com.tealium:kotlin-tagmanagement-dispatcher:1.0.0'
+    implementation 'com.tealium:kotlin-remotecommand-dispatcher:1.0.0'
     releaseImplementation 'com.tealium.remotecommands:braze:1.0.0'
     debugImplementation project(path: ':braze')
 
