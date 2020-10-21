@@ -12,9 +12,9 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 
-public class MockBrazeTracker extends BrazeTracker {
+public class MockBrazeInstance extends BrazeInstance {
 
-    public MockBrazeTracker(Application app, Activity activity) {
+    public MockBrazeInstance(Application app, Activity activity) {
         super(app);
         // allow for overriding of activity for QA purposes
         if (mCurrentActivity == null) {

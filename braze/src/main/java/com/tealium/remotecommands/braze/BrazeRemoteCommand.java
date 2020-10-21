@@ -30,7 +30,7 @@ public class BrazeRemoteCommand extends RemoteCommand {
     public static final String DEFAULT_COMMAND_ID = "braze";
     public static final String DEFAULT_COMMAND_DESCRIPTION = "Tealium-Braze Remote Command";
 
-    BrazeTrackable mBraze;
+    BrazeCommand mBraze;
     List<ConfigOverrider> configOverriders = new LinkedList<>();
 
     /**
@@ -78,7 +78,7 @@ public class BrazeRemoteCommand extends RemoteCommand {
         super(
                 !BrazeUtils.isNullOrEmpty(commandId) ? commandId : DEFAULT_COMMAND_ID,
                 !BrazeUtils.isNullOrEmpty(description) ? description : DEFAULT_COMMAND_DESCRIPTION);
-        mBraze = new BrazeTracker(app, sessionHandlingEnabled, sessionHandlingBlacklist, registerInAppMessageManager, inAppMessageBlacklist);
+        mBraze = new BrazeInstance(app, sessionHandlingEnabled, sessionHandlingBlacklist, registerInAppMessageManager, inAppMessageBlacklist);
     }
 
     /**
