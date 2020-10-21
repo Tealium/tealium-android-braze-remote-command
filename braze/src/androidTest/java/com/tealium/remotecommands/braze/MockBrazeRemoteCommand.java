@@ -40,7 +40,7 @@ public class MockBrazeRemoteCommand extends BrazeRemoteCommand {
         }
     }
 
-    public void setBrazeTrackable(BrazeCommand brazeCommand) {
+    public void setBrazeCommand(BrazeCommand brazeCommand) {
         this.mBraze = brazeCommand;
     }
 

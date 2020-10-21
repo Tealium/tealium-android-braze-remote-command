@@ -9,7 +9,6 @@ import com.tealium.dispatcher.TealiumView
 import com.tealium.example.MainActivity
 import com.tealium.example.UserActivity
 import com.tealium.lifecycle.Lifecycle
-import com.tealium.remotecommanddispatcher.RemoteCommandDispatcher
 import com.tealium.remotecommanddispatcher.RemoteCommands
 import com.tealium.remotecommanddispatcher.remoteCommands
 import com.tealium.remotecommands.braze.BrazeRemoteCommand

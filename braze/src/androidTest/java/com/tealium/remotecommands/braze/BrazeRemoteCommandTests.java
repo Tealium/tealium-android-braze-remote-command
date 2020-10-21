@@ -53,7 +53,7 @@ public class BrazeRemoteCommandTests {
                 }
             };
 
-            brc.setBrazeTrackable(mockBrazeInstance);
+            brc.setBrazeCommand(mockBrazeInstance);
             setupInitTestWithApiKey(brc);
 
             brc.onInvoke(TestData.Responses.initalizeWithApiKeyOnly());
@@ -82,7 +82,7 @@ public class BrazeRemoteCommandTests {
                     super.initialize(apiKey, launchOptions, overrides);
                 }
             };
-            brc.setBrazeTrackable(mockBrazeInstance);
+            brc.setBrazeCommand(mockBrazeInstance);
             setupInitTestWithOverrides(brc);
 
             brc.onInvoke(TestData.Responses.initalizeWithApiKeyOnly());
@@ -104,7 +104,7 @@ public class BrazeRemoteCommandTests {
             MockBrazeInstance mockBrazeInstance = new MockBrazeInstance(QAActivity.getActivity().getApplication(), QAActivity.getActivity()) {
                 // all settings are verified in an override created by setupInitTestWithAllSettings(..)
             };
-            brc.setBrazeTrackable(mockBrazeInstance);
+            brc.setBrazeCommand(mockBrazeInstance);
             setupInitTestWithAllSettings(brc);
 
             brc.onInvoke(TestData.Responses.initializeWithAllSettings());
@@ -131,7 +131,7 @@ public class BrazeRemoteCommandTests {
                     super.logCustomEvent(eventName, eventProperties);
                 }
             };
-            brazeRemoteCommand.setBrazeTrackable(mockBrazeInstance);
+            brazeRemoteCommand.setBrazeCommand(mockBrazeInstance);
 
             brazeRemoteCommand.onInvoke(TestData.Responses.customEventWithProperties());
             TestUtils.assertContainsAllAndOnly(mockBrazeInstance.methodsCalled, expectedMethods);
@@ -157,7 +157,7 @@ public class BrazeRemoteCommandTests {
                     super.logCustomEvent(eventName, eventProperties);
                 }
             };
-            brazeRemoteCommand.setBrazeTrackable(mockBrazeInstance);
+            brazeRemoteCommand.setBrazeCommand(mockBrazeInstance);
 
             brazeRemoteCommand.onInvoke(TestData.Responses.customEventWithShorthandProperties());
             TestUtils.assertContainsAllAndOnly(mockBrazeInstance.methodsCalled, expectedMethods);
@@ -183,7 +183,7 @@ public class BrazeRemoteCommandTests {
                     super.logCustomEvent(eventName, eventProperties);
                 }
             };
-            brazeRemoteCommand.setBrazeTrackable(mockBrazeInstance);
+            brazeRemoteCommand.setBrazeCommand(mockBrazeInstance);
 
             brazeRemoteCommand.onInvoke(TestData.Responses.customEvent());
             TestUtils.assertContainsAllAndOnly(mockBrazeInstance.methodsCalled, expectedMethods);
@@ -213,7 +213,7 @@ public class BrazeRemoteCommandTests {
                     super.logPurchase(productId, currency, unitPrice, quantity, purchaseProerties);
                 }
             };
-            brazeRemoteCommand.setBrazeTrackable(mockBrazeInstance);
+            brazeRemoteCommand.setBrazeCommand(mockBrazeInstance);
 
             brazeRemoteCommand.onInvoke(TestData.Responses.purchaseEvent());
             TestUtils.assertContainsAllAndOnly(mockBrazeInstance.methodsCalled, expectedMethods);
@@ -243,7 +243,7 @@ public class BrazeRemoteCommandTests {
                     super.logPurchase(productId, currency, unitPrice, quantity, purchaseProerties);
                 }
             };
-            brazeRemoteCommand.setBrazeTrackable(mockBrazeInstance);
+            brazeRemoteCommand.setBrazeCommand(mockBrazeInstance);
 
             brazeRemoteCommand.onInvoke(TestData.Responses.purchaseEventWithProperties());
             TestUtils.assertContainsAllAndOnly(mockBrazeInstance.methodsCalled, expectedMethods);
@@ -272,7 +272,7 @@ public class BrazeRemoteCommandTests {
                     super.logPurchase(productId, currency, unitPrice, quantity, purchaseProerties);
                 }
             };
-            brazeRemoteCommand.setBrazeTrackable(mockBrazeInstance);
+            brazeRemoteCommand.setBrazeCommand(mockBrazeInstance);
 
             brazeRemoteCommand.onInvoke(TestData.Responses.purchaseEventWithShorthandProperties());
             TestUtils.assertContainsAllAndOnly(mockBrazeInstance.methodsCalled, expectedMethods);
@@ -296,7 +296,7 @@ public class BrazeRemoteCommandTests {
                     super.wipeData();
                 }
             };
-            brazeRemoteCommand.setBrazeTrackable(mockBrazeInstance);
+            brazeRemoteCommand.setBrazeCommand(mockBrazeInstance);
 
             brazeRemoteCommand.onInvoke(TestData.Responses.wipeData());
             TestUtils.assertContainsAllAndOnly(mockBrazeInstance.methodsCalled, expectedMethods);
@@ -321,7 +321,7 @@ public class BrazeRemoteCommandTests {
                     super.enableSdk(enabled);
                 }
             };
-            brazeRemoteCommand.setBrazeTrackable(mockBrazeInstance);
+            brazeRemoteCommand.setBrazeCommand(mockBrazeInstance);
 
             brazeRemoteCommand.onInvoke(TestData.Responses.disableSdk());
             TestUtils.assertContainsAllAndOnly(mockBrazeInstance.methodsCalled, expectedMethods);
@@ -346,7 +346,7 @@ public class BrazeRemoteCommandTests {
                     super.enableSdk(enabled);
                 }
             };
-            brazeRemoteCommand.setBrazeTrackable(mockBrazeInstance);
+            brazeRemoteCommand.setBrazeCommand(mockBrazeInstance);
 
             brazeRemoteCommand.onInvoke(TestData.Responses.enableSdk());
             TestUtils.assertContainsAllAndOnly(mockBrazeInstance.methodsCalled, expectedMethods);
@@ -372,7 +372,7 @@ public class BrazeRemoteCommandTests {
                     super.setUserAlias(userAlias, aliasLabel);
                 }
             };
-            brazeRemoteCommand.setBrazeTrackable(mockBrazeInstance);
+            brazeRemoteCommand.setBrazeCommand(mockBrazeInstance);
 
             brazeRemoteCommand.onInvoke(TestData.Responses.userAlias());
             TestUtils.assertContainsAllAndOnly(mockBrazeInstance.methodsCalled, expectedMethods);
@@ -397,7 +397,7 @@ public class BrazeRemoteCommandTests {
                     super.setUserId(userId);
                 }
             };
-            brazeRemoteCommand.setBrazeTrackable(mockBrazeInstance);
+            brazeRemoteCommand.setBrazeCommand(mockBrazeInstance);
 
             brazeRemoteCommand.onInvoke(TestData.Responses.userId());
             TestUtils.assertContainsAllAndOnly(mockBrazeInstance.methodsCalled, expectedMethods);
@@ -473,7 +473,7 @@ public class BrazeRemoteCommandTests {
                     super.setUserLanguage(language);
                 }
             };
-            brazeRemoteCommand.setBrazeTrackable(mockBrazeInstance);
+            brazeRemoteCommand.setBrazeCommand(mockBrazeInstance);
 
             brazeRemoteCommand.onInvoke(TestData.Responses.userAllAttributes());
             TestUtils.assertContainsAllAndOnly(mockBrazeInstance.methodsCalled, expectedMethods);
@@ -509,7 +509,7 @@ public class BrazeRemoteCommandTests {
                     super.setUserCustomAttributeArray(key, attributeArray);
                 }
             };
-            brazeRemoteCommand.setBrazeTrackable(mockBrazeInstance);
+            brazeRemoteCommand.setBrazeCommand(mockBrazeInstance);
 
             brazeRemoteCommand.onInvoke(TestData.Responses.userAllCustomAttributes());
             TestUtils.assertContainsAllAndOnly(mockBrazeInstance.methodsCalled, expectedMethods);
@@ -545,7 +545,7 @@ public class BrazeRemoteCommandTests {
                     super.setUserCustomAttributeArray(key, attributeArray);
                 }
             };
-            brazeRemoteCommand.setBrazeTrackable(mockBrazeInstance);
+            brazeRemoteCommand.setBrazeCommand(mockBrazeInstance);
 
             brazeRemoteCommand.onInvoke(TestData.Responses.userAllCustomArrayAttributes());
             TestUtils.assertContainsAllAndOnly(mockBrazeInstance.methodsCalled, expectedMethods);
@@ -567,7 +567,7 @@ public class BrazeRemoteCommandTests {
             MockBrazeRemoteCommand brazeRemoteCommand = newMockRemoteCommand();
             MockBrazeInstance mockBrazeInstance = new MockBrazeInstance(QAActivity.getActivity().getApplication(), QAActivity.getActivity()) {
             };
-            brazeRemoteCommand.setBrazeTrackable(mockBrazeInstance);
+            brazeRemoteCommand.setBrazeCommand(mockBrazeInstance);
 
             brazeRemoteCommand.onInvoke(TestData.Responses.socialData());
             TestUtils.assertContainsAllAndOnly(mockBrazeInstance.methodsCalled, expectedMethods);
@@ -587,7 +587,7 @@ public class BrazeRemoteCommandTests {
             MockBrazeRemoteCommand brazeRemoteCommand = newMockRemoteCommand();
             MockBrazeInstance mockBrazeInstance = new MockBrazeInstance(QAActivity.getActivity().getApplication(), QAActivity.getActivity()) {
             };
-            brazeRemoteCommand.setBrazeTrackable(mockBrazeInstance);
+            brazeRemoteCommand.setBrazeCommand(mockBrazeInstance);
 
             brazeRemoteCommand.onInvoke(TestData.Responses.requestFlush());
             TestUtils.assertContainsAllAndOnly(mockBrazeInstance.methodsCalled, expectedMethods);
@@ -607,7 +607,7 @@ public class BrazeRemoteCommandTests {
             MockBrazeRemoteCommand brazeRemoteCommand = newMockRemoteCommand();
             MockBrazeInstance mockBrazeInstance = new MockBrazeInstance(QAActivity.getActivity().getApplication(), QAActivity.getActivity()) {
             };
-            brazeRemoteCommand.setBrazeTrackable(mockBrazeInstance);
+            brazeRemoteCommand.setBrazeCommand(mockBrazeInstance);
 
             brazeRemoteCommand.onInvoke(TestData.Responses.registerPush());
             TestUtils.assertContainsAllAndOnly(mockBrazeInstance.methodsCalled, expectedMethods);
