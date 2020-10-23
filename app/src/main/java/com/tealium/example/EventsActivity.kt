@@ -81,7 +81,7 @@ class EventsActivity : AppCompatActivity() {
         val data = mutableMapOf<String, Any>()
         data["product_id"] = "sku123"
         data["order_currency"] = "USD"
-        data["product_unit_price"] = 1.99
+        data["price"] = 1.99
         data["rewards_member"] = true
         data["rewards_points_earned"] = 50
         trackEvent("log_purchase", data)
@@ -91,7 +91,7 @@ class EventsActivity : AppCompatActivity() {
         val data = mutableMapOf<String, Any>()
         data["product_id"] = listOf("sku123", "sku456")
         data["order_currency"] = "USD"
-        data["product_unit_price"] = listOf(1.99, 2.99)
+        data["price"] = listOf(1.99, 2.99)
         data["product_quantity"] = listOf(1, 2)
 
         val props = mapOf(

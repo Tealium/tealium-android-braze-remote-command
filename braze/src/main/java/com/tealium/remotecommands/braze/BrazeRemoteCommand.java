@@ -342,7 +342,7 @@ public class BrazeRemoteCommand extends RemoteCommand {
                             mBraze.logPurchase(
                                     payload.optString(Purchase.PRODUCT_ID),
                                     payload.optString(Purchase.PRODUCT_CURRENCY),
-                                    new BigDecimal(payload.optDouble(Purchase.PRODUCT_PRICE)),
+                                    new BigDecimal(payload.optDouble(Purchase.PRODUCT_PRICE, 0d)),
                                     payload.optInt(Purchase.PRODUCT_QTY),
                                     purchaseProps
                             );

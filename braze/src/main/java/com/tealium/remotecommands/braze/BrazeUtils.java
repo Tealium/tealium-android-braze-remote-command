@@ -151,6 +151,8 @@ class BrazeUtils {
      * @return The Gender enum if found, or null
      */
     public static Gender getGenderEnumFromString(String genderString) {
+        if (genderString == null) return null;
+
         Gender genderEnum;
         switch (genderString.toLowerCase()) {
             case "female":
