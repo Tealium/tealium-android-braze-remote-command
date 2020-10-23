@@ -636,12 +636,12 @@ class BrazeInstance implements BrazeCommand, Application.ActivityLifecycleCallba
     }
 
     @Override
-    public void logPurchase(@NonNull String productId, String currency, @NonNull BigDecimal unitPrice, Integer quantity, JSONObject purchaseProerties) {
+    public void logPurchase(@NonNull String productId, String currency, @NonNull BigDecimal unitPrice, Integer quantity, JSONObject purchaseProperties) {
         if (BrazeUtils.isNullOrEmpty(currency)) {
             currency = "USD";// braze default.
         }
 
-        getAppboyInstance().logPurchase(productId, currency, unitPrice, quantity > 0 ? quantity : 1, BrazeUtils.extractCustomProperties(purchaseProerties));
+        getAppboyInstance().logPurchase(productId, currency, unitPrice, quantity > 0 ? quantity : 1, BrazeUtils.extractCustomProperties(purchaseProperties));
     }
 
     @Override
