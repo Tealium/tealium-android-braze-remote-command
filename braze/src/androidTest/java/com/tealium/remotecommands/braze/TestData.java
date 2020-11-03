@@ -1,6 +1,6 @@
 package com.tealium.remotecommands.braze;
 
-import com.tealium.internal.tagbridge.RemoteCommand;
+import com.tealium.remotecommands.RemoteCommand;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -280,7 +280,7 @@ public final class TestData {
         }
 
         public static RemoteCommand.Response create(String commandId, String responseId, JSONObject payload) {
-            return new RemoteCommand.Response(commandId, responseId, payload);
+            return new RemoteCommand.Response(null, commandId, responseId, payload);
         }
 
         public static RemoteCommand.Response create(String responseId, JSONObject payload) {
@@ -357,6 +357,15 @@ public final class TestData {
             return create(payload);
         }
 
+        public static RemoteCommand.Response customEventWithShorthandProperties() throws JSONException {
+            JSONObject payload = new JSONObject();
+            payload.put(Commands.COMMAND_KEY, Commands.LOG_CUSTOM_EVENT);
+            payload.put(Event.EVENT_NAME, Values.EVENT_NAME);
+            payload.put(Event.EVENT_PROPERTIES_SHORTHAND, Values.EVENT_PROPERTIES);
+
+            return create(payload);
+        }
+
         public static RemoteCommand.Response customEvent() throws JSONException {
             JSONObject payload = new JSONObject();
             payload.put(Commands.COMMAND_KEY, Commands.LOG_CUSTOM_EVENT);
@@ -372,6 +381,18 @@ public final class TestData {
             payload.put(Purchase.PRODUCT_QTY, Values.PRODUCT_QTY);
             payload.put(Purchase.PRODUCT_PRICE, Values.PRODUCT_PRICE);
             payload.put(Purchase.PURCHASE_PROPERTIES, Values.PRODUCT_PROPERTIES);
+            payload.put(Purchase.PRODUCT_CURRENCY, Values.PRODUCT_CURRENCY);
+
+            return create(payload);
+        }
+
+        public static RemoteCommand.Response purchaseEventWithShorthandProperties() throws JSONException {
+            JSONObject payload = new JSONObject();
+            payload.put(Commands.COMMAND_KEY, Commands.LOG_PURCHASE_EVENT);
+            payload.put(Purchase.PRODUCT_ID, Values.PRODUCT_ID);
+            payload.put(Purchase.PRODUCT_QTY, Values.PRODUCT_QTY);
+            payload.put(Purchase.PRODUCT_PRICE, Values.PRODUCT_PRICE);
+            payload.put(Purchase.PURCHASE_PROPERTIES_SHORTHAND, Values.PRODUCT_PROPERTIES);
             payload.put(Purchase.PRODUCT_CURRENCY, Values.PRODUCT_CURRENCY);
 
             return create(payload);

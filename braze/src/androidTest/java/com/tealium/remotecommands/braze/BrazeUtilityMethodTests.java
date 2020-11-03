@@ -4,12 +4,6 @@ import androidx.test.runner.AndroidJUnit4;
 
 import com.appboy.enums.Gender;
 import com.appboy.models.outgoing.AppboyProperties;
-import com.tealium.collect.attribute.AudienceAttribute;
-import com.tealium.collect.attribute.BadgeAttribute;
-import com.tealium.collect.attribute.DateAttribute;
-import com.tealium.collect.attribute.FlagAttribute;
-import com.tealium.collect.attribute.MetricAttribute;
-import com.tealium.collect.attribute.PropertyAttribute;
 
 import junit.framework.Assert;
 
@@ -116,27 +110,6 @@ public class BrazeUtilityMethodTests {
         }catch(JSONException jex){
             Assert.fail();
         }
-    }
-
-
-
-    @Test
-    public void visitorAttributesTests(){
-        String id = "101";
-        AudienceAttribute audienceAttribute = new AudienceAttribute(id, "My Audience Attribute");
-        BadgeAttribute badgeAttribute = new BadgeAttribute(id);
-        MetricAttribute metricAttribute = new MetricAttribute(id, 1.1);
-        PropertyAttribute propertyAttribute = new PropertyAttribute(id, "value");
-        FlagAttribute flagAttribute = new FlagAttribute(id, true);
-        DateAttribute dateAttribute = new DateAttribute(id, 230918L);
-
-
-        Assert.assertEquals(BrazeUtils.getAttributeKeyName(audienceAttribute), "tealium_audience_my_audience_attribute");
-        Assert.assertEquals(BrazeUtils.getAttributeKeyName(badgeAttribute), "tealium_badge_101");
-        Assert.assertEquals(BrazeUtils.getAttributeKeyName(metricAttribute), "tealium_metric_101");
-        Assert.assertEquals(BrazeUtils.getAttributeKeyName(propertyAttribute), "tealium_property_101");
-        Assert.assertEquals(BrazeUtils.getAttributeKeyName(flagAttribute), "tealium_flag_101");
-        Assert.assertEquals(BrazeUtils.getAttributeKeyName(dateAttribute), "tealium_date_101");
     }
 
     @Test

@@ -22,7 +22,7 @@ import java.util.List;
  * Where a key-value pair is expected in a JSONObject,  this should be documented in the method's
  * Javadoc and whether there is any specific type expected for the values.
  */
-interface BrazeTrackable {
+interface BrazeCommand {
 
     /**
      * Configures a new Braze instance, setting just the Braze API Key and no other configuration

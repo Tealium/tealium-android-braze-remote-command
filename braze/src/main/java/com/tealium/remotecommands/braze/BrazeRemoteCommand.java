@@ -1,22 +1,10 @@
 package com.tealium.remotecommands.braze;
 
+import android.app.Application;
 import android.util.Log;
 
 import com.appboy.configuration.AppboyConfig;
-import com.tealium.collect.attribute.AudienceAttribute;
-import com.tealium.collect.attribute.BadgeAttribute;
-import com.tealium.collect.attribute.DateAttribute;
-import com.tealium.collect.attribute.FlagAttribute;
-import com.tealium.collect.attribute.MetricAttribute;
-import com.tealium.collect.attribute.PropertyAttribute;
-import com.tealium.collect.listeners.AudienceUpdateListener;
-import com.tealium.collect.listeners.BadgeUpdateListener;
-import com.tealium.collect.listeners.DateUpdateListener;
-import com.tealium.collect.listeners.FlagUpdateListener;
-import com.tealium.collect.listeners.MetricUpdateListener;
-import com.tealium.collect.listeners.PropertyUpdateListener;
-import com.tealium.internal.tagbridge.RemoteCommand;
-import com.tealium.library.Tealium;
+import com.tealium.remotecommands.RemoteCommand;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -42,40 +30,32 @@ public class BrazeRemoteCommand extends RemoteCommand {
     public static final String DEFAULT_COMMAND_ID = "braze";
     public static final String DEFAULT_COMMAND_DESCRIPTION = "Tealium-Braze Remote Command";
 
-    BrazeTrackable mBraze;
-    Tealium.Config mConfig;
+    BrazeCommand mBraze;
     List<ConfigOverrider> configOverriders = new LinkedList<>();
-
-    AudienceUpdateListener mAudienceUpdateListener;
-    BadgeUpdateListener mBadgeUpdateListener;
-    DateUpdateListener mDateUpdateListener;
-    FlagUpdateListener mFlagUpdateListener;
-    MetricUpdateListener mMetricUpdateListener;
-    PropertyUpdateListener mPropertyUpdateListener;
 
     /**
      * Constructs a RemoteCommand that integrates with the Braze SDK to allow Braze API calls to be
      * implemented through Tealium.
      *
-     * @param config - Tealium.Config object for the instance you are registering this command with.
+     * @param app                         - The Application instance
      */
-    public BrazeRemoteCommand(Tealium.Config config) {
-        this(config, true, null, true, null, DEFAULT_COMMAND_ID, DEFAULT_COMMAND_DESCRIPTION);
+    public BrazeRemoteCommand(Application app) {
+        this(app, true, null, true, null, DEFAULT_COMMAND_ID, DEFAULT_COMMAND_DESCRIPTION);
     }
 
     /**
      * Constructs a RemoteCommand that integrates with the Braze SDK to allow Braze API calls to be
      * implemented through Tealium.
      *
-     * @param config                      - Tealium.Config object for the instance you are registering this command with.
+     * @param app                         - The Application instance
      * @param sessionHandlingEnabled      - Whether session handling should be automatically handled by Braze
      * @param sessionHandlingBlacklist    - Set of classes not to open/close sessions on.
      * @param registerInAppMessageManager - Automatically registers the Braze InAppMessageManager
      *                                    through Braze's lifecycle callabacks.
      * @param inAppMessageBlacklist       - Set of classes that should not show in app messages
      */
-    public BrazeRemoteCommand(Tealium.Config config, boolean sessionHandlingEnabled, Set<Class> sessionHandlingBlacklist, boolean registerInAppMessageManager, Set<Class> inAppMessageBlacklist) {
-        this(config, sessionHandlingEnabled, sessionHandlingBlacklist, registerInAppMessageManager, inAppMessageBlacklist, DEFAULT_COMMAND_ID, DEFAULT_COMMAND_DESCRIPTION);
+    public BrazeRemoteCommand(Application app, boolean sessionHandlingEnabled, Set<Class<?>> sessionHandlingBlacklist, boolean registerInAppMessageManager, Set<Class<?>> inAppMessageBlacklist) {
+        this(app, sessionHandlingEnabled, sessionHandlingBlacklist, registerInAppMessageManager, inAppMessageBlacklist, DEFAULT_COMMAND_ID, DEFAULT_COMMAND_DESCRIPTION);
 
     }
 
@@ -83,7 +63,7 @@ public class BrazeRemoteCommand extends RemoteCommand {
      * Constructs a RemoteCommand that integrates with the Braze SDK to allow Braze API calls to be
      * implemented through Tealium.
      *
-     * @param config                      - Tealium.Config object for the instance you are registering this command with.
+     * @param app                         - The Application instance
      * @param sessionHandlingEnabled      - Whether session handling should be automatically handled by Braze
      * @param sessionHandlingBlacklist    - Set of classes not to open/close sessions on.
      * @param registerInAppMessageManager - Automatically registers the Braze InAppMessageManager
@@ -94,12 +74,11 @@ public class BrazeRemoteCommand extends RemoteCommand {
      *                                    Default - "braze"
      * @param description                 - Override description for this Remote Command
      */
-    public BrazeRemoteCommand(Tealium.Config config, boolean sessionHandlingEnabled, Set<Class> sessionHandlingBlacklist, boolean registerInAppMessageManager, Set<Class> inAppMessageBlacklist, String commandId, String description) {
+    public BrazeRemoteCommand(Application app, boolean sessionHandlingEnabled, Set<Class<?>> sessionHandlingBlacklist, boolean registerInAppMessageManager, Set<Class<?>> inAppMessageBlacklist, String commandId, String description) {
         super(
                 !BrazeUtils.isNullOrEmpty(commandId) ? commandId : DEFAULT_COMMAND_ID,
                 !BrazeUtils.isNullOrEmpty(description) ? description : DEFAULT_COMMAND_DESCRIPTION);
-        mBraze = new BrazeTracker(config, sessionHandlingEnabled, sessionHandlingBlacklist, registerInAppMessageManager, inAppMessageBlacklist);
-        mConfig = config;
+        mBraze = new BrazeInstance(app, sessionHandlingEnabled, sessionHandlingBlacklist, registerInAppMessageManager, inAppMessageBlacklist);
     }
 
     /**
@@ -331,30 +310,41 @@ public class BrazeRemoteCommand extends RemoteCommand {
                         break;
 
                     case Commands.LOG_CUSTOM_EVENT:
+                        JSONObject eventProps = payload.optJSONObject(Event.EVENT_PROPERTIES);
+                        if (eventProps == null) {
+                            eventProps = payload.optJSONObject(Event.EVENT_PROPERTIES_SHORTHAND);
+                        }
                         mBraze.logCustomEvent(
                                 payload.optString(Event.EVENT_NAME, null),
-                                payload.optJSONObject(Event.EVENT_PROPERTIES)
+                                eventProps
                         );
                         break;
                     case Commands.LOG_PURCHASE_EVENT:
                         Object productId = payload.get(Purchase.PRODUCT_ID);
                         if (productId instanceof JSONArray) {
+                            JSONArray purchaseProps = payload.optJSONArray(Purchase.PURCHASE_PROPERTIES);
+                            if (purchaseProps == null) {
+                                purchaseProps = payload.optJSONArray(Purchase.PURCHASE_PROPERTIES_SHORTHAND);
+                            }
                             mBraze.logPurchase(
                                     BrazeUtils.getStringArrayFromJson(payload.optJSONArray(Purchase.PRODUCT_ID)),
                                     BrazeUtils.getStringArrayFromJson(payload.optJSONArray(Purchase.PRODUCT_CURRENCY)),
                                     BrazeUtils.getBigDecimalArrayFromJson(payload.optJSONArray(Purchase.PRODUCT_PRICE)),
                                     BrazeUtils.getIntegerArrayFromJson(payload.optJSONArray(Purchase.PRODUCT_QTY)),
-                                    BrazeUtils.getJSONObjectArrayFromJson(payload.optJSONArray(Purchase.PURCHASE_PROPERTIES))
+                                    BrazeUtils.getJSONObjectArrayFromJson(purchaseProps)
                             );
-
                         } else {
                             // assume a single purchase
+                            JSONObject purchaseProps = payload.optJSONObject(Purchase.PURCHASE_PROPERTIES);
+                            if (purchaseProps == null) {
+                                purchaseProps = payload.optJSONObject(Purchase.PURCHASE_PROPERTIES_SHORTHAND);
+                            }
                             mBraze.logPurchase(
                                     payload.optString(Purchase.PRODUCT_ID),
                                     payload.optString(Purchase.PRODUCT_CURRENCY),
-                                    new BigDecimal(payload.optDouble(Purchase.PRODUCT_PRICE)),
+                                    new BigDecimal(payload.optDouble(Purchase.PRODUCT_PRICE, 0d)),
                                     payload.optInt(Purchase.PRODUCT_QTY),
-                                    payload.optJSONObject(Purchase.PURCHASE_PROPERTIES)
+                                    purchaseProps
                             );
                         }
                         break;
@@ -418,152 +408,6 @@ public class BrazeRemoteCommand extends RemoteCommand {
      */
     public void registerConfigOverride(ConfigOverrider overrider) {
         configOverriders.add(overrider);
-    }
-
-    /**
-     * Returns a generic AudienceUpdateListener that will automatically attempt to synchronise
-     * the current Audience Stream Visitor's Audience data with Braze.
-     * It will set a Custom User Attribute with the naming convention:
-     * tealium_audience_{audience_name} where the {audience_name} is lower-cased and any spaces
-     * replaced with underscores.
-     * e.g. tealium_audience_frequent_purchasers
-     *
-     * @return
-     */
-    public AudienceUpdateListener getAudienceUpdateListener() {
-        if (mAudienceUpdateListener == null) {
-            mAudienceUpdateListener = new AudienceUpdateListener() {
-                @Override
-                public void onAudienceUpdate(AudienceAttribute oldAudience, AudienceAttribute newAudience) {
-                    if (oldAudience == null || (oldAudience != null && newAudience != null)) {
-                        mBraze.setUserCustomAttribute(BrazeUtils.getAttributeKeyName(newAudience), true);
-                    } else if (newAudience == null) {
-                        mBraze.unsetUserCustomAttribute(BrazeUtils.getAttributeKeyName(oldAudience));
-                    }
-                }
-            };
-        }
-        return mAudienceUpdateListener;
-    }
-
-    /**
-     * Returns a generic BadgeUpdateListener that will automatically attempt to synchronise
-     * the current Audience Stream Visitor's Badge attributes with Braze.
-     * It will set a Custom User Attribute with the naming convention: tealium_badge_badge_id
-     * e.g. tealium_badge_106
-     *
-     * @return
-     */
-    public BadgeUpdateListener getBadgeUpdateListener() {
-        if (mBadgeUpdateListener == null) {
-            mBadgeUpdateListener = new BadgeUpdateListener() {
-                @Override
-                public void onBadgeUpdate(BadgeAttribute oldBadge, BadgeAttribute newBadge) {
-                    if (oldBadge == null || (oldBadge != null && newBadge != null)) {
-                        mBraze.setUserCustomAttribute(BrazeUtils.getAttributeKeyName(newBadge), true);
-                    } else if (newBadge == null) {
-                        mBraze.unsetUserCustomAttribute(BrazeUtils.getAttributeKeyName(oldBadge));
-                    }
-                }
-            };
-        }
-        return mBadgeUpdateListener;
-    }
-
-    /**
-     * Returns a generic DateUpdateListener that will automatically attempt to synchronise
-     * the current Audience Stream Visitor's Date attributes with Braze.
-     * It will set a Custom User Attribute with the naming convention: tealium_date_{date_id}
-     * e.g. tealium_date_106
-     *
-     * @return
-     */
-    public DateUpdateListener getDateUpdateListener() {
-        if (mDateUpdateListener == null) {
-            mDateUpdateListener = new DateUpdateListener() {
-                @Override
-                public void onDateUpdate(DateAttribute oldDate, DateAttribute newDate) {
-                    if (oldDate == null || (oldDate != null && newDate != null)) {
-                        mBraze.setUserCustomAttribute(BrazeUtils.getAttributeKeyName(newDate), newDate.getTime());
-                    } else if (newDate == null) {
-                        mBraze.unsetUserCustomAttribute(BrazeUtils.getAttributeKeyName(oldDate));
-                    }
-                }
-            };
-        }
-        return mDateUpdateListener;
-    }
-
-    /**
-     * Returns a generic FlagUpdateListener that will automatically attempt to synchronise
-     * the current Audience Stream Visitor's Flag attributes with Braze.
-     * It will set a Custom User Attribute with the naming convention: tealium_flag_{flag_id}
-     * e.g. tealium_flag_106
-     *
-     * @return
-     */
-    public FlagUpdateListener getFlagUpdateListener() {
-        if (mFlagUpdateListener == null) {
-            mFlagUpdateListener = new FlagUpdateListener() {
-                @Override
-                public void onFlagUpdate(FlagAttribute oldFlag, FlagAttribute newFlag) {
-                    if (oldFlag == null || (oldFlag != null && newFlag != null)) {
-                        mBraze.setUserCustomAttribute(BrazeUtils.getAttributeKeyName(newFlag), newFlag.getValue());
-                    } else if (newFlag == null) {
-                        mBraze.unsetUserCustomAttribute(BrazeUtils.getAttributeKeyName(oldFlag));
-                    }
-                }
-            };
-        }
-        return mFlagUpdateListener;
-    }
-
-    /**
-     * Returns a generic MetricUpdateListener that will automatically attempt to synchronise
-     * the current Audience Stream Visitor's Metric attributes with Braze.
-     * It will set a Custom User Attribute with the naming convention: tealium_metric_{metric_id}
-     * e.g. tealium_metric_106
-     *
-     * @return
-     */
-    public MetricUpdateListener getMetricUpdateListener() {
-        if (mMetricUpdateListener == null) {
-            mMetricUpdateListener = new MetricUpdateListener() {
-                @Override
-                public void onMetricUpdate(MetricAttribute oldMetric, MetricAttribute newMetric) {
-                    if (oldMetric == null || (oldMetric != null && newMetric != null)) {
-                        mBraze.setUserCustomAttribute(BrazeUtils.getAttributeKeyName(newMetric), newMetric.getValue());
-                    } else if (newMetric == null) {
-                        mBraze.unsetUserCustomAttribute(BrazeUtils.getAttributeKeyName(oldMetric));
-                    }
-                }
-            };
-        }
-        return mMetricUpdateListener;
-    }
-
-    /**
-     * Returns a generic PropertyUpdateListener that will automatically attempt to synchronise
-     * the current Audience Stream Visitor's Property attributes with Braze.
-     * It will set a Custom User Attribute with the naming convention: tealium_property_{property_id}
-     * e.g. tealium_flag_106
-     *
-     * @return
-     */
-    public PropertyUpdateListener getPropertyUpdateListener() {
-        if (mPropertyUpdateListener == null) {
-            mPropertyUpdateListener = new PropertyUpdateListener() {
-                @Override
-                public void onPropertyUpdate(PropertyAttribute oldProperty, PropertyAttribute newProperty) {
-                    if (oldProperty == null || (oldProperty != null && newProperty != null)) {
-                        mBraze.setUserCustomAttribute(BrazeUtils.getAttributeKeyName(newProperty), newProperty.getValue());
-                    } else if (newProperty == null) {
-                        mBraze.unsetUserCustomAttribute(BrazeUtils.getAttributeKeyName(oldProperty));
-                    }
-                }
-            };
-        }
-        return mPropertyUpdateListener;
     }
 
     /**
