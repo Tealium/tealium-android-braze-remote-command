@@ -1,7 +1,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.tealium.remotecommands.braze">
 
-    <application android:networkSecurityConfig="@xml/network_security_config">
+    <application>
         <!--<receiver android:name="com.appboy.AppboyFcmReceiver" android:permission="com.google.android.c2dm.permission.SEND" >-->
             <!--<intent-filter>-->
                 <!--<action android:name="com.google.android.c2dm.intent.RECEIVE" />-->

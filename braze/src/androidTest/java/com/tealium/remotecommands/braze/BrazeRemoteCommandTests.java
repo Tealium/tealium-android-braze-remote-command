@@ -633,7 +633,7 @@ public class BrazeRemoteCommandTests {
             public void onOverride(AppboyConfig.Builder b) {
                 AppboyConfig appboyConfig = b.build();
 
-                Assert.assertEquals(appboyConfig.getApiKey(), TestData.Values.API_KEY);
+                Assert.assertEquals(appboyConfig.mApiKey, TestData.Values.API_KEY);
             }
         });
     }
@@ -651,9 +651,9 @@ public class BrazeRemoteCommandTests {
             public void onOverride(AppboyConfig.Builder b) {
                 AppboyConfig appboyConfig = b.build();
 
-                Assert.assertEquals(appboyConfig.getApiKey(), TestData.Values.API_KEY);
-                Assert.assertEquals(appboyConfig.getFirebaseCloudMessagingSenderIdKey(), TestData.Values.FIREBASE_SENDER_ID);
-                Assert.assertEquals(appboyConfig.getIsFirebaseCloudMessagingRegistrationEnabled(), TestData.Values.FIREBASE_ENABLED);
+                Assert.assertEquals(appboyConfig.mApiKey, TestData.Values.API_KEY);
+                Assert.assertEquals(appboyConfig.mFirebaseCloudMessagingSenderIdKey, TestData.Values.FIREBASE_SENDER_ID);
+                Assert.assertEquals(appboyConfig.mIsFirebaseCloudMessagingRegistrationEnabled, TestData.Values.FIREBASE_ENABLED);
             }
         });
     }
@@ -664,23 +664,23 @@ public class BrazeRemoteCommandTests {
             public void onOverride(AppboyConfig.Builder b) {
                 AppboyConfig appboyConfig = b.build();
 
-                Assert.assertEquals(appboyConfig.getApiKey(), TestData.Values.API_KEY);
-                Assert.assertEquals(appboyConfig.getFirebaseCloudMessagingSenderIdKey(), TestData.Values.FIREBASE_SENDER_ID);
-                Assert.assertEquals(appboyConfig.getIsFirebaseCloudMessagingRegistrationEnabled(), TestData.Values.FIREBASE_ENABLED);
-                Assert.assertEquals(appboyConfig.getAdmMessagingRegistrationEnabled(), TestData.Values.ADM_ENABLED);
-                Assert.assertEquals(appboyConfig.getIsLocationCollectionEnabled(), !TestData.Values.DISABLE_LOCATION);
-                Assert.assertEquals(appboyConfig.getHandlePushDeepLinksAutomatically(), TestData.Values.AUTO_DEEP_LINKS);
-                Assert.assertEquals(appboyConfig.getBadNetworkDataFlushInterval(), TestData.Values.BAD_NETWORK_INTERVAL);
-                Assert.assertEquals(appboyConfig.getGoodNetworkDataFlushInterval(), TestData.Values.GOOD_NETWORK_INTERVAL);
-                Assert.assertEquals(appboyConfig.getGreatNetworkDataFlushInterval(), TestData.Values.GREAT_NETWORK_INTERVAL);
-                Assert.assertEquals(appboyConfig.getLargeNotificationIcon(), TestData.Values.LARGE_NOTIFICATION_ICON);
-                Assert.assertEquals(appboyConfig.getSmallNotificationIcon(), TestData.Values.SMALL_NOTIFICATION_ICON);
-                Assert.assertEquals(appboyConfig.getLocaleToApiMapping(), TestData.Values.LOCALE_MAPPING);
-                Assert.assertEquals(appboyConfig.getSessionTimeout(), TestData.Values.SESSION_TIMEOUT);
-                Assert.assertEquals(appboyConfig.getCustomEndpoint(), TestData.Values.CUSTOM_ENDPOINT);
-                Assert.assertEquals(appboyConfig.getTriggerActionMinimumTimeIntervalSeconds(), TestData.Values.TRIGGER_INTERVAL_SECONDS);
-                Assert.assertEquals(appboyConfig.getDefaultNotificationAccentColor(), TestData.Values.DEFAULT_NOTIFICATION_COLOR);
-                Assert.assertEquals(appboyConfig.getIsNewsFeedVisualIndicatorOn(), TestData.Values.ENABLE_NEWS_FEED_INDICATOR);
+                Assert.assertEquals(appboyConfig.mApiKey, TestData.Values.API_KEY);
+                Assert.assertEquals(appboyConfig.mFirebaseCloudMessagingSenderIdKey, TestData.Values.FIREBASE_SENDER_ID);
+                Assert.assertEquals(appboyConfig.mIsFirebaseCloudMessagingRegistrationEnabled, TestData.Values.FIREBASE_ENABLED);
+                Assert.assertEquals(appboyConfig.mAdmMessagingRegistrationEnabled, TestData.Values.ADM_ENABLED);
+                Assert.assertEquals(appboyConfig.mIsLocationCollectionEnabled, !TestData.Values.DISABLE_LOCATION);
+                Assert.assertEquals(appboyConfig.mHandlePushDeepLinksAutomatically, TestData.Values.AUTO_DEEP_LINKS);
+                Assert.assertEquals(appboyConfig.mBadNetworkInterval, TestData.Values.BAD_NETWORK_INTERVAL);
+                Assert.assertEquals(appboyConfig.mGoodNetworkInterval, TestData.Values.GOOD_NETWORK_INTERVAL);
+                Assert.assertEquals(appboyConfig.mGreatNetworkInterval, TestData.Values.GREAT_NETWORK_INTERVAL);
+                Assert.assertEquals(appboyConfig.mLargeNotificationIcon, TestData.Values.LARGE_NOTIFICATION_ICON);
+                Assert.assertEquals(appboyConfig.mSmallNotificationIcon, TestData.Values.SMALL_NOTIFICATION_ICON);
+                Assert.assertEquals(appboyConfig.mLocaleToApiMapping, TestData.Values.LOCALE_MAPPING);
+                Assert.assertEquals(appboyConfig.mSessionTimeout, TestData.Values.SESSION_TIMEOUT);
+                Assert.assertEquals(appboyConfig.mCustomEndpoint, TestData.Values.CUSTOM_ENDPOINT);
+                Assert.assertEquals(appboyConfig.mTriggerActionMinimumTimeIntervalSeconds, TestData.Values.TRIGGER_INTERVAL_SECONDS);
+                Assert.assertEquals(appboyConfig.mDefaultNotificationAccentColor, TestData.Values.DEFAULT_NOTIFICATION_COLOR);
+                Assert.assertEquals(appboyConfig.mIsNewsFeedVisualIndicatorOn, TestData.Values.ENABLE_NEWS_FEED_INDICATOR);
             }
         });
     }
