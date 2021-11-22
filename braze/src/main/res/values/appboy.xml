@@ -1,4 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="com_appboy_api_key"></string>
+    <string-array name="com_braze_internal_sdk_metadata">
+      <item>TEALIUM</item>
+    </string-array>
 </resources>
