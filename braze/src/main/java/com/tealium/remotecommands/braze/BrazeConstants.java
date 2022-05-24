@@ -35,6 +35,8 @@ public final class BrazeConstants {
         public static final String FACEBOOK_USER = "facebookuser";
         public static final String TWITTER_USER = "twitteruser";
         public static final String FLUSH = "flush";
+        public static final String ADD_TO_SUBSCRIPTION_GROUP = "addtosubscriptiongroup";
+        public static final String REMOVE_FROM_SUBSCRIPTION_GROUP = "removefromsubscriptiongroup";
     }
 
     public static final class Config {
@@ -54,6 +56,7 @@ public final class BrazeConstants {
         public static final String DISABLE_LOCATION = "disable_location";
         public static final String ENABLE_NEWS_FEED_INDICATOR = "enable_news_feed_indicator";
         public static final String DEFAULT_NOTIFICATION_COLOR = "default_notification_color";
+        @Deprecated
         public static final String LOCALE_MAPPING = "locale_mapping";
         public static final String BAD_NETWORK_INTERVAL = "bad_network_interval";
         public static final String GOOD_NETWORK_INTERVAL = "good_network_interval";
@@ -62,6 +65,7 @@ public final class BrazeConstants {
         public static final String ENABLE_GEOFENCES = "enable_geofences";
         public static final String BACKSTACK_ACTIVITY_ENABLED = "backstack_activity_enabled";
         public static final String BACKSTACK_ACTIVITY_CLASS = "backstack_activity_class";
+        public static final String IS_SDK_AUTHENTICATION_ENABLED = "is_sdk_authentication_enabled";
     }
 
     public static final class User {
@@ -97,6 +101,7 @@ public final class BrazeConstants {
         public static final String EMAIL_NOTIFICATION = "email_notification";
         public static final String PUSH_NOTIFICATION = "push_notification";
         public static final String PUSH_TOKEN = "push_token";
+        public static final String SUBSCRIPTION_GROUP_ID = "subscription_group_id";
     }
 
     public static final class Event {

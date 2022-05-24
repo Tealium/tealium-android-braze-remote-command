@@ -3,7 +3,7 @@ package com.tealium.remotecommands.braze;
 import android.app.Application;
 import android.util.Log;
 
-import com.appboy.configuration.AppboyConfig;
+import com.braze.configuration.BrazeConfig;
 import com.tealium.remotecommands.RemoteCommand;
 
 import org.json.JSONArray;
@@ -56,7 +56,6 @@ public class BrazeRemoteCommand extends RemoteCommand {
      */
     public BrazeRemoteCommand(Application app, boolean sessionHandlingEnabled, Set<Class<?>> sessionHandlingBlacklist, boolean registerInAppMessageManager, Set<Class<?>> inAppMessageBlacklist) {
         this(app, sessionHandlingEnabled, sessionHandlingBlacklist, registerInAppMessageManager, inAppMessageBlacklist, DEFAULT_COMMAND_ID, DEFAULT_COMMAND_DESCRIPTION);
-
     }
 
     /**
@@ -77,7 +76,8 @@ public class BrazeRemoteCommand extends RemoteCommand {
     public BrazeRemoteCommand(Application app, boolean sessionHandlingEnabled, Set<Class<?>> sessionHandlingBlacklist, boolean registerInAppMessageManager, Set<Class<?>> inAppMessageBlacklist, String commandId, String description) {
         super(
                 !BrazeUtils.isNullOrEmpty(commandId) ? commandId : DEFAULT_COMMAND_ID,
-                !BrazeUtils.isNullOrEmpty(description) ? description : DEFAULT_COMMAND_DESCRIPTION);
+                !BrazeUtils.isNullOrEmpty(description) ? description : DEFAULT_COMMAND_DESCRIPTION,
+                BuildConfig.TEALIUM_BRAZE_VERSION);
         mBraze = new BrazeInstance(app, sessionHandlingEnabled, sessionHandlingBlacklist, registerInAppMessageManager, inAppMessageBlacklist);
     }
 
@@ -104,10 +104,6 @@ public class BrazeRemoteCommand extends RemoteCommand {
      * "small_notification_icon" : "<string>",
      * "large_notification_icon" : "<string>",
      * "custom_endpoint" : "<string>", // custom endpoint URL
-     * <p>
-     * "locale_mapping" : [
-     * "<string>" // e.g. "fr_NC, anotherAPIKey"
-     * ],
      * <p>
      * "session_timeout" : <integer>,
      * "default_notification_color" : <integer>,
@@ -391,6 +387,17 @@ public class BrazeRemoteCommand extends RemoteCommand {
                         mBraze.registerToken(
                                 payload.optString(User.PUSH_TOKEN, null)
                         );
+                        break;
+                    case Commands.ADD_TO_SUBSCRIPTION_GROUP:
+                        mBraze.addToSubscriptionGroup(
+                                payload.optString(User.SUBSCRIPTION_GROUP_ID, null)
+                        );
+                        break;
+                    case Commands.REMOVE_FROM_SUBSCRIPTION_GROUP:
+                        mBraze.removeFromSubscriptionGroup(
+                                payload.optString(User.SUBSCRIPTION_GROUP_ID, null)
+                        );
+                        break;
                 }
             } catch (Exception ex) {
                 Log.w(TAG, "Error processing command: " + command, ex);
@@ -417,6 +424,6 @@ public class BrazeRemoteCommand extends RemoteCommand {
      * overwrite any configuration properties that have already been setup.
      */
     public interface ConfigOverrider {
-        void onOverride(AppboyConfig.Builder b);
+        void onOverride(BrazeConfig.Builder b);
     }
 }

@@ -5,7 +5,7 @@ import androidx.test.rule.ActivityTestRule;
 import androidx.test.runner.AndroidJUnit4;
 
 import com.appboy.Appboy;
-import com.appboy.configuration.AppboyConfig;
+import com.braze.configuration.BrazeConfig;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -24,6 +24,8 @@ import java.util.List;
 @RunWith(AndroidJUnit4.class)
 public class BrazeRemoteCommandTests {
 
+    MockBrazeRemoteCommand brazeRemoteCommand;
+
     public BrazeRemoteCommandTests() {
         super();
     }
@@ -35,6 +37,8 @@ public class BrazeRemoteCommandTests {
     public void setup() {
         Appboy.enableSdk(QAActivity.getActivity().getApplication().getApplicationContext());
         Appboy.enableMockAppboyNetworkRequestsAndDropEventsMode();
+
+        brazeRemoteCommand = newMockRemoteCommand();
     }
 
     @Test
@@ -43,7 +47,6 @@ public class BrazeRemoteCommandTests {
         expectedMethods.add(TestData.Methods.INITIALIZE);
 
         try {
-            MockBrazeRemoteCommand brc = newMockRemoteCommand();
             MockBrazeInstance mockBrazeInstance = new MockBrazeInstance(QAActivity.getActivity().getApplication(), QAActivity.getActivity()) {
                 @Override
                 public void initialize(String apiKey, JSONObject launchOptions) {
@@ -53,10 +56,10 @@ public class BrazeRemoteCommandTests {
                 }
             };
 
-            brc.setBrazeCommand(mockBrazeInstance);
-            setupInitTestWithApiKey(brc);
+            brazeRemoteCommand.setBrazeCommand(mockBrazeInstance);
+            setupInitTestWithApiKey(brazeRemoteCommand);
 
-            brc.onInvoke(TestData.Responses.initalizeWithApiKeyOnly());
+            brazeRemoteCommand.onInvoke(TestData.Responses.initalizeWithApiKeyOnly());
             TestUtils.assertContainsAllAndOnly(mockBrazeInstance.methodsCalled, expectedMethods);
 
         } catch (Exception e) {
@@ -71,21 +74,20 @@ public class BrazeRemoteCommandTests {
         expectedMethods.add(TestData.Methods.INITIALIZE);
 
         try {
-            MockBrazeRemoteCommand brc = newMockRemoteCommand();
             MockBrazeInstance mockBrazeInstance = new MockBrazeInstance(QAActivity.getActivity().getApplication(), QAActivity.getActivity()) {
                 @Override
                 public void initialize(@NonNull String apiKey, JSONObject launchOptions, List<BrazeRemoteCommand.ConfigOverrider> overrides) {
                     Assert.assertEquals("apiKey does not match.", TestData.Values.API_KEY, apiKey);
                     Assert.assertTrue("launchOptions should only contain api_key and command", launchOptions.has(BrazeConstants.Config.API_KEY) && launchOptions.has(BrazeConstants.Commands.COMMAND_KEY) && launchOptions.length() <= 2);
-                    Assert.assertTrue("overrides should have two entries", overrides.size() == 2);
+                    Assert.assertEquals("overrides should have two entries", 2, overrides.size());
 
                     super.initialize(apiKey, launchOptions, overrides);
                 }
             };
-            brc.setBrazeCommand(mockBrazeInstance);
-            setupInitTestWithOverrides(brc);
+            brazeRemoteCommand.setBrazeCommand(mockBrazeInstance);
+            setupInitTestWithOverrides(brazeRemoteCommand);
 
-            brc.onInvoke(TestData.Responses.initalizeWithApiKeyOnly());
+            brazeRemoteCommand.onInvoke(TestData.Responses.initalizeWithApiKeyOnly());
             TestUtils.assertContainsAllAndOnly(mockBrazeInstance.methodsCalled, expectedMethods);
 
         } catch (Exception e) {
@@ -100,14 +102,13 @@ public class BrazeRemoteCommandTests {
         expectedMethods.add(TestData.Methods.INITIALIZE);
 
         try {
-            MockBrazeRemoteCommand brc = newMockRemoteCommand();
             MockBrazeInstance mockBrazeInstance = new MockBrazeInstance(QAActivity.getActivity().getApplication(), QAActivity.getActivity()) {
                 // all settings are verified in an override created by setupInitTestWithAllSettings(..)
             };
-            brc.setBrazeCommand(mockBrazeInstance);
-            setupInitTestWithAllSettings(brc);
+            brazeRemoteCommand.setBrazeCommand(mockBrazeInstance);
+            setupInitTestWithAllSettings(brazeRemoteCommand);
 
-            brc.onInvoke(TestData.Responses.initializeWithAllSettings());
+            brazeRemoteCommand.onInvoke(TestData.Responses.initializeWithAllSettings());
             TestUtils.assertContainsAllAndOnly(mockBrazeInstance.methodsCalled, expectedMethods);
 
         } catch (Exception e) {
@@ -122,12 +123,11 @@ public class BrazeRemoteCommandTests {
         expectedMethods.add(TestData.Methods.LOG_CUSTOM_EVENT);
 
         try {
-            MockBrazeRemoteCommand brazeRemoteCommand = newMockRemoteCommand();
             MockBrazeInstance mockBrazeInstance = new MockBrazeInstance(QAActivity.getActivity().getApplication(), QAActivity.getActivity()) {
                 @Override
                 public void logCustomEvent(@NonNull String eventName, JSONObject eventProperties) {
-                    Assert.assertTrue("eventName parameter does not match what was sent", eventName.equals(TestData.Values.EVENT_NAME));
-                    Assert.assertTrue("eventroperties parameter does not match what was sent", eventProperties.toString().equals(TestData.Values.EVENT_PROPERTIES.toString()));
+                    Assert.assertEquals("eventName parameter does not match what was sent", TestData.Values.EVENT_NAME, eventName);
+                    Assert.assertEquals("eventroperties parameter does not match what was sent", eventProperties.toString(), TestData.Values.EVENT_PROPERTIES.toString());
                     super.logCustomEvent(eventName, eventProperties);
                 }
             };
@@ -148,12 +148,11 @@ public class BrazeRemoteCommandTests {
         expectedMethods.add(TestData.Methods.LOG_CUSTOM_EVENT);
 
         try {
-            MockBrazeRemoteCommand brazeRemoteCommand = newMockRemoteCommand();
             MockBrazeInstance mockBrazeInstance = new MockBrazeInstance(QAActivity.getActivity().getApplication(), QAActivity.getActivity()) {
                 @Override
                 public void logCustomEvent(@NonNull String eventName, JSONObject eventProperties) {
-                    Assert.assertTrue("eventName parameter does not match what was sent", eventName.equals(TestData.Values.EVENT_NAME));
-                    Assert.assertTrue("eventroperties parameter does not match what was sent", eventProperties.toString().equals(TestData.Values.EVENT_PROPERTIES.toString()));
+                    Assert.assertEquals("eventName parameter does not match what was sent", TestData.Values.EVENT_NAME, eventName);
+                    Assert.assertEquals("eventroperties parameter does not match what was sent", eventProperties.toString(), TestData.Values.EVENT_PROPERTIES.toString());
                     super.logCustomEvent(eventName, eventProperties);
                 }
             };
@@ -174,11 +173,10 @@ public class BrazeRemoteCommandTests {
         expectedMethods.add(TestData.Methods.LOG_CUSTOM_EVENT);
 
         try {
-            MockBrazeRemoteCommand brazeRemoteCommand = newMockRemoteCommand();
             MockBrazeInstance mockBrazeInstance = new MockBrazeInstance(QAActivity.getActivity().getApplication(), QAActivity.getActivity()) {
                 @Override
                 public void logCustomEvent(@NonNull String eventName, JSONObject eventProperties) {
-                    Assert.assertTrue("eventName parameter does not match what was sent", eventName.equals(TestData.Values.EVENT_NAME));
+                    Assert.assertEquals("eventName parameter does not match what was sent", TestData.Values.EVENT_NAME, eventName);
                     Assert.assertTrue("eventProperties param should be null or empty", BrazeUtils.isNullOrEmpty(eventProperties));
                     super.logCustomEvent(eventName, eventProperties);
                 }
@@ -200,7 +198,6 @@ public class BrazeRemoteCommandTests {
         expectedMethods.add(TestData.Methods.LOG_PURCHASE);
 
         try {
-            MockBrazeRemoteCommand brazeRemoteCommand = newMockRemoteCommand();
             MockBrazeInstance mockBrazeInstance = new MockBrazeInstance(QAActivity.getActivity().getApplication(), QAActivity.getActivity()) {
                 @Override
                 public void logPurchase(@NonNull String productId, String currency, @NonNull BigDecimal unitPrice, Integer quantity, JSONObject purchaseProerties) {
@@ -230,7 +227,6 @@ public class BrazeRemoteCommandTests {
         expectedMethods.add(TestData.Methods.LOG_PURCHASE);
 
         try {
-            MockBrazeRemoteCommand brazeRemoteCommand = newMockRemoteCommand();
             MockBrazeInstance mockBrazeInstance = new MockBrazeInstance(QAActivity.getActivity().getApplication(), QAActivity.getActivity()) {
                 @Override
                 public void logPurchase(@NonNull String productId, String currency, @NonNull BigDecimal unitPrice, Integer quantity, JSONObject purchaseProerties) {
@@ -259,7 +255,6 @@ public class BrazeRemoteCommandTests {
         expectedMethods.add(TestData.Methods.LOG_PURCHASE);
 
         try {
-            MockBrazeRemoteCommand brazeRemoteCommand = newMockRemoteCommand();
             MockBrazeInstance mockBrazeInstance = new MockBrazeInstance(QAActivity.getActivity().getApplication(), QAActivity.getActivity()) {
                 @Override
                 public void logPurchase(@NonNull String productId, String currency, @NonNull BigDecimal unitPrice, Integer quantity, JSONObject purchaseProerties) {
@@ -288,7 +283,6 @@ public class BrazeRemoteCommandTests {
         expectedMethods.add(TestData.Methods.WIPE_DATA);
 
         try {
-            MockBrazeRemoteCommand brazeRemoteCommand = newMockRemoteCommand();
             MockBrazeInstance mockBrazeInstance = new MockBrazeInstance(QAActivity.getActivity().getApplication(), QAActivity.getActivity()) {
                 @Override
                 public void wipeData() {
@@ -313,7 +307,6 @@ public class BrazeRemoteCommandTests {
         expectedMethods.add(TestData.Methods.ENABLE_SDK);
 
         try {
-            MockBrazeRemoteCommand brazeRemoteCommand = newMockRemoteCommand();
             MockBrazeInstance mockBrazeInstance = new MockBrazeInstance(QAActivity.getActivity().getApplication(), QAActivity.getActivity()) {
                 @Override
                 public void enableSdk(Boolean enabled) {
@@ -338,7 +331,6 @@ public class BrazeRemoteCommandTests {
         expectedMethods.add(TestData.Methods.ENABLE_SDK);
 
         try {
-            MockBrazeRemoteCommand brazeRemoteCommand = newMockRemoteCommand();
             MockBrazeInstance mockBrazeInstance = new MockBrazeInstance(QAActivity.getActivity().getApplication(), QAActivity.getActivity()) {
                 @Override
                 public void enableSdk(Boolean enabled) {
@@ -363,7 +355,6 @@ public class BrazeRemoteCommandTests {
         expectedMethods.add(TestData.Methods.SET_USER_ALIAS);
 
         try {
-            MockBrazeRemoteCommand brazeRemoteCommand = newMockRemoteCommand();
             MockBrazeInstance mockBrazeInstance = new MockBrazeInstance(QAActivity.getActivity().getApplication(), QAActivity.getActivity()) {
                 @Override
                 public void setUserAlias(String userAlias, String aliasLabel) {
@@ -389,7 +380,6 @@ public class BrazeRemoteCommandTests {
         expectedMethods.add(TestData.Methods.SET_USER_ID);
 
         try {
-            MockBrazeRemoteCommand brazeRemoteCommand = newMockRemoteCommand();
             MockBrazeInstance mockBrazeInstance = new MockBrazeInstance(QAActivity.getActivity().getApplication(), QAActivity.getActivity()) {
                 @Override
                 public void setUserId(String userId) {
@@ -422,7 +412,6 @@ public class BrazeRemoteCommandTests {
         expectedMethods.add(TestData.Methods.SET_LANGUAGE);
 
         try {
-            MockBrazeRemoteCommand brazeRemoteCommand = newMockRemoteCommand();
             MockBrazeInstance mockBrazeInstance = new MockBrazeInstance(QAActivity.getActivity().getApplication(), QAActivity.getActivity()) {
                 @Override
                 public void setUserId(String userId) {
@@ -496,7 +485,6 @@ public class BrazeRemoteCommandTests {
         expectedMethods.add(TestData.Methods.INCREMENT_USER_CUSTOM_ATTRIBUTE);
 
         try {
-            MockBrazeRemoteCommand brazeRemoteCommand = newMockRemoteCommand();
             MockBrazeInstance mockBrazeInstance = new MockBrazeInstance(QAActivity.getActivity().getApplication(), QAActivity.getActivity()) {
                 @Override
                 public void setUserCustomAttributeArray(String key, String[] attributeArray) {
@@ -532,7 +520,6 @@ public class BrazeRemoteCommandTests {
         expectedMethods.add(TestData.Methods.REMOVE_USER_CUSTOM_ATTRIBUTE_ARRAY);
 
         try {
-            MockBrazeRemoteCommand brazeRemoteCommand = newMockRemoteCommand();
             MockBrazeInstance mockBrazeInstance = new MockBrazeInstance(QAActivity.getActivity().getApplication(), QAActivity.getActivity()) {
                 @Override
                 public void setUserCustomAttributeArray(String key, String[] attributeArray) {
@@ -564,7 +551,6 @@ public class BrazeRemoteCommandTests {
         expectedMethods.add(TestData.Methods.SET_TWITTER_DATA);
 
         try {
-            MockBrazeRemoteCommand brazeRemoteCommand = newMockRemoteCommand();
             MockBrazeInstance mockBrazeInstance = new MockBrazeInstance(QAActivity.getActivity().getApplication(), QAActivity.getActivity()) {
             };
             brazeRemoteCommand.setBrazeCommand(mockBrazeInstance);
@@ -584,7 +570,6 @@ public class BrazeRemoteCommandTests {
         expectedMethods.add(TestData.Methods.REQUEST_FLUSH);
 
         try {
-            MockBrazeRemoteCommand brazeRemoteCommand = newMockRemoteCommand();
             MockBrazeInstance mockBrazeInstance = new MockBrazeInstance(QAActivity.getActivity().getApplication(), QAActivity.getActivity()) {
             };
             brazeRemoteCommand.setBrazeCommand(mockBrazeInstance);
@@ -604,12 +589,49 @@ public class BrazeRemoteCommandTests {
         expectedMethods.add(TestData.Methods.REGISTER_PUSH);
 
         try {
-            MockBrazeRemoteCommand brazeRemoteCommand = newMockRemoteCommand();
             MockBrazeInstance mockBrazeInstance = new MockBrazeInstance(QAActivity.getActivity().getApplication(), QAActivity.getActivity()) {
             };
             brazeRemoteCommand.setBrazeCommand(mockBrazeInstance);
 
             brazeRemoteCommand.onInvoke(TestData.Responses.registerPush());
+            TestUtils.assertContainsAllAndOnly(mockBrazeInstance.methodsCalled, expectedMethods);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
+
+    @Test
+    public void testAddToSubscriptionId() {
+        Collection<String> expectedMethods = new ArrayList<>();
+        expectedMethods.add(TestData.Methods.ADD_TO_SUBSCRIPTION);
+
+        try {
+            MockBrazeInstance mockBrazeInstance = new MockBrazeInstance(QAActivity.getActivity().getApplication(), QAActivity.getActivity()) {
+            };
+            brazeRemoteCommand.setBrazeCommand(mockBrazeInstance);
+
+            brazeRemoteCommand.onInvoke(TestData.Responses.addToSubscription());
+            TestUtils.assertContainsAllAndOnly(mockBrazeInstance.methodsCalled, expectedMethods);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
+
+    @Test
+    public void testRemoveFromSubscriptionId() {
+        Collection<String> expectedMethods = new ArrayList<>();
+        expectedMethods.add(TestData.Methods.REMOVE_FROM_SUBSCRIPTION);
+
+        try {
+            MockBrazeInstance mockBrazeInstance = new MockBrazeInstance(QAActivity.getActivity().getApplication(), QAActivity.getActivity()) {
+            };
+            brazeRemoteCommand.setBrazeCommand(mockBrazeInstance);
+
+            brazeRemoteCommand.onInvoke(TestData.Responses.removeFromSubscription());
             TestUtils.assertContainsAllAndOnly(mockBrazeInstance.methodsCalled, expectedMethods);
 
         } catch (Exception e) {
@@ -628,60 +650,47 @@ public class BrazeRemoteCommandTests {
 
     public void setupInitTestWithApiKey(BrazeRemoteCommand brc) {
 
-        brc.registerConfigOverride(new BrazeRemoteCommand.ConfigOverrider() {
-            @Override
-            public void onOverride(AppboyConfig.Builder b) {
-                AppboyConfig appboyConfig = b.build();
+        brc.registerConfigOverride(b -> {
+            BrazeConfig brazeConfig = b.build();
 
-                Assert.assertEquals(appboyConfig.mApiKey, TestData.Values.API_KEY);
-            }
+            Assert.assertEquals(brazeConfig.apiKey, TestData.Values.API_KEY);
         });
     }
 
     public void setupInitTestWithOverrides(BrazeRemoteCommand brc) {
-        brc.registerConfigOverride(new BrazeRemoteCommand.ConfigOverrider() {
-            @Override
-            public void onOverride(AppboyConfig.Builder b) {
-                b.setFirebaseCloudMessagingSenderIdKey(TestData.Values.FIREBASE_SENDER_ID);
-                b.setIsFirebaseCloudMessagingRegistrationEnabled(TestData.Values.FIREBASE_ENABLED);
-            }
+        brc.registerConfigOverride(b -> {
+            b.setFirebaseCloudMessagingSenderIdKey(TestData.Values.FIREBASE_SENDER_ID);
+            b.setIsFirebaseCloudMessagingRegistrationEnabled(TestData.Values.FIREBASE_ENABLED);
         });
-        brc.registerConfigOverride(new BrazeRemoteCommand.ConfigOverrider() {
-            @Override
-            public void onOverride(AppboyConfig.Builder b) {
-                AppboyConfig appboyConfig = b.build();
+        brc.registerConfigOverride(b -> {
+            BrazeConfig brazeConfig = b.build();
 
-                Assert.assertEquals(appboyConfig.mApiKey, TestData.Values.API_KEY);
-                Assert.assertEquals(appboyConfig.mFirebaseCloudMessagingSenderIdKey, TestData.Values.FIREBASE_SENDER_ID);
-                Assert.assertEquals(appboyConfig.mIsFirebaseCloudMessagingRegistrationEnabled, TestData.Values.FIREBASE_ENABLED);
-            }
+            Assert.assertEquals(brazeConfig.apiKey, TestData.Values.API_KEY);
+            Assert.assertEquals(brazeConfig.firebaseCloudMessagingSenderIdKey, TestData.Values.FIREBASE_SENDER_ID);
+            Assert.assertEquals(brazeConfig.isFirebaseCloudMessagingRegistrationEnabled, TestData.Values.FIREBASE_ENABLED);
         });
     }
 
     public void setupInitTestWithAllSettings(BrazeRemoteCommand brc) {
-        brc.registerConfigOverride(new BrazeRemoteCommand.ConfigOverrider() {
-            @Override
-            public void onOverride(AppboyConfig.Builder b) {
-                AppboyConfig appboyConfig = b.build();
+        brc.registerConfigOverride(b -> {
+            BrazeConfig brazeConfig = b.build();
 
-                Assert.assertEquals(appboyConfig.mApiKey, TestData.Values.API_KEY);
-                Assert.assertEquals(appboyConfig.mFirebaseCloudMessagingSenderIdKey, TestData.Values.FIREBASE_SENDER_ID);
-                Assert.assertEquals(appboyConfig.mIsFirebaseCloudMessagingRegistrationEnabled, TestData.Values.FIREBASE_ENABLED);
-                Assert.assertEquals(appboyConfig.mAdmMessagingRegistrationEnabled, TestData.Values.ADM_ENABLED);
-                Assert.assertEquals(appboyConfig.mIsLocationCollectionEnabled, !TestData.Values.DISABLE_LOCATION);
-                Assert.assertEquals(appboyConfig.mHandlePushDeepLinksAutomatically, TestData.Values.AUTO_DEEP_LINKS);
-                Assert.assertEquals(appboyConfig.mBadNetworkInterval, TestData.Values.BAD_NETWORK_INTERVAL);
-                Assert.assertEquals(appboyConfig.mGoodNetworkInterval, TestData.Values.GOOD_NETWORK_INTERVAL);
-                Assert.assertEquals(appboyConfig.mGreatNetworkInterval, TestData.Values.GREAT_NETWORK_INTERVAL);
-                Assert.assertEquals(appboyConfig.mLargeNotificationIcon, TestData.Values.LARGE_NOTIFICATION_ICON);
-                Assert.assertEquals(appboyConfig.mSmallNotificationIcon, TestData.Values.SMALL_NOTIFICATION_ICON);
-                Assert.assertEquals(appboyConfig.mLocaleToApiMapping, TestData.Values.LOCALE_MAPPING);
-                Assert.assertEquals(appboyConfig.mSessionTimeout, TestData.Values.SESSION_TIMEOUT);
-                Assert.assertEquals(appboyConfig.mCustomEndpoint, TestData.Values.CUSTOM_ENDPOINT);
-                Assert.assertEquals(appboyConfig.mTriggerActionMinimumTimeIntervalSeconds, TestData.Values.TRIGGER_INTERVAL_SECONDS);
-                Assert.assertEquals(appboyConfig.mDefaultNotificationAccentColor, TestData.Values.DEFAULT_NOTIFICATION_COLOR);
-                Assert.assertEquals(appboyConfig.mIsNewsFeedVisualIndicatorOn, TestData.Values.ENABLE_NEWS_FEED_INDICATOR);
-            }
+            Assert.assertEquals(brazeConfig.apiKey, TestData.Values.API_KEY);
+            Assert.assertEquals(brazeConfig.firebaseCloudMessagingSenderIdKey, TestData.Values.FIREBASE_SENDER_ID);
+            Assert.assertEquals(brazeConfig.isFirebaseCloudMessagingRegistrationEnabled, TestData.Values.FIREBASE_ENABLED);
+            Assert.assertEquals(brazeConfig.isAdmMessagingRegistrationEnabled, TestData.Values.ADM_ENABLED);
+            Assert.assertEquals(brazeConfig.isLocationCollectionEnabled, !TestData.Values.DISABLE_LOCATION);
+            Assert.assertEquals(brazeConfig.willHandlePushDeepLinksAutomatically, TestData.Values.AUTO_DEEP_LINKS);
+            Assert.assertEquals(brazeConfig.badNetworkInterval, TestData.Values.BAD_NETWORK_INTERVAL);
+            Assert.assertEquals(brazeConfig.goodNetworkInterval, TestData.Values.GOOD_NETWORK_INTERVAL);
+            Assert.assertEquals(brazeConfig.greatNetworkInterval, TestData.Values.GREAT_NETWORK_INTERVAL);
+            Assert.assertEquals(brazeConfig.largeNotificationIcon, TestData.Values.LARGE_NOTIFICATION_ICON);
+            Assert.assertEquals(brazeConfig.smallNotificationIcon, TestData.Values.SMALL_NOTIFICATION_ICON);
+            Assert.assertEquals(brazeConfig.sessionTimeout, TestData.Values.SESSION_TIMEOUT);
+            Assert.assertEquals(brazeConfig.customEndpoint, TestData.Values.CUSTOM_ENDPOINT);
+            Assert.assertEquals(brazeConfig.triggerActionMinimumTimeIntervalSeconds, TestData.Values.TRIGGER_INTERVAL_SECONDS);
+            Assert.assertEquals(brazeConfig.defaultNotificationAccentColor, TestData.Values.DEFAULT_NOTIFICATION_COLOR);
+            Assert.assertEquals(brazeConfig.isNewsFeedVisualIndicatorOn, TestData.Values.ENABLE_NEWS_FEED_INDICATOR);
         });
     }
 }

@@ -279,4 +279,16 @@ public class MockBrazeInstance extends BrazeInstance {
         super.registerToken(token);
         addCallerName();
     }
+
+    @Override
+    public void addToSubscriptionGroup(String groupId) {
+        super.addToSubscriptionGroup(groupId);
+        addCallerName();
+    }
+
+    @Override
+    public void removeFromSubscriptionGroup(String groupId) {
+        super.removeFromSubscriptionGroup(groupId);
+        addCallerName();
+    }
 }

@@ -51,7 +51,8 @@
     "latitude": "location_latitude",
     "longitude": "location_longitude",
     "horizontal_accuracy": "location_horizontal_accuracy",
-    "purchase_props": "purchase"
+    "purchase_props": "purchase",
+    "subscription_group": "subscription_group_id"
   },
   "commands": {
     "launch": "initialize",
@@ -69,6 +70,8 @@
     "log_purchase": "logpurchase",
     "user_attribute": "userattribute,useridentifier,useralias",
     "user_login": "useridentifier,useralias",
-    "user_alias": "useralias"
+    "user_alias": "useralias",
+    "subscribe": "addtosubscriptiongroup",
+    "unsubscribe": "removefromsubscriptiongroup"
   }
 }

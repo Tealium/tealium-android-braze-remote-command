@@ -3,7 +3,7 @@ package com.tealium.remotecommands.braze;
 import android.util.Log;
 
 import com.appboy.enums.Gender;
-import com.appboy.models.outgoing.AppboyProperties;
+import com.braze.models.outgoing.BrazeProperties;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -38,10 +38,10 @@ class BrazeUtils {
      *                   null, then a new AppboyProperties object will be created to be returned
      * @return
      */
-    public static AppboyProperties addCustomProperty(String key, Object data, AppboyProperties properties) {
+    public static BrazeProperties addCustomProperty(String key, Object data, BrazeProperties properties) {
         if (properties == null) {
             Log.d(BrazeConstants.TAG, "Creating new AppboyProperties");
-            properties = new AppboyProperties();
+            properties = new BrazeProperties();
         }
 
         if (data instanceof String) {
@@ -91,7 +91,7 @@ class BrazeUtils {
      * @param data - value to add to the custom property
      * @return
      */
-    public static AppboyProperties addCustomProperty(String key, Object data) {
+    public static BrazeProperties addCustomProperty(String key, Object data) {
         return addCustomProperty(key, data, null);
     }
 
@@ -103,8 +103,8 @@ class BrazeUtils {
      * @param customProperties - JSONObject of Key-Value pairs.
      * @return AppboyProperties containing the Key-Value pairs supplied
      */
-    public static AppboyProperties extractCustomProperties(JSONObject customProperties) {
-        AppboyProperties props = new AppboyProperties();
+    public static BrazeProperties extractCustomProperties(JSONObject customProperties) {
+        BrazeProperties props = new BrazeProperties();
         if (customProperties != null) {
             try {
                 // add the provided custom properties into the new payload object
