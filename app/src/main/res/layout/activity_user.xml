@@ -109,9 +109,11 @@
         android:layout_height="wrap_content"
         android:layout_margin="16dp"
         android:hint="@string/hint_user_alias_label"
+        app:layout_constraintBottom_toTopOf="@id/btn_save_user_details"
         app:layout_constraintLeft_toLeftOf="parent"
         app:layout_constraintRight_toRightOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/edit_txt_user_alias"/>
+        app:layout_constraintTop_toBottomOf="@id/edit_txt_user_alias"
+        app:layout_constraintVertical_bias="0.0" />
 
     <androidx.appcompat.widget.AppCompatButton
         android:id="@+id/btn_save_user_details"

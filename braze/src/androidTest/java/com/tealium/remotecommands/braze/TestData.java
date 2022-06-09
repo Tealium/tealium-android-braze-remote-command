@@ -535,6 +535,28 @@ public final class TestData {
 
             return create(payload);
         }
+
+        public static RemoteCommand.Response addToSubscription() throws JSONException {
+            JSONObject payload = new JSONObject();
+            Collection<String> commandList = new LinkedList<>();
+            commandList.add(Commands.ADD_TO_SUBSCRIPTION_GROUP);
+
+            payload.put(Commands.COMMAND_KEY, String.join(SEPARATOR, commandList));
+            payload.put(User.SUBSCRIPTION_GROUP_ID, "12345");
+
+            return create(payload);
+        }
+
+        public static RemoteCommand.Response removeFromSubscription() throws JSONException {
+            JSONObject payload = new JSONObject();
+            Collection<String> commandList = new LinkedList<>();
+            commandList.add(Commands.REMOVE_FROM_SUBSCRIPTION_GROUP);
+
+            payload.put(Commands.COMMAND_KEY, String.join(SEPARATOR, commandList));
+            payload.put(User.SUBSCRIPTION_GROUP_ID, "12345");
+
+            return create(payload);
+        }
     }
 
     public static final class Values {
@@ -691,5 +713,7 @@ public final class TestData {
         public static final String REMOVE_USER_CUSTOM_ATTRIBUTES_ARRAY = "removeFromUserCustomAttributeArrays";
         public static final String REQUEST_FLUSH = "requestFlush";
         public static final String REGISTER_PUSH = "registerToken";
+        public static final String ADD_TO_SUBSCRIPTION = "addToSubscriptionGroup";
+        public static final String REMOVE_FROM_SUBSCRIPTION = "removeFromSubscriptionGroup";
     }
 }

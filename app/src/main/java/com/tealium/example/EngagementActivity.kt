@@ -32,6 +32,21 @@ class EngagementActivity : AppCompatActivity() {
             trackEvent("setengagement", data)
             trackEvent("facebook", data)
             trackEvent("twitter", data)
+            data["email_subscription"]?.let { emailSubscription ->
+                if (emailSubscription == getString(R.string.hint_subscribed_value)) {
+                    trackEvent("subscribed", mapOf("subscription_group" to "email"))
+                } else if (emailSubscription == getString(R.string.hint_unsubscribed_value)) {
+                    trackEvent("unsubscribed", mapOf("subscription_group" to "email"))
+                }
+            }
+
+            data["push_subscription"]?.let { pushSubscription ->
+                if (pushSubscription == getString(R.string.hint_subscribed_value)) {
+                    trackEvent("subscribed", mapOf("subscription_group" to "push"))
+                } else if (pushSubscription == getString(R.string.hint_unsubscribed_value)) {
+                    trackEvent("unsubscribed", mapOf("subscription_group" to "push"))
+                }
+            }
         }
     }
 

@@ -448,4 +448,18 @@ interface BrazeCommand {
      * @param token
      */
     void registerToken(String token);
+
+    /**
+     * Adds the current BrazeUser to a subscription group
+     *
+     * @param groupId
+     */
+    void addToSubscriptionGroup(String groupId);
+
+    /**
+     * Removes the current BrazeUser from a subscription group
+     *
+     * @param groupId
+     */
+    void removeFromSubscriptionGroup(String groupId);
 }

@@ -5,33 +5,32 @@ import android.app.Activity;
 import androidx.annotation.NonNull;
 
 import android.app.Application;
+import android.app.Application.ActivityLifecycleCallbacks;
 import android.os.Bundle;
 import android.util.Log;
 
-import com.appboy.Appboy;
-import com.appboy.AppboyLifecycleCallbackListener;
-import com.appboy.AppboyUser;
-import com.appboy.configuration.AppboyConfig;
 import com.appboy.enums.NotificationSubscriptionType;
-import com.appboy.models.outgoing.AppboyProperties;
 import com.appboy.models.outgoing.FacebookUser;
 import com.appboy.models.outgoing.TwitterUser;
+import com.braze.Braze;
+import com.braze.BrazeActivityLifecycleCallbackListener;
+import com.braze.BrazeUser;
+import com.braze.configuration.BrazeConfig;
+import com.braze.models.outgoing.BrazeProperties;
 
 import org.json.JSONArray;
-import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
 import static com.tealium.remotecommands.braze.BrazeConstants.TAG;
 import static com.tealium.remotecommands.braze.BrazeConstants.Config;
 
-class BrazeInstance implements BrazeCommand, Application.ActivityLifecycleCallbacks {
+class BrazeInstance implements BrazeCommand, ActivityLifecycleCallbacks {
 
     Application mApplication;
     Activity mCurrentActivity;
@@ -72,7 +71,7 @@ class BrazeInstance implements BrazeCommand, Application.ActivityLifecycleCallba
 
     @Override
     public void initialize(String apiKey, JSONObject launchOptions, List<BrazeRemoteCommand.ConfigOverrider> overrides) {
-        AppboyConfig.Builder builder = new AppboyConfig.Builder();
+        BrazeConfig.Builder builder = new BrazeConfig.Builder();
 
         // API Key can be setup in a local resx file,
         // So no need to make this absolutely mandatory.
@@ -136,7 +135,6 @@ class BrazeInstance implements BrazeCommand, Application.ActivityLifecycleCallba
                 builder.setPushDeepLinkBackStackActivityEnabled(launchOptions.optBoolean(Config.BACKSTACK_ACTIVITY_ENABLED));
             }
 
-
             // Integers
             if (BrazeUtils.keyHasValue(launchOptions, Config.SESSION_TIMEOUT)) {
                 builder.setSessionTimeout(launchOptions.optInt(Config.SESSION_TIMEOUT));
@@ -162,29 +160,8 @@ class BrazeInstance implements BrazeCommand, Application.ActivityLifecycleCallba
                 builder.setGreatNetworkDataFlushInterval(launchOptions.optInt(Config.GREAT_NETWORK_INTERVAL));
             }
 
-            if (BrazeUtils.keyHasValue(launchOptions, Config.LOCALE_MAPPING)) {
-                try {
-                    List<String> localeMapping = null;
-
-                    Object obj = launchOptions.get(Config.LOCALE_MAPPING);
-                    if (obj instanceof JSONArray) {
-                        JSONArray jsonArray = (JSONArray) obj;
-                        List<String> temp = new LinkedList<>();
-                        for (int i = 0; i < jsonArray.length(); i++) {
-                            temp.add(jsonArray.getString(i));
-                        }
-                        localeMapping = temp;
-                    } else if (obj instanceof List) {
-                        localeMapping = (List<String>) obj;
-                    }
-
-                    if (localeMapping != null && !localeMapping.isEmpty()) {
-                        builder.setLocaleToApiMapping(localeMapping);
-                    }
-
-                } catch (JSONException jsEx) {
-                    Log.w(TAG, "Error retrieving locale mapping list from JSON. " + jsEx.getMessage());
-                }
+            if (BrazeUtils.keyHasValue(launchOptions, Config.IS_SDK_AUTHENTICATION_ENABLED)) {
+                builder.setIsSdkAuthenticationEnabled(launchOptions.optBoolean(Config.IS_SDK_AUTHENTICATION_ENABLED));
             }
         }
 
@@ -196,18 +173,18 @@ class BrazeInstance implements BrazeCommand, Application.ActivityLifecycleCallba
         }
 
         // configure the instance.
-        Appboy.configure(mApplication.getApplicationContext(), builder.build());
+        Braze.configure(mApplication.getApplicationContext(), builder.build());
 
         if (mSessionHandlingEnabled) {
             if (mCurrentActivity != null
                     && (mSessionHandlingBlacklist == null || !mSessionHandlingBlacklist.contains(mCurrentActivity.getClass()))) {
                 // Current activity found.
                 // No longer need a temporary listener.
-                getAppboyInstance().openSession(mCurrentActivity);
+                getBrazeInstance().openSession(mCurrentActivity);
             }
             mApplication.unregisterActivityLifecycleCallbacks(this);
             // register Braze listeners so they can take over the session handling.
-            mApplication.registerActivityLifecycleCallbacks(new AppboyLifecycleCallbackListener(mSessionHandlingEnabled,
+            mApplication.registerActivityLifecycleCallbacks((ActivityLifecycleCallbacks) new BrazeActivityLifecycleCallbackListener(mSessionHandlingEnabled,
                     mRegisterInAppMessageManager,
                     mSessionHandlingBlacklist,
                     mInAppMessageBlacklist));
@@ -217,21 +194,21 @@ class BrazeInstance implements BrazeCommand, Application.ActivityLifecycleCallba
     @Override
     public void enableSdk(Boolean enabled) {
         if (enabled) {
-            Appboy.enableSdk(mApplication.getApplicationContext());
+            Braze.enableSdk(mApplication.getApplicationContext());
         } else {
-            Appboy.disableSdk(mApplication.getApplicationContext());
+            Braze.disableSdk(mApplication.getApplicationContext());
         }
     }
 
     @Override
     public void wipeData() {
-        Appboy.wipeData(mApplication.getApplicationContext());
+        Braze.wipeData(mApplication.getApplicationContext());
     }
 
     @Override
     public void setUserId(String userId) {
         if (userId != null) {
-            getAppboyInstance().changeUser(userId);
+            getBrazeInstance().changeUser(userId);
         }
     }
 
@@ -239,67 +216,67 @@ class BrazeInstance implements BrazeCommand, Application.ActivityLifecycleCallba
     public void setUserAlias(String userAlias, String aliasLabel) {
         if (BrazeUtils.isNullOrEmpty(userAlias) ||
                 BrazeUtils.isNullOrEmpty(aliasLabel) ||
-                getAppboyUser() == null) {
+                getBrazeUser() == null) {
             return;
         }
 
-        getAppboyUser().addAlias(userAlias, aliasLabel);
+        getBrazeUser().addAlias(userAlias, aliasLabel);
     }
 
     @Override
     public void setUserFirstName(String firstName) {
-        if (BrazeUtils.isNullOrEmpty(firstName) || getAppboyUser() == null) {
+        if (BrazeUtils.isNullOrEmpty(firstName) || getBrazeUser() == null) {
             return;
         }
 
-        getAppboyUser().setFirstName(firstName);
+        getBrazeUser().setFirstName(firstName);
     }
 
     @Override
     public void setUserLastName(String lastName) {
-        if (BrazeUtils.isNullOrEmpty(lastName) || getAppboyUser() == null) {
+        if (BrazeUtils.isNullOrEmpty(lastName) || getBrazeUser() == null) {
             return;
         }
 
-        getAppboyUser().setLastName(lastName);
+        getBrazeUser().setLastName(lastName);
     }
 
     @Override
     public void setUserEmail(String email) {
-        if (BrazeUtils.isNullOrEmpty(email) || getAppboyUser() == null) {
+        if (BrazeUtils.isNullOrEmpty(email) || getBrazeUser() == null) {
             return;
         }
 
-        getAppboyUser().setEmail(email);
+        getBrazeUser().setEmail(email);
     }
 
     @Override
     public void setUserLanguage(String language) {
-        if (BrazeUtils.isNullOrEmpty(language) || getAppboyUser() == null) {
+        if (BrazeUtils.isNullOrEmpty(language) || getBrazeUser() == null) {
             return;
         }
 
-        getAppboyUser().setLanguage(language);
+        getBrazeUser().setLanguage(language);
     }
 
     @Override
     public void setUserGender(String gender) {
-        if (BrazeUtils.isNullOrEmpty(gender) || getAppboyUser() == null) {
+        if (BrazeUtils.isNullOrEmpty(gender) || getBrazeUser() == null) {
             return;
         }
 
-        getAppboyUser().setGender(
+        getBrazeUser().setGender(
                 BrazeUtils.getGenderEnumFromString(gender)
         );
     }
 
     @Override
     public void setUserHomeCity(String city) {
-        if (BrazeUtils.isNullOrEmpty(city) || getAppboyUser() == null) {
+        if (BrazeUtils.isNullOrEmpty(city) || getBrazeUser() == null) {
             return;
         }
 
-        getAppboyUser().setHomeCity(city);
+        getBrazeUser().setHomeCity(city);
     }
 
     @Override
@@ -308,7 +285,7 @@ class BrazeInstance implements BrazeCommand, Application.ActivityLifecycleCallba
             return;
         }
 
-        getAppboyUser().setCustomUserAttribute(key, value);
+        getBrazeUser().setCustomUserAttribute(key, value);
     }
 
     @Override
@@ -317,7 +294,7 @@ class BrazeInstance implements BrazeCommand, Application.ActivityLifecycleCallba
             return;
         }
 
-        getAppboyUser().setCustomUserAttribute(key, value);
+        getBrazeUser().setCustomUserAttribute(key, value);
     }
 
     @Override
@@ -326,7 +303,7 @@ class BrazeInstance implements BrazeCommand, Application.ActivityLifecycleCallba
             return;
         }
 
-        getAppboyUser().setCustomUserAttribute(key, value);
+        getBrazeUser().setCustomUserAttribute(key, value);
     }
 
     @Override
@@ -335,7 +312,7 @@ class BrazeInstance implements BrazeCommand, Application.ActivityLifecycleCallba
             return;
         }
 
-        getAppboyUser().setCustomUserAttribute(key, value);
+        getBrazeUser().setCustomUserAttribute(key, value);
     }
 
     @Override
@@ -344,7 +321,7 @@ class BrazeInstance implements BrazeCommand, Application.ActivityLifecycleCallba
             return;
         }
 
-        getAppboyUser().setCustomUserAttribute(key, value);
+        getBrazeUser().setCustomUserAttribute(key, value);
     }
 
     @Override
@@ -353,7 +330,7 @@ class BrazeInstance implements BrazeCommand, Application.ActivityLifecycleCallba
             return;
         }
 
-        getAppboyUser().setCustomUserAttribute(key, value);
+        getBrazeUser().setCustomUserAttribute(key, value);
     }
 
     @Override
@@ -389,7 +366,7 @@ class BrazeInstance implements BrazeCommand, Application.ActivityLifecycleCallba
             return;
         }
 
-        getAppboyUser().unsetCustomUserAttribute(key);
+        getBrazeUser().unsetCustomUserAttribute(key);
     }
 
     @Override
@@ -417,7 +394,7 @@ class BrazeInstance implements BrazeCommand, Application.ActivityLifecycleCallba
             return;
         }
 
-        getAppboyUser().incrementCustomUserAttribute(key, increment);
+        getBrazeUser().incrementCustomUserAttribute(key, increment);
     }
 
     @Override
@@ -441,7 +418,7 @@ class BrazeInstance implements BrazeCommand, Application.ActivityLifecycleCallba
             return;
         }
 
-        getAppboyUser().setCustomAttributeArray(key, attributeArray);
+        getBrazeUser().setCustomAttributeArray(key, attributeArray);
     }
 
     @Override
@@ -474,7 +451,7 @@ class BrazeInstance implements BrazeCommand, Application.ActivityLifecycleCallba
             return;
         }
 
-        getAppboyUser().addToCustomAttributeArray(key, value);
+        getBrazeUser().addToCustomAttributeArray(key, value);
     }
 
     @Override
@@ -500,7 +477,7 @@ class BrazeInstance implements BrazeCommand, Application.ActivityLifecycleCallba
             return;
         }
 
-        getAppboyUser().removeFromCustomAttributeArray(key, value);
+        getBrazeUser().removeFromCustomAttributeArray(key, value);
     }
 
     @Override
@@ -526,7 +503,7 @@ class BrazeInstance implements BrazeCommand, Application.ActivityLifecycleCallba
             return;
         }
 
-        getAppboyUser().setPushNotificationSubscriptionType(
+        getBrazeUser().setPushNotificationSubscriptionType(
                 NotificationSubscriptionType.valueOf(notificationType)
         );
     }
@@ -537,7 +514,7 @@ class BrazeInstance implements BrazeCommand, Application.ActivityLifecycleCallba
             return;
         }
 
-        getAppboyUser().setEmailNotificationSubscriptionType(
+        getBrazeUser().setEmailNotificationSubscriptionType(
                 NotificationSubscriptionType.valueOf(notificationType)
         );
     }
@@ -553,7 +530,7 @@ class BrazeInstance implements BrazeCommand, Application.ActivityLifecycleCallba
                                 Integer numberOfFriends,
                                 JSONArray listOfLikes,
                                 String birthday) {
-        if (getAppboyUser() == null) {
+        if (getBrazeUser() == null) {
             return;
         }
 
@@ -579,7 +556,7 @@ class BrazeInstance implements BrazeCommand, Application.ActivityLifecycleCallba
                 likes,
                 birthday
         );
-        getAppboyUser().setFacebookData(facebookUser);
+        getBrazeUser().setFacebookData(facebookUser);
 
     }
 
@@ -592,7 +569,7 @@ class BrazeInstance implements BrazeCommand, Application.ActivityLifecycleCallba
                                Integer followingCount,
                                Integer tweetCount,
                                String profileImageUrl) {
-        if (getAppboyUser() == null) {
+        if (getBrazeUser() == null) {
             return;
         }
 
@@ -604,7 +581,7 @@ class BrazeInstance implements BrazeCommand, Application.ActivityLifecycleCallba
                 followingCount != -1 ? followingCount : null,
                 tweetCount != -1 ? tweetCount : null,
                 profileImageUrl);
-        getAppboyUser().setTwitterData(twitterUser);
+        getBrazeUser().setTwitterData(twitterUser);
     }
 
     @Override
@@ -614,15 +591,15 @@ class BrazeInstance implements BrazeCommand, Application.ActivityLifecycleCallba
 
     @Override
     public void logCustomEvent(@NonNull String eventName, JSONObject eventProperties) {
-        AppboyProperties appboyProperties;
+        BrazeProperties brazeProperties;
         if (eventProperties == null) {
-            appboyProperties = null;
+            brazeProperties = null;
         } else {
-            appboyProperties = BrazeUtils.extractCustomProperties(eventProperties);
+            brazeProperties = BrazeUtils.extractCustomProperties(eventProperties);
         }
 
-        // appboy api handles an empty AppboyProperties object, so no need to wrap both calls.
-        getAppboyInstance().logCustomEvent(eventName, appboyProperties);
+        // Braze api handles an empty BrazeProperties object, so no need to wrap both calls.
+        getBrazeInstance().logCustomEvent(eventName, brazeProperties);
     }
 
     @Override
@@ -641,7 +618,7 @@ class BrazeInstance implements BrazeCommand, Application.ActivityLifecycleCallba
             currency = "USD";// braze default.
         }
 
-        getAppboyInstance().logPurchase(productId, currency, unitPrice, quantity > 0 ? quantity : 1, BrazeUtils.extractCustomProperties(purchaseProperties));
+        getBrazeInstance().logPurchase(productId, currency, unitPrice, quantity > 0 ? quantity : 1, BrazeUtils.extractCustomProperties(purchaseProperties));
     }
 
     @Override
@@ -663,32 +640,46 @@ class BrazeInstance implements BrazeCommand, Application.ActivityLifecycleCallba
 
     @Override
     public void requestFlush() {
-        getAppboyInstance().requestImmediateDataFlush();
+        getBrazeInstance().requestImmediateDataFlush();
     }
 
     @Override
     public void registerToken(String token) {
         if (token == null) return;
 
-        getAppboyInstance().registerAppboyPushMessages(token);
+        getBrazeInstance().registerPushToken(token);
+    }
+
+    @Override
+    public void addToSubscriptionGroup(String groupId) {
+        if (groupId == null) return;
+
+        getBrazeUser().addToSubscriptionGroup(groupId);
+    }
+
+    @Override
+    public void removeFromSubscriptionGroup(String groupId) {
+        if (groupId == null) return;
+
+        getBrazeUser().removeFromSubscriptionGroup(groupId);
     }
 
     /**
-     * Helper method to always fetch the current Appboy User rather than storing a local variable
+     * Helper method to always fetch the current Braze User rather than storing a local variable
      *
      * @return
      */
-    private AppboyUser getAppboyUser() {
-        return getAppboyInstance().getCurrentUser();
+    private BrazeUser getBrazeUser() {
+        return getBrazeInstance().getCurrentUser();
     }
 
     /**
-     * Helper method to always fetch the current Appboy Instance rather than storing a local variable
+     * Helper method to always fetch the current Braze Instance rather than storing a local variable
      *
      * @return
      */
-    private Appboy getAppboyInstance() {
-        return Appboy.getInstance(mApplication.getApplicationContext());
+    private Braze getBrazeInstance() {
+        return Braze.getInstance(mApplication.getApplicationContext());
     }
 
     @Override
