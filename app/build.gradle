@@ -2,11 +2,11 @@ apply plugin: 'com.android.application'
 apply plugin: 'kotlin-android'
 
 android {
-    compileSdkVersion 32
+    compileSdkVersion 33
     defaultConfig {
         applicationId "com.tealium.example"
         minSdkVersion 21
-        targetSdkVersion 32
+        targetSdkVersion 33
         versionCode 1
         versionName "1.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
@@ -27,10 +27,10 @@ android {
 dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
 
-    implementation 'com.tealium:kotlin-core:1.4.0'
+    implementation 'com.tealium:kotlin-core:1.4.2'
     implementation 'com.tealium:kotlin-lifecycle:1.1.1'
     implementation 'com.tealium:kotlin-tagmanagement-dispatcher:1.1.2'
-    implementation 'com.tealium:kotlin-remotecommand-dispatcher:1.1.1'
+    implementation 'com.tealium:kotlin-remotecommand-dispatcher:1.1.2'
     releaseImplementation "com.tealium.remotecommands:braze:$tealium_braze_version"
     debugImplementation project(path: ':braze')
 
