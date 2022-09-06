@@ -37,7 +37,7 @@ public class BrazeRemoteCommand extends RemoteCommand {
      * Constructs a RemoteCommand that integrates with the Braze SDK to allow Braze API calls to be
      * implemented through Tealium.
      *
-     * @param app - The Application instance
+     * @param app                         - The Application instance
      */
     public BrazeRemoteCommand(Application app) {
         this(app, true, null, true, null, DEFAULT_COMMAND_ID, DEFAULT_COMMAND_DESCRIPTION);
