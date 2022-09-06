@@ -7,7 +7,7 @@ public final class BrazeConstants {
     }
 
     public static final String TAG = "Tealium-Braze";
-    public static final String SEPARATOR = "\\s*,\\s*";
+    public static final String SEPARATOR = ",";
 
     public static final class Commands {
         private Commands() {

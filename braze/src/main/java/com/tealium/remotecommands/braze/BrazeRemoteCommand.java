@@ -215,7 +215,7 @@ public class BrazeRemoteCommand extends RemoteCommand {
 
     private String[] splitCommands(JSONObject payload) {
         String commandString = payload.optString(Commands.COMMAND_KEY, "");
-        return commandString.trim().split(BrazeConstants.SEPARATOR);
+        return commandString.split(BrazeConstants.SEPARATOR);
     }
 
     private void parseCommands(String[] commandList, JSONObject payload) {
