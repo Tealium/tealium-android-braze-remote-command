@@ -38,6 +38,7 @@
     "email_subscription": "email_notification",
     "push_subscription": "push_notification",
     "event_name": "event_name",
+    "tealium_event": "event_name",
     "current_level": "event.current_level",
     "start_date": "event.start_date",
     "high_score": "event.high_score",
@@ -55,6 +56,7 @@
     "subscription_group": "subscription_group_id"
   },
   "commands": {
+    "all_events": "logcustomevent",
     "launch": "initialize",
     "twitter": "twitteruser",
     "facebook": "facebookuser",
