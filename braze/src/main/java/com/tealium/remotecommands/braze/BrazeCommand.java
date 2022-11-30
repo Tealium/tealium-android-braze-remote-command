@@ -1,6 +1,7 @@
 package com.tealium.remotecommands.braze;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 
 import com.tealium.remotecommands.braze.BrazeRemoteCommand.ConfigOverrider;
 
@@ -52,11 +53,16 @@ interface BrazeCommand {
     void initialize(String apiKey, JSONObject launchOptions, List<ConfigOverrider> overrides);
 
     /**
-     * Sets whether or not the Braze SDK is enabled or not.
+     * Sets the Braze SDK to enabled.
      *
-     * @param enabled - a value of false will disable the SDK, a value of true will enable it.
      */
-    void enableSdk(Boolean enabled);
+    void enableSdk();
+
+    /**
+     * Sets the Braze SDK to disabled.
+     *
+     */
+    void disableSdk();
 
     /**
      * Executes Braze's wipeData function to clear any user data stored on the device.
@@ -67,8 +73,17 @@ interface BrazeCommand {
      * Calls the changeUser method to switch which Braze User any subsequent events are related to.
      *
      * @param userId
+     * @param sdkAuthSignature
      */
-    void setUserId(String userId);
+    void setUserId(String userId, @Nullable String sdkAuthSignature);
+
+    /**
+     * Sets the Google ADID and sets whether or not to limit tracking
+     *
+     * @param googleAdid
+     * @param limitAdTracking
+     */
+    void setAdTrackingEnabled(String googleAdid, boolean limitAdTracking);
 
     /**
      * Registers an Alias and Alias Label for the current user. Neither parameter should be blank
@@ -133,6 +148,27 @@ interface BrazeCommand {
     void setUserHomeCity(String city);
 
     /**
+     * Sets the Country attribute for the current user in Braze.
+     *
+     * @param country
+     */
+    void setUserCountry(String country);
+
+    /**
+     * Sets the Phone attribute for the current user in Braze.
+     *
+     * @param phone
+     */
+    void setUserPhone(String phone);
+
+    /**
+     * Sets the Date of Birth for the current user in Braze.
+     *
+     * @param dob
+     */
+    void setUserDateOfBirth(String dob);
+
+    /**
      * Sets the Push Notification Subscription Type for the current user in Braze.
      * Uses Braze's helper method to convert from String to Enum:
      * NotificationSubscriptionType.valueOf(String notificationType)
@@ -149,52 +185,6 @@ interface BrazeCommand {
      * @param notificationType
      */
     void setEmailSubscriptionType(String notificationType);
-
-    /**
-     * Sets the Facebook Account Data for this current user in Braze
-     *
-     * @param facebookId
-     * @param firstName
-     * @param lastName
-     * @param email
-     * @param bio
-     * @param cityName
-     * @param gender
-     * @param numberOfFriends
-     * @param listOfLikes
-     * @param birthday
-     */
-    void setFacebookData(String facebookId,
-                         String firstName,
-                         String lastName,
-                         String email,
-                         String bio,
-                         String cityName,
-                         String gender,
-                         Integer numberOfFriends,
-                         JSONArray listOfLikes,
-                         String birthday);
-
-    /**
-     * Sets the Twitter Account Data for this current user in Braze
-     *
-     * @param twitterUserId
-     * @param twitterHandle
-     * @param name
-     * @param description
-     * @param followerCount
-     * @param followingCount
-     * @param tweetCount
-     * @param profileImageUrl
-     */
-    void setTwitterData(Integer twitterUserId,
-                        String twitterHandle,
-                        String name,
-                        String description,
-                        Integer followerCount,
-                        Integer followingCount,
-                        Integer tweetCount,
-                        String profileImageUrl);
 
     /**
      * Sets a Custom String Attribute for the current user in Braze
@@ -443,13 +433,6 @@ interface BrazeCommand {
     void requestFlush();
 
     /**
-     * Registers for push message using the Token provided - for manual registration.
-     *
-     * @param token
-     */
-    void registerToken(String token);
-
-    /**
      * Adds the current BrazeUser to a subscription group
      *
      * @param groupId
@@ -462,4 +445,21 @@ interface BrazeCommand {
      * @param groupId
      */
     void removeFromSubscriptionGroup(String groupId);
+
+    /**
+     * Sets the SDK Auth Signature
+     *
+     * @param signature
+     */
+    void setSdkAuthSignature(String signature);
+
+    /**
+     * Sets the last known location of the BrazeUser
+     *
+     * @param latitude
+     * @param longitude
+     * @param altitude
+     * @param accuracy
+     */
+    void setLastKnownLocation(@NonNull Double latitude, @NonNull  Double longitude, @Nullable Double altitude, @Nullable  Double accuracy);
 }

@@ -4,6 +4,7 @@ import android.app.Activity;
 import android.app.Application;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -41,8 +42,14 @@ public class MockBrazeInstance extends BrazeInstance {
     }
 
     @Override
-    public void enableSdk(Boolean enabled) {
-        super.enableSdk(enabled);
+    public void enableSdk() {
+        super.enableSdk();
+        addCallerName();
+    }
+
+    @Override
+    public void disableSdk() {
+        super.disableSdk();
         addCallerName();
     }
 
@@ -53,8 +60,8 @@ public class MockBrazeInstance extends BrazeInstance {
     }
 
     @Override
-    public void setUserId(String userId) {
-        super.setUserId(userId);
+    public void setUserId(String userId, @Nullable String sdkAuthSignature) {
+        super.setUserId(userId, sdkAuthSignature);
         addCallerName();
     }
 
@@ -221,18 +228,6 @@ public class MockBrazeInstance extends BrazeInstance {
     }
 
     @Override
-    public void setFacebookData(String facebookId, String firstName, String lastName, String email, String bio, String cityName, String gender, Integer numberOfFriends, JSONArray listOfLikes, String birthday) {
-        super.setFacebookData(facebookId, firstName, lastName, email, bio, cityName, gender, numberOfFriends, listOfLikes, birthday);
-        addCallerName();
-    }
-
-    @Override
-    public void setTwitterData(Integer twitterUserId, String twitterHandle, String name, String description, Integer followerCount, Integer followingCount, Integer tweetCount, String profileImageUrl) {
-        super.setTwitterData(twitterUserId, twitterHandle, name, description, followerCount, followingCount, tweetCount, profileImageUrl);
-        addCallerName();
-    }
-
-    @Override
     public void logCustomEvent(@NonNull String eventName) {
         super.logCustomEvent(eventName);
         addCallerName();
@@ -275,12 +270,6 @@ public class MockBrazeInstance extends BrazeInstance {
     }
 
     @Override
-    public void registerToken(String token) {
-        super.registerToken(token);
-        addCallerName();
-    }
-
-    @Override
     public void addToSubscriptionGroup(String groupId) {
         super.addToSubscriptionGroup(groupId);
         addCallerName();
@@ -289,6 +278,42 @@ public class MockBrazeInstance extends BrazeInstance {
     @Override
     public void removeFromSubscriptionGroup(String groupId) {
         super.removeFromSubscriptionGroup(groupId);
+        addCallerName();
+    }
+
+    @Override
+    public void setUserCountry(String country) {
+        super.setUserCountry(country);
+        addCallerName();
+    }
+
+    @Override
+    public void setUserPhone(String phone) {
+        super.setUserPhone(phone);
+        addCallerName();
+    }
+
+    @Override
+    public void setUserDateOfBirth(String dob) {
+        super.setUserDateOfBirth(dob);
+        addCallerName();
+    }
+
+    @Override
+    public void setLastKnownLocation(@NonNull Double latitude, @NonNull Double longitude, @Nullable Double altitude, @Nullable Double accuracy) {
+        super.setLastKnownLocation(latitude, longitude, altitude, accuracy);
+        addCallerName();
+    }
+
+    @Override
+    public void setSdkAuthSignature(String signature) {
+        super.setSdkAuthSignature(signature);
+        addCallerName();
+    }
+
+    @Override
+    public void setAdTrackingEnabled(String googleAdid, boolean limitAdTracking) {
+        super.setAdTrackingEnabled(googleAdid, limitAdTracking);
         addCallerName();
     }
 }

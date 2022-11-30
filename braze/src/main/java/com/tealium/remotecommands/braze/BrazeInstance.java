@@ -3,15 +3,15 @@ package com.tealium.remotecommands.braze;
 import android.app.Activity;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 
 import android.app.Application;
 import android.app.Application.ActivityLifecycleCallbacks;
 import android.os.Bundle;
 import android.util.Log;
 
+import com.appboy.enums.Month;
 import com.appboy.enums.NotificationSubscriptionType;
-import com.appboy.models.outgoing.FacebookUser;
-import com.appboy.models.outgoing.TwitterUser;
 import com.braze.Braze;
 import com.braze.BrazeActivityLifecycleCallbackListener;
 import com.braze.BrazeUser;
@@ -23,6 +23,7 @@ import org.json.JSONObject;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
@@ -192,12 +193,13 @@ class BrazeInstance implements BrazeCommand, ActivityLifecycleCallbacks {
     }
 
     @Override
-    public void enableSdk(Boolean enabled) {
-        if (enabled) {
-            Braze.enableSdk(mApplication.getApplicationContext());
-        } else {
-            Braze.disableSdk(mApplication.getApplicationContext());
-        }
+    public void enableSdk() {
+        Braze.enableSdk(mApplication.getApplicationContext());
+    }
+
+    @Override
+    public void disableSdk() {
+        Braze.disableSdk(mApplication.getApplicationContext());
     }
 
     @Override
@@ -206,10 +208,21 @@ class BrazeInstance implements BrazeCommand, ActivityLifecycleCallbacks {
     }
 
     @Override
-    public void setUserId(String userId) {
+    public void setUserId(String userId, @Nullable String sdkAuthSignature) {
         if (userId != null) {
-            getBrazeInstance().changeUser(userId);
+            if (sdkAuthSignature != null) {
+                getBrazeInstance().changeUser(userId, sdkAuthSignature);
+            } else {
+                getBrazeInstance().changeUser(userId);
+            }
         }
+    }
+
+    @Override
+    public void setAdTrackingEnabled(String googleAdid, boolean limitAdTracking) {
+        if (googleAdid == null) return;
+
+        getBrazeInstance().setGoogleAdvertisingId(googleAdid, limitAdTracking);
     }
 
     @Override
@@ -277,6 +290,40 @@ class BrazeInstance implements BrazeCommand, ActivityLifecycleCallbacks {
         }
 
         getBrazeUser().setHomeCity(city);
+    }
+
+    @Override
+    public void setUserCountry(String country) {
+        if (BrazeUtils.isNullOrEmpty(country) || getBrazeUser() == null) {
+            return;
+        }
+
+        getBrazeUser().setCountry(country);
+    }
+
+    @Override
+    public void setUserPhone(String phone) {
+        if (BrazeUtils.isNullOrEmpty(phone) || getBrazeUser() == null) {
+            return;
+        }
+
+        getBrazeUser().setPhoneNumber(phone);
+    }
+
+    @Override
+    public void setUserDateOfBirth(String dob) {
+        if (BrazeUtils.isNullOrEmpty(dob) || getBrazeUser() == null) {
+            return;
+        }
+
+        Date dateOfBirth = BrazeUtils.parseDate(dob);
+        if (dateOfBirth == null) return;
+
+        getBrazeUser().setDateOfBirth(
+                dateOfBirth.getYear(),
+                BrazeUtils.getMonthEnumFromInt(dateOfBirth.getMonth()),
+                dateOfBirth.getDay()
+        );
     }
 
     @Override
@@ -520,71 +567,6 @@ class BrazeInstance implements BrazeCommand, ActivityLifecycleCallbacks {
     }
 
     @Override
-    public void setFacebookData(String facebookId,
-                                String firstName,
-                                String lastName,
-                                String email,
-                                String bio,
-                                String cityName,
-                                String gender,
-                                Integer numberOfFriends,
-                                JSONArray listOfLikes,
-                                String birthday) {
-        if (getBrazeUser() == null) {
-            return;
-        }
-
-        List<String> likes = new ArrayList<>();
-        if (listOfLikes != null && listOfLikes.length() > 0) {
-            for (int i = 0; i < listOfLikes.length(); i++) {
-                String s = listOfLikes.optString(i, null);
-                if (s != null) {
-                    likes.add(s);
-                }
-            }
-        }
-
-        FacebookUser facebookUser = new FacebookUser(
-                facebookId,
-                firstName,
-                lastName,
-                email,
-                bio,
-                cityName,
-                BrazeUtils.getGenderEnumFromString(gender),
-                numberOfFriends != -1 ? numberOfFriends : null,
-                likes,
-                birthday
-        );
-        getBrazeUser().setFacebookData(facebookUser);
-
-    }
-
-    @Override
-    public void setTwitterData(Integer twitterUserId,
-                               String twitterHandle,
-                               String name,
-                               String description,
-                               Integer followerCount,
-                               Integer followingCount,
-                               Integer tweetCount,
-                               String profileImageUrl) {
-        if (getBrazeUser() == null) {
-            return;
-        }
-
-        TwitterUser twitterUser = new TwitterUser(twitterUserId,
-                twitterHandle,
-                name,
-                description,
-                followerCount != -1 ? followerCount : null,
-                followingCount != -1 ? followingCount : null,
-                tweetCount != -1 ? tweetCount : null,
-                profileImageUrl);
-        getBrazeUser().setTwitterData(twitterUser);
-    }
-
-    @Override
     public void logCustomEvent(@NonNull String eventName) {
         logCustomEvent(eventName, null);
     }
@@ -644,10 +626,15 @@ class BrazeInstance implements BrazeCommand, ActivityLifecycleCallbacks {
     }
 
     @Override
-    public void registerToken(String token) {
-        if (token == null) return;
+    public void setLastKnownLocation(@NonNull Double latitude, @NonNull Double longitude, @Nullable Double altitude, @Nullable Double accuracy) {
+        if (latitude == null || longitude == null) return;
 
-        getBrazeInstance().registerPushToken(token);
+        getBrazeUser().setLastKnownLocation(
+                latitude,
+                longitude,
+                altitude,
+                accuracy
+        );
     }
 
     @Override
@@ -662,6 +649,13 @@ class BrazeInstance implements BrazeCommand, ActivityLifecycleCallbacks {
         if (groupId == null) return;
 
         getBrazeUser().removeFromSubscriptionGroup(groupId);
+    }
+
+    @Override
+    public void setSdkAuthSignature(String signature) {
+        if (signature == null) return;
+
+        getBrazeInstance().setSdkAuthenticationSignature(signature);
     }
 
     /**
