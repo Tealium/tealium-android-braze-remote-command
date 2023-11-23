@@ -502,7 +502,7 @@ class BrazeInstance implements BrazeCommand, ActivityLifecycleCallbacks {
         }
 
         getBrazeUser().setPushNotificationSubscriptionType(
-                NotificationSubscriptionType.valueOf(notificationType)
+                NotificationSubscriptionType.fromValue(notificationType)
         );
     }
 
@@ -513,7 +513,7 @@ class BrazeInstance implements BrazeCommand, ActivityLifecycleCallbacks {
         }
 
         getBrazeUser().setEmailNotificationSubscriptionType(
-                NotificationSubscriptionType.valueOf(notificationType)
+                NotificationSubscriptionType.fromValue(notificationType)
         );
     }
 
