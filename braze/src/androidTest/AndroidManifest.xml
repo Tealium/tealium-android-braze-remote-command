@@ -7,7 +7,7 @@
                 <!--<category android:name="${applicationId}" />-->
             <!--</intent-filter>-->
         <!--</receiver>-->
-        <activity android:name=".QAActivity" />
+<!--        <activity android:name=".QAActivity" />-->
 
     </application>
 

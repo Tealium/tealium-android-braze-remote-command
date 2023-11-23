@@ -10,7 +10,7 @@ import java.util.concurrent.CompletableFuture;
 public class MockBrazeRemoteCommand extends BrazeRemoteCommand {
 
     public CompletableFuture<Boolean> future = new CompletableFuture<>();
-    private List<Validator> validators = new ArrayList<>();
+    private final List<Validator> validators = new ArrayList<>();
 
     public MockBrazeRemoteCommand(Application app) {
         super(app);

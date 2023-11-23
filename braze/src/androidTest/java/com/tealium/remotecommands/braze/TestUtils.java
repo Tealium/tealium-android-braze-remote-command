@@ -26,7 +26,7 @@ public class TestUtils {
 
     public static boolean assertContainsAll(Collection<String> actual, Collection<String> expected) {
         boolean result = actual.containsAll(expected);
-        Assert.assertTrue("assertContainsAll: Not all expected methods were found.", result);
+        Assert.assertTrue("assertContainsAll: Not all expected methods were found. Actual:" + new JSONArray(actual) + " ->\n Expected: " + new JSONArray(expected), result);
         return result;
     }
 

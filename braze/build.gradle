@@ -25,20 +25,6 @@ android {
         }
     }
 
-    sourceSets {
-        release {
-            manifest.srcFile 'src/main/AndroidManifest.xml'
-        }
-
-        debug {
-            manifest.srcFile 'src/androidTest/AndroidManifest.xml'
-        }
-
-        main {
-            manifest.srcFile 'src/main/AndroidManifest.xml'
-        }
-    }
-
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_1_8
         targetCompatibility JavaVersion.VERSION_1_8

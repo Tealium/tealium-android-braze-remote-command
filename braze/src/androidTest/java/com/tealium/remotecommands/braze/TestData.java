@@ -9,12 +9,10 @@ import org.json.JSONObject;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.LinkedList;
-import java.util.List;
 import java.util.Map;
 
 import static com.tealium.remotecommands.braze.BrazeConstants.SEPARATOR;
@@ -23,6 +21,7 @@ import static com.tealium.remotecommands.braze.BrazeConstants.Config;
 import static com.tealium.remotecommands.braze.BrazeConstants.User;
 import static com.tealium.remotecommands.braze.BrazeConstants.Event;
 import static com.tealium.remotecommands.braze.BrazeConstants.Purchase;
+import static com.tealium.remotecommands.braze.BrazeConstants.Location;
 
 public final class TestData {
 
@@ -59,7 +58,6 @@ public final class TestData {
             payload.put(Config.ENABLE_NEWS_FEED_INDICATOR, Values.ENABLE_NEWS_FEED_INDICATOR);
             payload.put(Config.LARGE_NOTIFICATION_ICON, Values.LARGE_NOTIFICATION_ICON);
             payload.put(Config.SMALL_NOTIFICATION_ICON, Values.SMALL_NOTIFICATION_ICON);
-            payload.put(Config.LOCALE_MAPPING, Values.LOCALE_MAPPING);
             payload.put(Config.SESSION_TIMEOUT, Values.SESSION_TIMEOUT);
             payload.put(Config.TRIGGER_INTERVAL_SECONDS, Values.TRIGGER_INTERVAL_SECONDS);
 
@@ -76,15 +74,13 @@ public final class TestData {
         public static Map<String, Object> enableSdk() {
             Map<String, Object> payload = new HashMap<>();
             payload.put(Commands.COMMAND_KEY, Commands.ENABLE_SDK);
-            payload.put(Config.ENABLE_SDK, true);
 
             return payload;
         }
 
         public static Map<String, Object> disableSdk() {
             Map<String, Object> payload = new HashMap<>();
-            payload.put(Commands.COMMAND_KEY, Commands.ENABLE_SDK);
-            payload.put(Config.ENABLE_SDK, false);
+            payload.put(Commands.COMMAND_KEY, Commands.DISABLE_SDK);
 
             return payload;
         }
@@ -227,6 +223,25 @@ public final class TestData {
 
             return payload;
         }
+
+        public static Map<String, Object> userAllCustomArrayAttributes() {
+            Map<String, Object> payload = new HashMap<>();
+
+            payload.put(Commands.COMMAND_KEY, String.join(SEPARATOR,
+                    Commands.INITIALIZE,
+                    Commands.SET_CUSTOM_ARRAY_ATTRIBUTE,
+                    Commands.APPEND_CUSTOM_ARRAY_ATTRIBUTE,
+                    Commands.REMOVE_CUSTOM_ARRAY_ATTRIBUTE
+            ));
+
+            payload.put(Config.API_KEY, Values.API_KEY);
+
+            payload.put(User.SET_CUSTOM_ARRAY_ATTRIBUTE, Values.SET_CUSTOM_USER_ATTRIBUTES_ARRAY);
+            payload.put(User.APPEND_CUSTOM_ARRAY_ATTRIBUTE, Values.APPEND_CUSTOM_USER_ATTRIBUTES_ARRAY);
+            payload.put(User.REMOVE_CUSTOM_ARRAY_ATTRIBUTE, Values.REMOVE_CUSTOM_USER_ATTRIBUTES_ARRAY);
+
+            return payload;
+        }
     }
 
     public static final class Responses {
@@ -274,7 +289,6 @@ public final class TestData {
             payload.put(Config.ENABLE_NEWS_FEED_INDICATOR, Values.ENABLE_NEWS_FEED_INDICATOR);
             payload.put(Config.LARGE_NOTIFICATION_ICON, Values.LARGE_NOTIFICATION_ICON);
             payload.put(Config.SMALL_NOTIFICATION_ICON, Values.SMALL_NOTIFICATION_ICON);
-            payload.put(Config.LOCALE_MAPPING, Values.LOCALE_MAPPING);
             payload.put(Config.SESSION_TIMEOUT, Values.SESSION_TIMEOUT);
             payload.put(Config.TRIGGER_INTERVAL_SECONDS, Values.TRIGGER_INTERVAL_SECONDS);
 
@@ -291,15 +305,13 @@ public final class TestData {
         public static RemoteCommand.Response enableSdk() throws JSONException {
             JSONObject payload = new JSONObject();
             payload.put(Commands.COMMAND_KEY, Commands.ENABLE_SDK);
-            payload.put(Config.ENABLE_SDK, true);
 
             return create(payload);
         }
 
         public static RemoteCommand.Response disableSdk() throws JSONException {
             JSONObject payload = new JSONObject();
-            payload.put(Commands.COMMAND_KEY, Commands.ENABLE_SDK);
-            payload.put(Config.ENABLE_SDK, false);
+            payload.put(Commands.COMMAND_KEY, Commands.DISABLE_SDK);
 
             return create(payload);
         }
@@ -383,6 +395,15 @@ public final class TestData {
             return create(payload);
         }
 
+        public static RemoteCommand.Response userIdWithAuthSignature() throws JSONException {
+            JSONObject payload = new JSONObject();
+            payload.put(Commands.COMMAND_KEY, Commands.USER_IDENTIFIER);
+            payload.put(User.USER_ID, Values.USER_ID);
+            payload.put(User.SDK_AUTH_SIGNATURE, Values.SDK_AUTH_SIGNATURE);
+
+            return create(payload);
+        }
+
         public static RemoteCommand.Response userAllAttributes() throws JSONException {
             JSONObject payload = new JSONObject();
             Collection<String> commandList = new LinkedList<>();
@@ -398,6 +419,7 @@ public final class TestData {
             payload.put(User.USER_ID, Values.USER_ID);
             payload.put(User.ALIAS, Values.USER_ALIAS);
             payload.put(User.ALIAS_LABEL, Values.USER_ALIAS_LABEL);
+            payload.put(User.SDK_AUTH_SIGNATURE, Values.SDK_AUTH_SIGNATURE);
 
             payload.put(User.FIRST_NAME, Values.USER_FIRST_NAME);
             payload.put(User.LAST_NAME, Values.USER_LAST_NAME);
@@ -405,6 +427,9 @@ public final class TestData {
             payload.put(User.GENDER, Values.USER_GENDER);
             payload.put(User.LANGUAGE, Values.USER_LANGUAGE);
             payload.put(User.HOME_CITY, Values.USER_HOME_CITY);
+            payload.put(User.COUNTRY, Values.USER_COUNTRY);
+            payload.put(User.PHONE, Values.USER_PHONE);
+            payload.put(User.DATE_OF_BIRTH, Values.DOB_BRAZE_SHORT);
 
             return create(payload);
         }
@@ -455,17 +480,6 @@ public final class TestData {
             return create(payload);
         }
 
-        public static RemoteCommand.Response registerPush() throws JSONException {
-            JSONObject payload = new JSONObject();
-            Collection<String> commandList = new LinkedList<>();
-            commandList.add(Commands.REGISTER_TOKEN);
-
-            payload.put(Commands.COMMAND_KEY, String.join(SEPARATOR, commandList));
-            payload.put(User.PUSH_TOKEN, "12345");
-
-            return create(payload);
-        }
-
         public static RemoteCommand.Response addToSubscription() throws JSONException {
             JSONObject payload = new JSONObject();
             Collection<String> commandList = new LinkedList<>();
@@ -484,6 +498,66 @@ public final class TestData {
 
             payload.put(Commands.COMMAND_KEY, String.join(SEPARATOR, commandList));
             payload.put(User.SUBSCRIPTION_GROUP_ID, "12345");
+
+            return create(payload);
+        }
+
+        public static RemoteCommand.Response setLastKnownLocation_RequiredValues() throws JSONException {
+            JSONObject payload = new JSONObject();
+            Collection<String> commandList = new LinkedList<>();
+            commandList.add(Commands.SET_LAST_KNOWN_LOCATION);
+
+            payload.put(Commands.COMMAND_KEY, String.join(SEPARATOR, commandList));
+            payload.put(Location.LOCATION_LATITUDE, 0.0);
+            payload.put(Location.LOCATION_LONGITUDE, 1.1);
+
+            return create(payload);
+        }
+
+        public static RemoteCommand.Response setLastKnownLocation_AllValues() throws JSONException {
+            JSONObject payload = new JSONObject();
+            Collection<String> commandList = new LinkedList<>();
+            commandList.add(Commands.SET_LAST_KNOWN_LOCATION);
+
+            payload.put(Commands.COMMAND_KEY, String.join(SEPARATOR, commandList));
+            payload.put(Location.LOCATION_LATITUDE, 0.0);
+            payload.put(Location.LOCATION_LONGITUDE, 1.1);
+            payload.put(Location.LOCATION_ALTITUDE, 2.2);
+            payload.put(Location.LOCATION_ACCURACY, 3.3);
+
+            return create(payload);
+        }
+
+        public static RemoteCommand.Response setSdkAuthSignature() throws JSONException {
+            JSONObject payload = new JSONObject();
+            Collection<String> commandList = new LinkedList<>();
+            commandList.add(Commands.SET_SDK_AUTH_SIGNATURE);
+
+            payload.put(Commands.COMMAND_KEY, String.join(SEPARATOR, commandList));
+            payload.put(User.SDK_AUTH_SIGNATURE, Values.SDK_AUTH_SIGNATURE);
+
+            return create(payload);
+        }
+
+        public static RemoteCommand.Response setAdTrackingEnabled() throws JSONException {
+            JSONObject payload = new JSONObject();
+            Collection<String> commandList = new LinkedList<>();
+            commandList.add(Commands.SET_AD_TRACKING_ENABLED);
+
+            payload.put(Commands.COMMAND_KEY, String.join(SEPARATOR, commandList));
+            payload.put(User.GOOGLE_ADID, Values.GOOGLE_ADID);
+            payload.put(User.AD_TRACKING_ENABLED, Values.AD_TRACKING_ENABLED);
+
+            return create(payload);
+        }
+
+        public static RemoteCommand.Response setAdTrackingEnabled_MissingAdid() throws JSONException {
+            JSONObject payload = new JSONObject();
+            Collection<String> commandList = new LinkedList<>();
+            commandList.add(Commands.SET_AD_TRACKING_ENABLED);
+
+            payload.put(Commands.COMMAND_KEY, String.join(SEPARATOR, commandList));
+            payload.put(User.AD_TRACKING_ENABLED, Values.AD_TRACKING_ENABLED);
 
             return create(payload);
         }
@@ -510,10 +584,12 @@ public final class TestData {
         public static final Integer DEFAULT_NOTIFICATION_COLOR = 0xFF00FF;
         public static final Integer SESSION_TIMEOUT = 10;
         public static final Integer TRIGGER_INTERVAL_SECONDS = 10;
-        public static final List<String> LOCALE_MAPPING = new ArrayList<String>() {{
-            add("customLocale, customApiKeyForThatLocale");
-            add("fr_NC, anotherAPIKey");
-        }};
+        public static final String SDK_AUTH_SIGNATURE = "signature";
+        public static final String DOB_ISO_8601 = "2000-01-01T01:01:01Z";
+        public static final String DOB_BRAZE_SHORT = "2000-01-01";
+        public static final String DOB_BRAZE_LONG = "2000-01-01 01:01:01";
+        public static final String GOOGLE_ADID = "my_adid";
+        public static final boolean AD_TRACKING_ENABLED = false;
 
         // Events
         public static final String EVENT_NAME = "add_to_cart";
@@ -553,6 +629,8 @@ public final class TestData {
         public static final String USER_LANGUAGE = "english";
         public static final String USER_HOME_CITY = "Reading";
         public static final String USER_EMAIL = "email@test.com";
+        public static final String USER_PHONE = "++441234567890";
+        public static final String USER_COUNTRY = "USA";
         public static final JSONObject SET_CUSTOM_USER_ATTRIBUTES = new JSONObject() {{
             try {
                 put("custom_string", null);
@@ -597,6 +675,11 @@ public final class TestData {
             } catch (JSONException jex) {
             }
         }};
+
+        public static final double LATITUDE = 0.0;
+        public static final double LONGITUDE = 1.1;
+        public static final double ALTITUDE = 2.2;
+        public static final double ACCURACY = 3.3;
     }
 
     public static final class Methods {
@@ -608,6 +691,7 @@ public final class TestData {
         public static final String LOG_CUSTOM_EVENT = "logCustomEvent";
         public static final String WIPE_DATA = "wipeData";
         public static final String ENABLE_SDK = "enableSdk";
+        public static final String DISABLE_SDK = "disableSdk";
         public static final String SET_USER_ALIAS = "setUserAlias";
         public static final String SET_USER_ID = "setUserId";
         public static final String SET_FIRST_NAME = "setUserFirstName";
@@ -616,6 +700,9 @@ public final class TestData {
         public static final String SET_LANGUAGE = "setUserLanguage";
         public static final String SET_GENDER = "setUserGender";
         public static final String SET_HOME_CITY = "setUserHomeCity";
+        public static final String SET_COUNTRY = "setUserCountry";
+        public static final String SET_PHONE = "setUserPhone";
+        public static final String SET_DATE_OF_BIRTH = "setUserDateOfBirth";
         public static final String SET_USER_CUSTOM_ATTRIBUTE = "setUserCustomAttribute";
         public static final String SET_USER_CUSTOM_ATTRIBUTES = "setUserCustomAttributes";
         public static final String INCREMENT_USER_CUSTOM_ATTRIBUTE = "incrementUserCustomAttribute";
@@ -629,8 +716,10 @@ public final class TestData {
         public static final String REMOVE_USER_CUSTOM_ATTRIBUTE_ARRAY = "removeFromUserCustomAttributeArray";
         public static final String REMOVE_USER_CUSTOM_ATTRIBUTES_ARRAY = "removeFromUserCustomAttributeArrays";
         public static final String REQUEST_FLUSH = "requestFlush";
-        public static final String REGISTER_PUSH = "registerToken";
         public static final String ADD_TO_SUBSCRIPTION = "addToSubscriptionGroup";
         public static final String REMOVE_FROM_SUBSCRIPTION = "removeFromSubscriptionGroup";
+        public static final String SET_LAST_KNOWN_LOCATION = "setLastKnownLocation";
+        public static final String SET_SDK_AUTH_SIGNATURE = "setSdkAuthSignature";
+        public static final String SET_AD_TRACKING_ENABLED = "setAdTrackingEnabled";
     }
 }

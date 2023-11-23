@@ -16,9 +16,9 @@ public final class BrazeConstants {
         public static final String COMMAND_KEY = "command_name";
 
         public static final String INITIALIZE = "initialize";
-        public static final String ENABLE_SDK = "enable_sdk";
-        public static final String WIPE_DATA = "wipe_data";
-        public static final String REGISTER_TOKEN = "registertoken";
+        public static final String ENABLE_SDK = "enablesdk";
+        public static final String DISABLE_SDK = "disablesdk";
+        public static final String WIPE_DATA = "wipedata";
         public static final String USER_IDENTIFIER = "useridentifier";
         public static final String USER_ALIAS = "useralias";
         public static final String USER_ATTRIBUTE = "userattribute";
@@ -32,13 +32,12 @@ public final class BrazeConstants {
         public static final String PUSH_NOTIFICATION = "pushnotification";
         public static final String LOG_CUSTOM_EVENT = "logcustomevent";
         public static final String LOG_PURCHASE_EVENT = "logpurchase";
-        @Deprecated
-        public static final String FACEBOOK_USER = "facebookuser";
-        @Deprecated
-        public static final String TWITTER_USER = "twitteruser";
         public static final String FLUSH = "flush";
         public static final String ADD_TO_SUBSCRIPTION_GROUP = "addtosubscriptiongroup";
         public static final String REMOVE_FROM_SUBSCRIPTION_GROUP = "removefromsubscriptiongroup";
+        public static final String SET_SDK_AUTH_SIGNATURE = "setsdkauthsignature";
+        public static final String SET_LAST_KNOWN_LOCATION = "setlastknownlocation";
+        public static final String SET_AD_TRACKING_ENABLED = "setadtrackingenabled";
     }
 
     public static final class Config {
@@ -46,7 +45,6 @@ public final class BrazeConstants {
         }
 
         public static final String API_KEY = "api_key";
-        public static final String ENABLE_SDK = "enable_sdk";
         public static final String FIREBASE_ENABLED = "firebase_enabled";
         public static final String FIREBASE_SENDER_ID = "firebase_sender_id";
         public static final String SESSION_TIMEOUT = "session_timeout";
@@ -58,8 +56,6 @@ public final class BrazeConstants {
         public static final String DISABLE_LOCATION = "disable_location";
         public static final String ENABLE_NEWS_FEED_INDICATOR = "enable_news_feed_indicator";
         public static final String DEFAULT_NOTIFICATION_COLOR = "default_notification_color";
-        @Deprecated
-        public static final String LOCALE_MAPPING = "locale_mapping";
         public static final String BAD_NETWORK_INTERVAL = "bad_network_interval";
         public static final String GOOD_NETWORK_INTERVAL = "good_network_interval";
         public static final String GREAT_NETWORK_INTERVAL = "great_network_interval";
@@ -71,6 +67,7 @@ public final class BrazeConstants {
     }
 
     public static final class User {
+
         private User() {
         }
 
@@ -82,6 +79,8 @@ public final class BrazeConstants {
         public static final String EMAIL = "email";
         public static final String HOME_CITY = "home_city";
         public static final String DATE_OF_BIRTH = "date_of_birth";
+        public static final String COUNTRY = "country";
+        public static final String PHONE = "phone";
         public static final String ALIAS = "user_alias";
         public static final String ALIAS_LABEL = "user_alias_label";
         public static final String SET_CUSTOM_ATTRIBUTE = "set_custom_attribute";
@@ -90,29 +89,12 @@ public final class BrazeConstants {
         public static final String SET_CUSTOM_ARRAY_ATTRIBUTE = "set_custom_array_attribute";
         public static final String APPEND_CUSTOM_ARRAY_ATTRIBUTE = "append_custom_array_attribute";
         public static final String REMOVE_CUSTOM_ARRAY_ATTRIBUTE = "remove_custom_array_attribute";
-        @Deprecated
-        public static final String FACEBOOK_ID = "facebook_id";
-        @Deprecated
-        public static final String FRIENDS_COUNT = "friends_count";
-        @Deprecated
-        public static final String LIKES = "likes";
-        @Deprecated
-        public static final String DESCRIPTION = "description";
-        @Deprecated
-        public static final String TWITTER_ID = "twitter_id";
-        @Deprecated
-        public static final String TWITTER_NAME = "twitter_name";
-        @Deprecated
-        public static final String PROFILE_IMAGE_URL = "profile_image_url";
-        public static final String SCREEN_NAME = "screen_name";
-        @Deprecated
-        public static final String FOLLOWERS_COUNT = "followers_count";
-        @Deprecated
-        public static final String STATUSES_COUNT = "statuses_count";
         public static final String EMAIL_NOTIFICATION = "email_notification";
         public static final String PUSH_NOTIFICATION = "push_notification";
-        public static final String PUSH_TOKEN = "push_token";
         public static final String SUBSCRIPTION_GROUP_ID = "subscription_group_id";
+        public static final String GOOGLE_ADID = "google_adid";
+        public static final String AD_TRACKING_ENABLED = "ad_tracking_enabled";
+        public static final String SDK_AUTH_SIGNATURE = "sdk_auth_signature";
     }
 
     public static final class Event {
@@ -136,4 +118,13 @@ public final class BrazeConstants {
         public static final String PURCHASE_PROPERTIES_SHORTHAND = "purchase";
     }
 
+    public static final class Location {
+        private Location() {
+        }
+
+        public static final String LOCATION_LATITUDE = "location_latitude";
+        public static final String LOCATION_LONGITUDE = "location_longitude";
+        public static final String LOCATION_ALTITUDE = "location_altitude";
+        public static final String LOCATION_ACCURACY = "location_accuracy";
+    }
 }

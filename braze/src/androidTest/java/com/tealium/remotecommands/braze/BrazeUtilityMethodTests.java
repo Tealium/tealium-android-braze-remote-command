@@ -3,6 +3,7 @@ package com.tealium.remotecommands.braze;
 import androidx.test.runner.AndroidJUnit4;
 
 import com.braze.enums.Gender;
+import com.braze.enums.Month;
 import com.braze.models.outgoing.BrazeProperties;
 
 import org.junit.Assert;
@@ -14,6 +15,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import java.math.BigDecimal;
+import java.util.Date;
 
 @RunWith(AndroidJUnit4.class)
 public class BrazeUtilityMethodTests {
@@ -48,6 +50,52 @@ public class BrazeUtilityMethodTests {
 
         // default
         Assert.assertNull(BrazeUtils.getGenderEnumFromString("UNEXPECTED VALUE"));
+    }
+
+    @Test
+    public void monthEnumFromIntTests() {
+        Assert.assertEquals(Month.JANUARY, BrazeUtils.getMonthEnumFromInt(0));
+        Assert.assertEquals(Month.FEBRUARY, BrazeUtils.getMonthEnumFromInt(1));
+        Assert.assertEquals(Month.MARCH, BrazeUtils.getMonthEnumFromInt(2));
+        Assert.assertEquals(Month.APRIL, BrazeUtils.getMonthEnumFromInt(3));
+        Assert.assertEquals(Month.MAY, BrazeUtils.getMonthEnumFromInt(4));
+        Assert.assertEquals(Month.JUNE, BrazeUtils.getMonthEnumFromInt(5));
+        Assert.assertEquals(Month.JULY, BrazeUtils.getMonthEnumFromInt(6));
+        Assert.assertEquals(Month.AUGUST, BrazeUtils.getMonthEnumFromInt(7));
+        Assert.assertEquals(Month.SEPTEMBER, BrazeUtils.getMonthEnumFromInt(8));
+        Assert.assertEquals(Month.OCTOBER, BrazeUtils.getMonthEnumFromInt(9));
+        Assert.assertEquals(Month.NOVEMBER, BrazeUtils.getMonthEnumFromInt(10));
+        Assert.assertEquals(Month.DECEMBER, BrazeUtils.getMonthEnumFromInt(11));
+
+        Assert.assertNull(BrazeUtils.getMonthEnumFromInt(-1));
+        Assert.assertNull(BrazeUtils.getMonthEnumFromInt(12));
+    }
+
+    @Test
+    public void parseDateTest_SimpleDateFormat() {
+        Date date = BrazeUtils.parseDate(TestData.Values.DOB_ISO_8601);
+
+        Assert.assertEquals(1, date.getDate());
+        Assert.assertEquals(0, date.getMonth());
+        Assert.assertEquals(2000 - 1900, date.getYear());
+    }
+
+    @Test
+    public void parseDateTest_BrazeShort() {
+        Date date = BrazeUtils.parseDate(TestData.Values.DOB_BRAZE_SHORT);
+
+        Assert.assertEquals(1, date.getDate());
+        Assert.assertEquals(0, date.getMonth());
+        Assert.assertEquals(2000 - 1900, date.getYear());
+    }
+
+    @Test
+    public void parseDateTest_BrazeLong() {
+        Date date = BrazeUtils.parseDate(TestData.Values.DOB_BRAZE_LONG);
+
+        Assert.assertEquals(1, date.getDate());
+        Assert.assertEquals(0, date.getMonth());
+        Assert.assertEquals(2000 - 1900, date.getYear());
     }
 
     @Test
