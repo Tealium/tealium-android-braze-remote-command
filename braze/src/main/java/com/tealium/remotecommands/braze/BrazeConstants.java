@@ -32,7 +32,9 @@ public final class BrazeConstants {
         public static final String PUSH_NOTIFICATION = "pushnotification";
         public static final String LOG_CUSTOM_EVENT = "logcustomevent";
         public static final String LOG_PURCHASE_EVENT = "logpurchase";
+        @Deprecated
         public static final String FACEBOOK_USER = "facebookuser";
+        @Deprecated
         public static final String TWITTER_USER = "twitteruser";
         public static final String FLUSH = "flush";
         public static final String ADD_TO_SUBSCRIPTION_GROUP = "addtosubscriptiongroup";
@@ -88,15 +90,24 @@ public final class BrazeConstants {
         public static final String SET_CUSTOM_ARRAY_ATTRIBUTE = "set_custom_array_attribute";
         public static final String APPEND_CUSTOM_ARRAY_ATTRIBUTE = "append_custom_array_attribute";
         public static final String REMOVE_CUSTOM_ARRAY_ATTRIBUTE = "remove_custom_array_attribute";
+        @Deprecated
         public static final String FACEBOOK_ID = "facebook_id";
+        @Deprecated
         public static final String FRIENDS_COUNT = "friends_count";
+        @Deprecated
         public static final String LIKES = "likes";
+        @Deprecated
         public static final String DESCRIPTION = "description";
+        @Deprecated
         public static final String TWITTER_ID = "twitter_id";
+        @Deprecated
         public static final String TWITTER_NAME = "twitter_name";
+        @Deprecated
         public static final String PROFILE_IMAGE_URL = "profile_image_url";
         public static final String SCREEN_NAME = "screen_name";
+        @Deprecated
         public static final String FOLLOWERS_COUNT = "followers_count";
+        @Deprecated
         public static final String STATUSES_COUNT = "statuses_count";
         public static final String EMAIL_NOTIFICATION = "email_notification";
         public static final String PUSH_NOTIFICATION = "push_notification";

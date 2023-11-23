@@ -80,5 +80,4 @@ class UserActivity : AppCompatActivity() {
             "customer_alias" to userAliasEditText.text.toString(),
             "customer_alias_label" to userAliasLabelEditText.text.toString(),
         )
-
 }

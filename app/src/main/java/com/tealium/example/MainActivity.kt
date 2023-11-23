@@ -16,12 +16,40 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
         editUserDetailsButton = findViewById(R.id.btn_edit_user_details)
-        editUserDetailsButton.setOnClickListener { startActivity(Intent(this@MainActivity, UserActivity::class.java)) }
+        editUserDetailsButton.setOnClickListener {
+            startActivity(
+                Intent(
+                    this@MainActivity,
+                    UserActivity::class.java
+                )
+            )
+        }
         eventsAndAttributesButton = findViewById(R.id.btn_send_events)
-        eventsAndAttributesButton.setOnClickListener { startActivity(Intent(this@MainActivity, EventsActivity::class.java)) }
+        eventsAndAttributesButton.setOnClickListener {
+            startActivity(
+                Intent(
+                    this@MainActivity,
+                    EventsActivity::class.java
+                )
+            )
+        }
         editUsetEngagementsButton = findViewById(R.id.btn_edit_user_engagement)
-        editUsetEngagementsButton.setOnClickListener { startActivity(Intent(this@MainActivity, EngagementActivity::class.java)) }
+        editUsetEngagementsButton.setOnClickListener {
+            startActivity(
+                Intent(
+                    this@MainActivity,
+                    EngagementActivity::class.java
+                )
+            )
+        }
         locationButton = findViewById(R.id.btn_location)
-        locationButton.setOnClickListener { startActivity(Intent(this@MainActivity, LocationActivity::class.java)) }
+        locationButton.setOnClickListener {
+            startActivity(
+                Intent(
+                    this@MainActivity,
+                    LocationActivity::class.java
+                )
+            )
+        }
     }
 }

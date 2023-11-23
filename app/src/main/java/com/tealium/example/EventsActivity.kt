@@ -46,7 +46,6 @@ class EventsActivity : AppCompatActivity() {
                 "current_level" to 10, "high_score" to 5000
             )
         )
-
     }
 
     private fun setCustomAttributes() {
@@ -85,13 +84,15 @@ class EventsActivity : AppCompatActivity() {
     }
 
     private fun logPurchase() {
-        trackEvent("log_purchase", mapOf(
-            "product_id" to "sku123",
-            "order_currency" to "USD",
-            "price" to 1.99,
-            "rewards_member" to true,
-            "rewards_points_earned" to 50
-        ))
+        trackEvent(
+            "log_purchase", mapOf(
+                "product_id" to "sku123",
+                "order_currency" to "USD",
+                "price" to 1.99,
+                "rewards_member" to true,
+                "rewards_points_earned" to 50
+            )
+        )
     }
 
     private fun logMultiplePurchase() {

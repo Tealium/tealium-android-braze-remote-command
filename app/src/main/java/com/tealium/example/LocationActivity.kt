@@ -29,13 +29,18 @@ class LocationActivity : AppCompatActivity() {
 
     private fun requestLocationPermissionsIfRequired() {
         MainScope().launch {
-            if (ContextCompat.checkSelfPermission(this@LocationActivity,
-                    Manifest.permission.ACCESS_FINE_LOCATION)
-                != PackageManager.PERMISSION_GRANTED) {
+            if (ContextCompat.checkSelfPermission(
+                    this@LocationActivity,
+                    Manifest.permission.ACCESS_FINE_LOCATION
+                )
+                != PackageManager.PERMISSION_GRANTED
+            ) {
 
                 // Permission is not granted
-                ActivityCompat.requestPermissions(this@LocationActivity, arrayOf(Manifest.permission.ACCESS_FINE_LOCATION),
-                    LOCATION_PERMISSION_REQUEST)
+                ActivityCompat.requestPermissions(
+                    this@LocationActivity, arrayOf(Manifest.permission.ACCESS_FINE_LOCATION),
+                    LOCATION_PERMISSION_REQUEST
+                )
             } else {
                 updateUI(PackageManager.PERMISSION_GRANTED)
             }
@@ -49,6 +54,7 @@ class LocationActivity : AppCompatActivity() {
                 requestPermissionButton.isEnabled = false
                 statusString = "Granted"
             }
+
             PackageManager.PERMISSION_DENIED -> {
                 requestPermissionButton.isEnabled = true
                 statusString = "Denied"
@@ -57,7 +63,11 @@ class LocationActivity : AppCompatActivity() {
         locationPermissionStatus.text = getString(R.string.txt_location_permissions, statusString)
     }
 
-    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<String>, grantResults: IntArray) {
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<String>,
+        grantResults: IntArray
+    ) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
         when (requestCode) {
             LOCATION_PERMISSION_REQUEST -> if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
