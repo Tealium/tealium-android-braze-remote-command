@@ -1,6 +1,7 @@
 package com.tealium.remotecommands.braze;
 
 import com.tealium.remotecommands.RemoteCommand;
+import com.tealium.remotecommands.braze.BrazeRemoteCommand;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -226,51 +227,6 @@ public final class TestData {
 
             return payload;
         }
-
-        public static Map<String, Object> userAllCustomArrayAttributes() {
-            Map<String, Object> payload = new HashMap<>();
-
-            payload.put(Commands.COMMAND_KEY, String.join(SEPARATOR,
-                    Commands.INITIALIZE,
-                    Commands.SET_CUSTOM_ARRAY_ATTRIBUTE,
-                    Commands.APPEND_CUSTOM_ARRAY_ATTRIBUTE,
-                    Commands.REMOVE_CUSTOM_ARRAY_ATTRIBUTE
-            ));
-
-            payload.put(Config.API_KEY, Values.API_KEY);
-
-            payload.put(User.SET_CUSTOM_ARRAY_ATTRIBUTE, Values.SET_CUSTOM_USER_ATTRIBUTES_ARRAY);
-            payload.put(User.APPEND_CUSTOM_ARRAY_ATTRIBUTE, Values.APPEND_CUSTOM_USER_ATTRIBUTES_ARRAY);
-            payload.put(User.REMOVE_CUSTOM_ARRAY_ATTRIBUTE, Values.REMOVE_CUSTOM_USER_ATTRIBUTES_ARRAY);
-
-            return payload;
-        }
-
-        public static Map<String, Object> socialData() {
-            Map<String, Object> payload = new HashMap<>();
-
-            payload.put(Commands.COMMAND_KEY, String.join(SEPARATOR,
-                    Commands.INITIALIZE,
-                    Commands.FACEBOOK_USER,
-                    Commands.TWITTER_USER
-            ));
-            payload.put(Config.API_KEY, Values.API_KEY);
-
-            payload.put(User.FACEBOOK_ID, Values.FACEBOOK_ID);
-            payload.put(User.FIRST_NAME, Values.USER_FIRST_NAME);
-            payload.put(User.EMAIL, Values.USER_EMAIL);
-            payload.put(User.LAST_NAME, Values.USER_LAST_NAME);
-            payload.put(User.DESCRIPTION, Values.USER_DESCRIPTION);
-            payload.put(User.HOME_CITY, Values.USER_HOME_CITY);
-            payload.put(User.TWITTER_NAME, Values.TWITTER_HANDLE);
-            payload.put(User.SCREEN_NAME, Values.SCREEN_NAME);
-            payload.put(User.TWITTER_ID, Values.TWITTER_ID);
-            payload.put(User.GENDER, Values.USER_GENDER);
-            payload.put(User.FRIENDS_COUNT, Values.FRIENDSCOUNT);
-            payload.put(User.FOLLOWERS_COUNT, Values.FOLLOWERS_COUNT);
-
-            return payload;
-        }
     }
 
     public static final class Responses {
@@ -489,32 +445,6 @@ public final class TestData {
             return create(payload);
         }
 
-        public static RemoteCommand.Response socialData() throws JSONException {
-            JSONObject payload = new JSONObject();
-            Collection<String> commandList = new LinkedList<>();
-            commandList.add(Commands.INITIALIZE);
-            commandList.add(Commands.FACEBOOK_USER);
-            commandList.add(Commands.TWITTER_USER);
-
-            payload.put(Commands.COMMAND_KEY, String.join(SEPARATOR, commandList));
-            payload.put(Config.API_KEY, Values.API_KEY);
-
-            payload.put(User.FACEBOOK_ID, Values.FACEBOOK_ID);
-            payload.put(User.FIRST_NAME, Values.USER_FIRST_NAME);
-            payload.put(User.EMAIL, Values.USER_EMAIL);
-            payload.put(User.LAST_NAME, Values.USER_LAST_NAME);
-            payload.put(User.DESCRIPTION, Values.USER_DESCRIPTION);
-            payload.put(User.HOME_CITY, Values.USER_HOME_CITY);
-            payload.put(User.TWITTER_NAME, Values.TWITTER_HANDLE);
-            payload.put(User.SCREEN_NAME, Values.SCREEN_NAME);
-            payload.put(User.TWITTER_ID, Values.TWITTER_ID);
-            payload.put(User.GENDER, Values.USER_GENDER);
-            payload.put(User.FRIENDS_COUNT, Values.FRIENDSCOUNT);
-            payload.put(User.FOLLOWERS_COUNT, Values.FOLLOWERS_COUNT);
-
-            return create(payload);
-        }
-
         public static RemoteCommand.Response requestFlush() throws JSONException {
             JSONObject payload = new JSONObject();
             Collection<String> commandList = new LinkedList<>();
@@ -667,17 +597,6 @@ public final class TestData {
             } catch (JSONException jex) {
             }
         }};
-
-        //Social
-        public static final String FACEBOOK_ID = "facebook-id";
-        public static final String TWITTER_HANDLE = "@twitter";
-        public static final String SCREEN_NAME = Values.USER_FIRST_NAME + " " + Values.USER_LAST_NAME;
-        public static final String USER_DESCRIPTION = "user desc";
-        public static final String PROFILE_IMAGE_URL = "http://images.com/1.gif";
-        public static final Integer TWITTER_ID = 123456;
-        public static final Integer TWEET_COUNT = 123;
-        public static final Integer FOLLOWERS_COUNT = 12;
-        public static final Integer FRIENDSCOUNT = 13;
     }
 
     public static final class Methods {
@@ -697,8 +616,6 @@ public final class TestData {
         public static final String SET_LANGUAGE = "setUserLanguage";
         public static final String SET_GENDER = "setUserGender";
         public static final String SET_HOME_CITY = "setUserHomeCity";
-        public static final String SET_FACEBOOK_DATA = "setFacebookData";
-        public static final String SET_TWITTER_DATA = "setTwitterData";
         public static final String SET_USER_CUSTOM_ATTRIBUTE = "setUserCustomAttribute";
         public static final String SET_USER_CUSTOM_ATTRIBUTES = "setUserCustomAttributes";
         public static final String INCREMENT_USER_CUSTOM_ATTRIBUTE = "incrementUserCustomAttribute";
