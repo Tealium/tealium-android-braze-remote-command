@@ -2,11 +2,11 @@ apply plugin: 'com.android.library'
 apply plugin: 'maven-publish'
 
 android {
-    compileSdkVersion 32
+    compileSdk 34
 
     defaultConfig {
-        minSdkVersion 19
-        targetSdkVersion 32
+        minSdkVersion 21
+        targetSdkVersion 34
 
         buildConfigField 'String', 'TEALIUM_BRAZE_VERSION', "\"$tealium_braze_version\""
 
@@ -43,14 +43,16 @@ android {
         sourceCompatibility JavaVersion.VERSION_1_8
         targetCompatibility JavaVersion.VERSION_1_8
     }
+    namespace 'com.tealium.remotecommands.braze'
+    testNamespace 'com.tealium.remotecommands.brazetest'
 }
 
 dependencies {
     implementation fileTree(include: ['*.jar'], dir: 'libs')
     api 'com.tealium:remotecommands:1.0.1'
-    api 'com.appboy:android-sdk-ui:[15.0,20.0)'
-    implementation 'androidx.appcompat:appcompat:1.2.0'
+    api 'com.braze:android-sdk-ui:[25.0.0,30.0)'
 
+    androidTestImplementation 'androidx.test.ext:junit:1.1.5'
     androidTestImplementation 'androidx.test:runner:1.4.0'
     androidTestImplementation 'androidx.test:rules:1.4.0'
     androidTestImplementation 'androidx.test:core:1.4.0'

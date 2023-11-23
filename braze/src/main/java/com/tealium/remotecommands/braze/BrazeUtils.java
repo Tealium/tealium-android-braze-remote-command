@@ -2,7 +2,7 @@ package com.tealium.remotecommands.braze;
 
 import android.util.Log;
 
-import com.appboy.enums.Gender;
+import com.braze.enums.Gender;
 import com.braze.models.outgoing.BrazeProperties;
 
 import org.json.JSONArray;
@@ -36,7 +36,7 @@ class BrazeUtils {
      * @param data       - value to add to the custom property
      * @param properties - an existing AppboyProperties object to add this key-value pair to. If
      *                   null, then a new AppboyProperties object will be created to be returned
-     * @return
+     * @return The amended BrazeProperties including the additional one supplied
      */
     public static BrazeProperties addCustomProperty(String key, Object data, BrazeProperties properties) {
         if (properties == null) {

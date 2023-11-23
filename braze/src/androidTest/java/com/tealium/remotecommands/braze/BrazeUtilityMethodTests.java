@@ -2,7 +2,7 @@ package com.tealium.remotecommands.braze;
 
 import androidx.test.runner.AndroidJUnit4;
 
-import com.appboy.enums.Gender;
+import com.braze.enums.Gender;
 import com.braze.models.outgoing.BrazeProperties;
 
 import org.junit.Assert;

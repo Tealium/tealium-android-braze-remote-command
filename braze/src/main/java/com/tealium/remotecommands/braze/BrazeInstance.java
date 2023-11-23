@@ -9,9 +9,7 @@ import android.app.Application.ActivityLifecycleCallbacks;
 import android.os.Bundle;
 import android.util.Log;
 
-import com.appboy.enums.NotificationSubscriptionType;
-import com.appboy.models.outgoing.FacebookUser;
-import com.appboy.models.outgoing.TwitterUser;
+import com.braze.enums.NotificationSubscriptionType;
 import com.braze.Braze;
 import com.braze.BrazeActivityLifecycleCallbackListener;
 import com.braze.BrazeUser;
@@ -530,34 +528,7 @@ class BrazeInstance implements BrazeCommand, ActivityLifecycleCallbacks {
                                 Integer numberOfFriends,
                                 JSONArray listOfLikes,
                                 String birthday) {
-        if (getBrazeUser() == null) {
-            return;
-        }
-
-        List<String> likes = new ArrayList<>();
-        if (listOfLikes != null && listOfLikes.length() > 0) {
-            for (int i = 0; i < listOfLikes.length(); i++) {
-                String s = listOfLikes.optString(i, null);
-                if (s != null) {
-                    likes.add(s);
-                }
-            }
-        }
-
-        FacebookUser facebookUser = new FacebookUser(
-                facebookId,
-                firstName,
-                lastName,
-                email,
-                bio,
-                cityName,
-                BrazeUtils.getGenderEnumFromString(gender),
-                numberOfFriends != -1 ? numberOfFriends : null,
-                likes,
-                birthday
-        );
-        getBrazeUser().setFacebookData(facebookUser);
-
+        // TODO - remove
     }
 
     @Override
@@ -569,20 +540,8 @@ class BrazeInstance implements BrazeCommand, ActivityLifecycleCallbacks {
                                Integer followingCount,
                                Integer tweetCount,
                                String profileImageUrl) {
-        if (getBrazeUser() == null) {
-            return;
-        }
-
-        TwitterUser twitterUser = new TwitterUser(twitterUserId,
-                twitterHandle,
-                name,
-                description,
-                followerCount != -1 ? followerCount : null,
-                followingCount != -1 ? followingCount : null,
-                tweetCount != -1 ? tweetCount : null,
-                profileImageUrl);
-        getBrazeUser().setTwitterData(twitterUser);
-    }
+        // TODO - remove
+     }
 
     @Override
     public void logCustomEvent(@NonNull String eventName) {
@@ -647,7 +606,7 @@ class BrazeInstance implements BrazeCommand, ActivityLifecycleCallbacks {
     public void registerToken(String token) {
         if (token == null) return;
 
-        getBrazeInstance().registerPushToken(token);
+        getBrazeInstance().setRegisteredPushToken(token);
     }
 
     @Override
@@ -667,7 +626,7 @@ class BrazeInstance implements BrazeCommand, ActivityLifecycleCallbacks {
     /**
      * Helper method to always fetch the current Braze User rather than storing a local variable
      *
-     * @return
+     * @return The current Braze User
      */
     private BrazeUser getBrazeUser() {
         return getBrazeInstance().getCurrentUser();
@@ -676,34 +635,34 @@ class BrazeInstance implements BrazeCommand, ActivityLifecycleCallbacks {
     /**
      * Helper method to always fetch the current Braze Instance rather than storing a local variable
      *
-     * @return
+     * @return The shared Braze instance
      */
     private Braze getBrazeInstance() {
         return Braze.getInstance(mApplication.getApplicationContext());
     }
 
     @Override
-    public void onActivityCreated(Activity activity, Bundle savedInstanceState) {
+    public void onActivityCreated(@NonNull Activity activity, Bundle savedInstanceState) {
         mCurrentActivity = activity;
     }
 
     @Override
-    public void onActivityStarted(Activity activity) {
+    public void onActivityStarted(@NonNull Activity activity) {
         mCurrentActivity = activity;
     }
 
     @Override
-    public void onActivityResumed(Activity activity) {
+    public void onActivityResumed(@NonNull Activity activity) {
         mCurrentActivity = activity;
     }
 
     @Override
-    public void onActivityPaused(Activity activity) {
+    public void onActivityPaused(@NonNull Activity activity) {
 
     }
 
     @Override
-    public void onActivityStopped(Activity activity) {
+    public void onActivityStopped(@NonNull Activity activity) {
 
     }
 

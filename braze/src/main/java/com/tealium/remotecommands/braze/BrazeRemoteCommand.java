@@ -344,32 +344,6 @@ public class BrazeRemoteCommand extends RemoteCommand {
                             );
                         }
                         break;
-                    case Commands.FACEBOOK_USER:
-                        mBraze.setFacebookData(
-                                payload.optString(User.FACEBOOK_ID, null),
-                                payload.optString(User.FIRST_NAME, null),
-                                payload.optString(User.LAST_NAME, null),
-                                payload.optString(User.EMAIL, null),
-                                payload.optString(User.DESCRIPTION, null),
-                                payload.optString(User.HOME_CITY, null),
-                                payload.optString(User.GENDER, null),
-                                payload.optInt(User.FRIENDS_COUNT, -1),
-                                payload.optJSONArray(User.LIKES),
-                                payload.optString(User.DATE_OF_BIRTH)
-                        );
-                        break;
-                    case Commands.TWITTER_USER:
-                        mBraze.setTwitterData(
-                                payload.optInt(User.TWITTER_ID, -1),
-                                payload.optString(User.TWITTER_NAME, null),
-                                payload.optString(User.SCREEN_NAME, null),
-                                payload.optString(User.DESCRIPTION, null),
-                                payload.optInt(User.FOLLOWERS_COUNT, -1),
-                                payload.optInt(User.FRIENDS_COUNT, -1),
-                                payload.optInt(User.STATUSES_COUNT, -1),
-                                payload.optString(User.PROFILE_IMAGE_URL, null)
-                        );
-                        break;
                     case Commands.EMAIL_NOTIFICATION:
                         mBraze.setEmailSubscriptionType(
                                 payload.optString(User.EMAIL_NOTIFICATION, null)
