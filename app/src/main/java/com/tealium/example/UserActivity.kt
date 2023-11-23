@@ -13,17 +13,17 @@ import java.util.*
 
 class UserActivity : AppCompatActivity() {
 
-    lateinit var firstNameEditText: EditText
-    lateinit var lastNameEditText: EditText
-    lateinit var emailEditText: EditText
-    lateinit var genderEditText: EditText
-    lateinit var homeCityEditText: EditText
-    lateinit var birthdayEditText: EditText
-    lateinit var userIdEditText: EditText
-    lateinit var userAliasEditText: EditText
-    lateinit var userAliasLabelEditText: EditText
-    lateinit var saveButton: AppCompatButton
-    lateinit var calendar: Calendar
+    private lateinit var firstNameEditText: EditText
+    private lateinit var lastNameEditText: EditText
+    private lateinit var emailEditText: EditText
+    private lateinit var genderEditText: EditText
+    private lateinit var homeCityEditText: EditText
+    private lateinit var birthdayEditText: EditText
+    private lateinit var userIdEditText: EditText
+    private lateinit var userAliasEditText: EditText
+    private lateinit var userAliasLabelEditText: EditText
+    private lateinit var saveButton: AppCompatButton
+    private lateinit var calendar: Calendar
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -46,9 +46,11 @@ class UserActivity : AppCompatActivity() {
             updateDateLabel()
         }
         birthdayEditText.setOnClickListener {
-            DatePickerDialog(this@UserActivity, date, calendar
+            DatePickerDialog(
+                this@UserActivity, date, calendar
                     .get(Calendar.YEAR), calendar.get(Calendar.MONTH),
-                    calendar.get(Calendar.DAY_OF_MONTH)).show()
+                calendar.get(Calendar.DAY_OF_MONTH)
+            ).show()
         }
         saveButton.setOnClickListener {
             val data = fieldData
@@ -65,21 +67,18 @@ class UserActivity : AppCompatActivity() {
     }
 
     private val fieldData: Map<String, String>
-        get() {
-            val data = mutableMapOf<String, String>()
-            data["customer_first_name"] = firstNameEditText.text.toString()
-            data["customer_last_name"] = lastNameEditText.text.toString()
-            data["customer_email"] = emailEditText.text.toString()
-            var gender = genderEditText.text.toString()
-            if (TextUtils.isEmpty(gender)) {
-                gender = "prefernotosay"
-            }
-            data["customer_gender"] = gender
-            data["customer_home_city"] = homeCityEditText.text.toString()
-            data["customer_dob"] = birthdayEditText.text.toString()
-            data["customer_id"] = userIdEditText.text.toString()
-            data["customer_alias"] = userAliasEditText.text.toString()
-            data["customer_alias_label"] = userAliasLabelEditText.text.toString()
-            return data
-        }
+        get() = mapOf(
+            "customer_first_name" to firstNameEditText.text.toString(),
+            "customer_last_name" to lastNameEditText.text.toString(),
+            "customer_email" to emailEditText.text.toString(),
+            "customer_gender" to (if (TextUtils.isEmpty(genderEditText.text))
+                "prefernotosay"
+            else genderEditText.text.toString()),
+            "customer_home_city" to homeCityEditText.text.toString(),
+            "customer_dob" to birthdayEditText.text.toString(),
+            "customer_id" to userIdEditText.text.toString(),
+            "customer_alias" to userAliasEditText.text.toString(),
+            "customer_alias_label" to userAliasLabelEditText.text.toString(),
+        )
+
 }

@@ -6,14 +6,14 @@ import androidx.appcompat.widget.AppCompatButton
 import com.tealium.example.helper.TealiumHelper.trackEvent
 
 class EventsActivity : AppCompatActivity() {
-    lateinit var logEventButton: AppCompatButton
-    lateinit var logEventWithPropertiesButton: AppCompatButton
-    lateinit var setCustomAttributesButton: AppCompatButton
-    lateinit var unsetCustomAttributesButton: AppCompatButton
-    lateinit var incrementCustomAttributesButton: AppCompatButton
-    lateinit var logPurchaseButton: AppCompatButton
-    lateinit var logMultiplePurchaseButton: AppCompatButton
-    var petNameCounter = 1
+    private lateinit var logEventButton: AppCompatButton
+    private lateinit var logEventWithPropertiesButton: AppCompatButton
+    private lateinit var setCustomAttributesButton: AppCompatButton
+    private lateinit var unsetCustomAttributesButton: AppCompatButton
+    private lateinit var incrementCustomAttributesButton: AppCompatButton
+    private lateinit var logPurchaseButton: AppCompatButton
+    private lateinit var logMultiplePurchaseButton: AppCompatButton
+    private var petNameCounter = 1
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -36,71 +36,78 @@ class EventsActivity : AppCompatActivity() {
     }
 
     private fun logEvent() {
-        val data = mutableMapOf<String, Any>()
-        data["event_name"] = "custom_event"
-        trackEvent("log_custom_event", data)
+        trackEvent("log_custom_event", mapOf("event_name" to "custom_event"))
     }
 
     private fun logEventWithProperties() {
-        val data = mutableMapOf<String, Any>()
-        data["event_name"] = "custom_event_with_properties"
-        data["current_level"] = 10
-        data["high_score"] = 5000
-        trackEvent("log_custom_event", data)
+        trackEvent(
+            "log_custom_event", mapOf(
+                "event_name" to "custom_event_with_properties",
+                "current_level" to 10, "high_score" to 5000
+            )
+        )
+
     }
 
     private fun setCustomAttributes() {
-        val data = mutableMapOf<String, Any>()
-        data["pet"] = "cat"
-        data["pet_count"] = 3
-        trackEvent("custom_attribute", data)
-        val arrayData = mutableMapOf<String, Any>()
-        arrayData["pet_names"] = arrayOf("Rosia", "Elsa", "Kawai")
-        trackEvent("custom_array_attribute", arrayData)
+        trackEvent(
+            "custom_attribute", mapOf<String, Any>(
+                "pet" to "cat", "pet_count" to 3
+            )
+        )
+
+        trackEvent(
+            "custom_array_attribute",
+            mapOf("pet_names" to arrayOf("Rosia", "Elsa", "Kawai"))
+        )
     }
 
     private fun unsetCustomAttributes() {
-        val data = mutableMapOf<String, Any>()
-        data["pet_count_unset"] = arrayOf("pet_count", "something_else")
-        trackEvent("unset_custom_attribute", data)
-        val arrayData= mutableMapOf<String, Any>()
-        arrayData["pet_names_remove"] = "Kawai"
-        trackEvent("remove_custom_array_attribute", arrayData)
+        trackEvent(
+            "unset_custom_attribute", mapOf(
+                "pet_count_unset" to arrayOf("pet_count", "something_else")
+            )
+        )
+
+        trackEvent(
+            "remove_custom_array_attribute", mapOf(
+                "pet_names_remove" to "Kawai"
+            )
+        )
     }
 
     private fun incrementCustomAttributes() {
-        val data = mutableMapOf<String, Any>()
-        data["pet_count_increment"] = 2
-        trackEvent("increment_custom_attribute", data)
-        val appendData= mutableMapOf<String, Any>()
-        appendData["pet_names_append"] = "petname" + petNameCounter++
-        trackEvent("append_custom_array_attribute", appendData)
+        trackEvent("increment_custom_attribute", mapOf("pet_count_increment" to 2))
+        trackEvent(
+            "append_custom_array_attribute",
+            mapOf("pet_names_append" to "petname" + petNameCounter++)
+        )
     }
 
     private fun logPurchase() {
-        val data = mutableMapOf<String, Any>()
-        data["product_id"] = "sku123"
-        data["order_currency"] = "USD"
-        data["price"] = 1.99
-        data["rewards_member"] = true
-        data["rewards_points_earned"] = 50
-        trackEvent("log_purchase", data)
+        trackEvent("log_purchase", mapOf(
+            "product_id" to "sku123",
+            "order_currency" to "USD",
+            "price" to 1.99,
+            "rewards_member" to true,
+            "rewards_points_earned" to 50
+        ))
     }
 
     private fun logMultiplePurchase() {
-        val data = mutableMapOf<String, Any>()
-        data["product_id"] = listOf("sku123", "sku456")
-        data["order_currency"] = "USD"
-        data["price"] = listOf(1.99, 2.99)
-        data["product_quantity"] = listOf(1, 2)
-
         val props = mapOf(
-                "rewards_member" to true,
-                "rewards_points_earned" to 50
+            "rewards_member" to true,
+            "rewards_points_earned" to 50
         )
-        data["purchase_props"] = listOf(
-            props,
-            props
+        val data = mapOf(
+            "product_id" to listOf("sku123", "sku456"),
+            "order_currency" to "USD",
+            "price" to listOf(1.99, 2.99),
+            "product_quantity" to listOf(1, 2),
+            "purchase_props" to listOf(
+                props,
+                props
+            )
         )
 
         trackEvent("log_purchase", data)

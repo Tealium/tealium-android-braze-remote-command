@@ -56,6 +56,8 @@ object TealiumHelper {
         brc.registerConfigOverride { builder ->
             // builder.setIsLocationCollectionEnabled(true);
             // builder.setGeofencesEnabled(true);
+            builder.setFirebaseCloudMessagingSenderIdKey("...")
+                .setIsFirebaseCloudMessagingRegistrationEnabled(true)
 
             // builder.setPushDeepLinkBackStackActivityEnabled(true);
             // builder.setPushDeepLinkBackStackActivityClass(UserActivity.class);

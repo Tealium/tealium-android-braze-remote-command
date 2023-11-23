@@ -10,7 +10,8 @@ import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
-import com.appboy.services.AppboyLocationService
+import kotlinx.coroutines.MainScope
+import kotlinx.coroutines.launch
 
 class LocationActivity : AppCompatActivity() {
 
@@ -27,18 +28,18 @@ class LocationActivity : AppCompatActivity() {
     }
 
     private fun requestLocationPermissionsIfRequired() {
-        Thread(Runnable {
+        MainScope().launch {
             if (ContextCompat.checkSelfPermission(this@LocationActivity,
-                            Manifest.permission.ACCESS_FINE_LOCATION)
-                    != PackageManager.PERMISSION_GRANTED) {
+                    Manifest.permission.ACCESS_FINE_LOCATION)
+                != PackageManager.PERMISSION_GRANTED) {
 
                 // Permission is not granted
                 ActivityCompat.requestPermissions(this@LocationActivity, arrayOf(Manifest.permission.ACCESS_FINE_LOCATION),
-                        LOCATION_PERMISSION_REQUEST)
+                    LOCATION_PERMISSION_REQUEST)
             } else {
                 updateUI(PackageManager.PERMISSION_GRANTED)
             }
-        }).run()
+        }
     }
 
     private fun updateUI(status: Int) {
@@ -57,12 +58,12 @@ class LocationActivity : AppCompatActivity() {
     }
 
     override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<String>, grantResults: IntArray) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
         when (requestCode) {
             LOCATION_PERMISSION_REQUEST -> if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                 Log.i(TAG, "Location permission granted.")
                 updateUI(PackageManager.PERMISSION_GRANTED)
                 Toast.makeText(this, "Location permission granted.", Toast.LENGTH_SHORT).show()
-                AppboyLocationService.requestInitialization(this)
             } else {
                 updateUI(PackageManager.PERMISSION_DENIED)
                 Log.i(TAG, "Location permission NOT granted.")
