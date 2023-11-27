@@ -194,6 +194,7 @@ public class BrazeRemoteCommand extends RemoteCommand {
      */
     @Override
     protected void onInvoke(Response response) throws Exception {
+
         JSONObject payload = response.getRequestPayload();
         String[] commands = splitCommands(payload);
         parseCommands(commands, payload);
@@ -411,6 +412,7 @@ public class BrazeRemoteCommand extends RemoteCommand {
      * variables have been added to the AppboyConfig.Builder object, so be aware that this can
      * overwrite any configuration properties that have already been setup.
      */
+    @FunctionalInterface
     public interface ConfigOverrider {
         void onOverride(BrazeConfig.Builder b);
     }

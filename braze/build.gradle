@@ -26,8 +26,8 @@ android {
     }
 
     compileOptions {
-        sourceCompatibility JavaVersion.VERSION_1_8
-        targetCompatibility JavaVersion.VERSION_1_8
+        sourceCompatibility JavaVersion.VERSION_11
+        targetCompatibility JavaVersion.VERSION_11
     }
     namespace 'com.tealium.remotecommands.braze'
     testNamespace 'com.tealium.remotecommands.brazetest'
@@ -37,6 +37,14 @@ dependencies {
     implementation fileTree(include: ['*.jar'], dir: 'libs')
     api 'com.tealium:remotecommands:1.0.1'
     api 'com.braze:android-sdk-ui:[25.0.0,30.0)'
+
+    testImplementation 'org.mockito:mockito-core:5.7.0'
+    testImplementation 'org.robolectric:robolectric:4.11.1'
+    testImplementation 'androidx.test.ext:junit:1.1.5'
+    testImplementation 'androidx.test:runner:1.4.0'
+    testImplementation 'androidx.test:rules:1.4.0'
+    testImplementation 'androidx.test:core:1.4.0'
+    testImplementation 'junit:junit:4.12'
 
     androidTestImplementation 'androidx.test.ext:junit:1.1.5'
     androidTestImplementation 'androidx.test:runner:1.4.0'

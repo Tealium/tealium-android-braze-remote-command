@@ -56,8 +56,6 @@
   },
   "commands": {
     "launch": "initialize",
-    "twitter": "twitteruser",
-    "facebook": "facebookuser",
     "setengagement": "emailnotification,pushnotification",
     "log_custom_event": "logcustomevent",
     "set_location": "setlastknownlocation",

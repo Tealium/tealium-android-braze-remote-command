@@ -368,26 +368,29 @@ class BrazeUtils {
         try {
             // try with simple date format (in case of webview support)
             date = BrazeUtils.DATE_FORMAT.parse(dateString);
-        } catch (ParseException ignore) { }
+            if (date != null) return date;
+        } catch (ParseException ignore) {
+        }
 
         try {
             // try with ISO8601 date format
             date = BrazeUtils.ISO_8601_DATE_FORMAT.parse(dateString);
-        } catch (ParseException ignore) { }
-
-        if (date == null) {
-            // try Braze date formats
-            for (BrazeDateFormat dateFormat: BrazeDateFormat.values()) {
-                try {
-                    // try with ISO8601 date format
-                    date = DateTimeUtils.parseDate(dateString, dateFormat);
-                } catch (Exception ignore) {
-                    /* Method does not specify ParseException, but does throw during tests. */
-                }
-
-                if (date != null) break;
-            }
+            if (date != null) return date;
+        } catch (ParseException ignore) {
         }
+
+        // try Braze date formats
+        for (BrazeDateFormat dateFormat : BrazeDateFormat.values()) {
+            try {
+                // try with ISO8601 date format
+                date = DateTimeUtils.parseDate(dateString, dateFormat);
+            } catch (Exception ignore) {
+                /* Method does not specify ParseException, but does throw during tests. */
+            }
+
+            if (date != null) break;
+        }
+
         return date;
     }
 }

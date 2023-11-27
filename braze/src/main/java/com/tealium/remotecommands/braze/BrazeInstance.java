@@ -10,7 +10,6 @@ import android.app.Application.ActivityLifecycleCallbacks;
 import android.os.Bundle;
 import android.util.Log;
 
-import com.braze.enums.Month;
 import com.braze.enums.NotificationSubscriptionType;
 import com.braze.Braze;
 import com.braze.BrazeActivityLifecycleCallbackListener;
@@ -61,17 +60,7 @@ class BrazeInstance implements BrazeCommand, ActivityLifecycleCallbacks {
     }
 
     @Override
-    public void initialize(String apiKey) {
-        this.initialize(apiKey, null);
-    }
-
-    @Override
-    public void initialize(String apiKey, JSONObject launchOptions) {
-        this.initialize(apiKey, launchOptions, new ArrayList<BrazeRemoteCommand.ConfigOverrider>());
-    }
-
-    @Override
-    public void initialize(String apiKey, JSONObject launchOptions, List<BrazeRemoteCommand.ConfigOverrider> overrides) {
+    public void initialize(@Nullable String apiKey, @Nullable JSONObject launchOptions, @Nullable List<BrazeRemoteCommand.ConfigOverrider> overrides) {
         BrazeConfig.Builder builder = new BrazeConfig.Builder();
 
         // API Key can be setup in a local resx file,
@@ -320,100 +309,47 @@ class BrazeInstance implements BrazeCommand, ActivityLifecycleCallbacks {
         if (dateOfBirth == null) return;
 
         getBrazeUser().setDateOfBirth(
-                dateOfBirth.getYear(),
+                dateOfBirth.getYear() + 1900,
                 BrazeUtils.getMonthEnumFromInt(dateOfBirth.getMonth()),
-                dateOfBirth.getDay()
+                dateOfBirth.getDate()
         );
     }
 
     @Override
-    public void setUserCustomAttribute(String key, String value) {
-        if (BrazeUtils.isNullOrEmpty(key)) {
-            return;
-        }
-
-        getBrazeUser().setCustomUserAttribute(key, value);
-    }
-
-    @Override
-    public void setUserCustomAttribute(String key, Integer value) {
-        if (BrazeUtils.isNullOrEmpty(key)) {
-            return;
-        }
-
-        getBrazeUser().setCustomUserAttribute(key, value);
-    }
-
-    @Override
-    public void setUserCustomAttribute(String key, Double value) {
-        if (BrazeUtils.isNullOrEmpty(key)) {
-            return;
-        }
-
-        getBrazeUser().setCustomUserAttribute(key, value);
-    }
-
-    @Override
-    public void setUserCustomAttribute(String key, Boolean value) {
-        if (BrazeUtils.isNullOrEmpty(key)) {
-            return;
-        }
-
-        getBrazeUser().setCustomUserAttribute(key, value);
-    }
-
-    @Override
-    public void setUserCustomAttribute(String key, Long value) {
-        if (BrazeUtils.isNullOrEmpty(key)) {
-            return;
-        }
-
-        getBrazeUser().setCustomUserAttribute(key, value);
-    }
-
-    @Override
-    public void setUserCustomAttribute(String key, Float value) {
-        if (BrazeUtils.isNullOrEmpty(key)) {
-            return;
-        }
-
-        getBrazeUser().setCustomUserAttribute(key, value);
-    }
-
-    @Override
     public void setUserCustomAttributes(JSONObject attributes) {
+        BrazeUser user = getBrazeUser();
+        if (user == null || BrazeUtils.isNullOrEmpty(attributes)) {
+            return;
+        }
 
         Iterator<String> iter = attributes.keys();
         while (iter.hasNext()) {
             String key = iter.next();
             Object value = attributes.opt(key);
 
-            if (value != null) {
-                if (value instanceof Long) {
-                    setUserCustomAttribute(key, (Long) value);
-                } else if (value instanceof Integer) {
-                    setUserCustomAttribute(key, (Integer) value);
-                } else if (value instanceof Double) {
-                    setUserCustomAttribute(key, (Double) value);
-                } else if (value instanceof Float) {
-                    setUserCustomAttribute(key, (Float) value);
-                } else if (value instanceof Boolean) {
-                    setUserCustomAttribute(key, (Boolean) value);
-                } else {
-                    // default to String.
-                    setUserCustomAttribute(key, (String) value);
-                }
+            if (BrazeUtils.isNullOrEmpty(key) || value == null) {
+                continue;
+            }
+
+            if (value instanceof Long) {
+                user.setCustomUserAttribute(key, (Long) value);
+            } else if (value instanceof Integer) {
+                user.setCustomUserAttribute(key, (Integer) value);
+            } else if (value instanceof Double) {
+                user.setCustomUserAttribute(key, (Double) value);
+            } else if (value instanceof Float) {
+                user.setCustomUserAttribute(key, (Float) value);
+            } else if (value instanceof Boolean) {
+                user.setCustomUserAttribute(key, (Boolean) value);
+            } else if (value instanceof JSONArray) {
+                user.setCustomUserAttribute(key, (JSONArray) value);
+            } else if (value instanceof JSONObject) {
+                user.setCustomUserAttribute(key, (JSONObject) value);
+            } else {
+                // default to String.
+                user.setCustomUserAttribute(key, (String) value);
             }
         }
-    }
-
-    @Override
-    public void unsetUserCustomAttribute(String key) {
-        if (BrazeUtils.isNullOrEmpty(key)) {
-            return;
-        }
-
-        getBrazeUser().unsetCustomUserAttribute(key);
     }
 
     @Override
@@ -425,23 +361,9 @@ class BrazeInstance implements BrazeCommand, ActivityLifecycleCallbacks {
         for (int i = 0; i < keys.length(); i++) {
             String key = keys.optString(i);
             if (key != null) {
-                unsetUserCustomAttribute(key);
+                getBrazeUser().unsetCustomUserAttribute(key);
             }
         }
-    }
-
-    @Override
-    public void incrementUserCustomAttribute(String key) {
-        incrementUserCustomAttribute(key, 1);
-    }
-
-    @Override
-    public void incrementUserCustomAttribute(String key, Integer increment) {
-        if (BrazeUtils.isNullOrEmpty(key)) {
-            return;
-        }
-
-        getBrazeUser().incrementCustomUserAttribute(key, increment);
     }
 
     @Override
@@ -453,14 +375,16 @@ class BrazeInstance implements BrazeCommand, ActivityLifecycleCallbacks {
         Iterator<String> iter = attributes.keys();
         while (iter.hasNext()) {
             String key = iter.next();
-            Integer value = attributes.optInt(key, 1);
+            if (BrazeUtils.isNullOrEmpty(key)) {
+                continue;
+            }
 
-            incrementUserCustomAttribute(key, value);
+            int increment = attributes.optInt(key, 1);
+            getBrazeUser().incrementCustomUserAttribute(key, increment);
         }
     }
 
-    @Override
-    public void setUserCustomAttributeArray(String key, String[] attributeArray) {
+    private void setUserCustomAttributeArray(String key, String[] attributeArray) {
         if (BrazeUtils.isNullOrEmpty(key)) {
             return;
         }
@@ -493,15 +417,6 @@ class BrazeInstance implements BrazeCommand, ActivityLifecycleCallbacks {
     }
 
     @Override
-    public void appendUserCustomAttributeArray(String key, String value) {
-        if (BrazeUtils.isNullOrEmpty(key)) {
-            return;
-        }
-
-        getBrazeUser().addToCustomAttributeArray(key, value);
-    }
-
-    @Override
     public void appendUserCustomAttributeArrays(JSONObject attributes) {
         if (BrazeUtils.isNullOrEmpty(attributes)) {
             return;
@@ -510,21 +425,15 @@ class BrazeInstance implements BrazeCommand, ActivityLifecycleCallbacks {
         Iterator<String> iter = attributes.keys();
         while (iter.hasNext()) {
             String key = iter.next();
-            String value = attributes.optString(key);
+            if (BrazeUtils.isNullOrEmpty(key)) {
+                continue;
+            }
 
-            if (value != null) {
-                appendUserCustomAttributeArray(key, value);
+            String value = attributes.optString(key);
+            if (!BrazeUtils.isNullOrEmpty(value)) {
+                getBrazeUser().addToCustomAttributeArray(key, value);
             }
         }
-    }
-
-    @Override
-    public void removeFromUserCustomAttributeArray(String key, String value) {
-        if (BrazeUtils.isNullOrEmpty(key)) {
-            return;
-        }
-
-        getBrazeUser().removeFromCustomAttributeArray(key, value);
     }
 
     @Override
@@ -536,10 +445,13 @@ class BrazeInstance implements BrazeCommand, ActivityLifecycleCallbacks {
         Iterator<String> iter = attributes.keys();
         while (iter.hasNext()) {
             String key = iter.next();
-            String value = attributes.optString(key);
+            if (BrazeUtils.isNullOrEmpty(key)) {
+                continue;
+            }
 
-            if (value != null) {
-                removeFromUserCustomAttributeArray(key, value);
+            String value = attributes.optString(key);
+            if (!BrazeUtils.isNullOrEmpty(value)) {
+                getBrazeUser().removeFromCustomAttributeArray(key, value);
             }
         }
     }
@@ -567,12 +479,7 @@ class BrazeInstance implements BrazeCommand, ActivityLifecycleCallbacks {
     }
 
     @Override
-    public void logCustomEvent(@NonNull String eventName) {
-        logCustomEvent(eventName, null);
-    }
-
-    @Override
-    public void logCustomEvent(@NonNull String eventName, JSONObject eventProperties) {
+    public void logCustomEvent(@NonNull String eventName, @Nullable JSONObject eventProperties) {
         BrazeProperties brazeProperties;
         if (eventProperties == null) {
             brazeProperties = null;
@@ -585,17 +492,7 @@ class BrazeInstance implements BrazeCommand, ActivityLifecycleCallbacks {
     }
 
     @Override
-    public void logPurchase(@NonNull String productId, String currency, @NonNull BigDecimal unitPrice) {
-        logPurchase(productId, currency, unitPrice, 1, null);
-    }
-
-    @Override
-    public void logPurchase(@NonNull String productId, String currency, @NonNull BigDecimal unitPrice, Integer quantity) {
-        logPurchase(productId, currency, unitPrice, quantity, null);
-    }
-
-    @Override
-    public void logPurchase(@NonNull String productId, String currency, @NonNull BigDecimal unitPrice, Integer quantity, JSONObject purchaseProperties) {
+    public void logPurchase(@NonNull String productId, @Nullable String currency, @NonNull BigDecimal unitPrice, Integer quantity, JSONObject purchaseProperties) {
         if (BrazeUtils.isNullOrEmpty(currency)) {
             currency = "USD";// braze default.
         }
@@ -605,15 +502,11 @@ class BrazeInstance implements BrazeCommand, ActivityLifecycleCallbacks {
 
     @Override
     public void logPurchase(@NonNull String[] productIds, String[] currencies, @NonNull BigDecimal[] unitPrices, Integer[] quantities, JSONObject[] purchaseProperties) {
-        if (productIds == null) {
-            Log.i(TAG, "Missing productIds array in purchase event. No purchase will be logged.");
-            return;
-        }
         for (int i = 0; i < productIds.length; i++) {
             logPurchase(
                     productIds[i],
                     currencies != null && currencies.length > i ? currencies[i] : null,
-                    unitPrices != null && unitPrices.length > i ? unitPrices[i] : new BigDecimal(0),
+                    unitPrices != null && unitPrices.length > i ? unitPrices[i] : BigDecimal.ZERO,
                     quantities != null && quantities.length > i ? quantities[i] : 1,
                     purchaseProperties != null && purchaseProperties.length > i ? purchaseProperties[i] : null
             );

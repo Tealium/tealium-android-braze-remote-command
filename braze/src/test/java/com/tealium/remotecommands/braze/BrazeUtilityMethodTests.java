@@ -73,7 +73,7 @@ public class BrazeUtilityMethodTests {
 
     @Test
     public void parseDateTest_SimpleDateFormat() {
-        Date date = BrazeUtils.parseDate(TestData.Values.DOB_ISO_8601);
+        Date date = BrazeUtils.parseDate("2000-01-01T01:01:01Z");
 
         Assert.assertEquals(1, date.getDate());
         Assert.assertEquals(0, date.getMonth());
@@ -82,7 +82,7 @@ public class BrazeUtilityMethodTests {
 
     @Test
     public void parseDateTest_BrazeShort() {
-        Date date = BrazeUtils.parseDate(TestData.Values.DOB_BRAZE_SHORT);
+        Date date = BrazeUtils.parseDate("2000-01-01");
 
         Assert.assertEquals(1, date.getDate());
         Assert.assertEquals(0, date.getMonth());
@@ -91,7 +91,7 @@ public class BrazeUtilityMethodTests {
 
     @Test
     public void parseDateTest_BrazeLong() {
-        Date date = BrazeUtils.parseDate(TestData.Values.DOB_BRAZE_LONG);
+        Date date = BrazeUtils.parseDate("2000-01-01 01:01:01");
 
         Assert.assertEquals(1, date.getDate());
         Assert.assertEquals(0, date.getMonth());
