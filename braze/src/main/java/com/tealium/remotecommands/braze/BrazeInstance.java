@@ -10,6 +10,7 @@ import android.app.Application.ActivityLifecycleCallbacks;
 import android.os.Bundle;
 import android.util.Log;
 
+import com.braze.enums.DeviceKey;
 import com.braze.enums.NotificationSubscriptionType;
 import com.braze.Braze;
 import com.braze.BrazeActivityLifecycleCallbackListener;
@@ -23,8 +24,10 @@ import org.json.JSONObject;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.EnumSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 
 import static com.tealium.remotecommands.braze.BrazeConstants.TAG;
@@ -109,8 +112,8 @@ class BrazeInstance implements BrazeCommand, ActivityLifecycleCallbacks {
                 builder.setHandlePushDeepLinksAutomatically(launchOptions.optBoolean(Config.AUTO_PUSH_DEEP_LINKS));
             }
 
-            if (BrazeUtils.keyHasValue(launchOptions, Config.DISABLE_LOCATION)) {
-                builder.setIsLocationCollectionEnabled(!launchOptions.optBoolean(Config.DISABLE_LOCATION));
+            if (BrazeUtils.keyHasValue(launchOptions, Config.ENABLE_AUTOMATIC_LOCATION)) {
+                builder.setIsLocationCollectionEnabled(launchOptions.optBoolean(Config.ENABLE_AUTOMATIC_LOCATION));
             }
 
             if (BrazeUtils.keyHasValue(launchOptions, Config.ENABLE_NEWS_FEED_INDICATOR)) {
@@ -152,6 +155,23 @@ class BrazeInstance implements BrazeCommand, ActivityLifecycleCallbacks {
 
             if (BrazeUtils.keyHasValue(launchOptions, Config.IS_SDK_AUTHENTICATION_ENABLED)) {
                 builder.setIsSdkAuthenticationEnabled(launchOptions.optBoolean(Config.IS_SDK_AUTHENTICATION_ENABLED));
+            }
+
+            if (BrazeUtils.keyHasValue(launchOptions, Config.DEVICE_OPTIONS)) {
+                JSONArray options = launchOptions.optJSONArray(Config.DEVICE_OPTIONS);
+                if (options != null && options.length() > 0) {
+
+                    List<DeviceKey> deviceOptions = new ArrayList<>();
+                    for (int i = 0; i < options.length(); i++) {
+                        try {
+                            DeviceKey key = DeviceKey.valueOf(options.getString(i).toUpperCase(Locale.ROOT));
+                            deviceOptions.add(key);
+                        } catch (Exception ignore) {
+                        }
+                    }
+
+                    builder.setDeviceObjectAllowlist(EnumSet.copyOf(deviceOptions));
+                }
             }
         }
 

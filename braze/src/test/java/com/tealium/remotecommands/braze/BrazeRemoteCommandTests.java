@@ -3,7 +3,6 @@ package com.tealium.remotecommands.braze;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
@@ -12,7 +11,6 @@ import android.app.Application;
 
 import androidx.test.core.app.ApplicationProvider;
 
-import com.braze.Braze;
 import com.tealium.remotecommands.RemoteCommand;
 import com.tealium.remotecommands.braze.BrazeConstants.Commands;
 import com.tealium.remotecommands.braze.BrazeConstants.Config;
@@ -23,12 +21,10 @@ import com.tealium.remotecommands.braze.BrazeConstants.User;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
-import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.mockito.MockedStatic;
 import org.robolectric.RobolectricTestRunner;
 
 import java.math.BigDecimal;
@@ -98,7 +94,7 @@ public class BrazeRemoteCommandTests {
                     json.put(BrazeConstants.Config.GREAT_NETWORK_INTERVAL, 30);
                     json.put(BrazeConstants.Config.CUSTOM_ENDPOINT, "custom-endpoint");
                     json.put(BrazeConstants.Config.DEFAULT_NOTIFICATION_COLOR, 0xFF00FF);
-                    json.put(BrazeConstants.Config.DISABLE_LOCATION, true);
+                    json.put(BrazeConstants.Config.ENABLE_AUTOMATIC_LOCATION, true);
                     json.put(BrazeConstants.Config.ENABLE_NEWS_FEED_INDICATOR, true);
                     json.put(BrazeConstants.Config.LARGE_NOTIFICATION_ICON, "large-notification-icon");
                     json.put(BrazeConstants.Config.SMALL_NOTIFICATION_ICON, "small-notification-icon");

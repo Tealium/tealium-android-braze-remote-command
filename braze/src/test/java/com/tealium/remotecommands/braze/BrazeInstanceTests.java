@@ -24,6 +24,7 @@ import androidx.test.core.app.ApplicationProvider;
 import com.braze.Braze;
 import com.braze.BrazeUser;
 import com.braze.configuration.BrazeConfig;
+import com.braze.enums.DeviceKey;
 import com.braze.enums.Gender;
 import com.braze.enums.Month;
 import com.braze.enums.NotificationSubscriptionType;
@@ -41,6 +42,7 @@ import org.mockito.MockedStatic;
 import org.robolectric.RobolectricTestRunner;
 
 import java.math.BigDecimal;
+import java.util.EnumSet;
 import java.util.List;
 
 @RunWith(RobolectricTestRunner.class)
@@ -105,12 +107,16 @@ public class BrazeInstanceTests {
         options.put(BrazeConstants.Config.GREAT_NETWORK_INTERVAL, 30);
         options.put(BrazeConstants.Config.CUSTOM_ENDPOINT, "custom-endpoint");
         options.put(BrazeConstants.Config.DEFAULT_NOTIFICATION_COLOR, 0xFF00FF);
-        options.put(BrazeConstants.Config.DISABLE_LOCATION, true);
+        options.put(BrazeConstants.Config.ENABLE_AUTOMATIC_LOCATION, true);
         options.put(BrazeConstants.Config.ENABLE_NEWS_FEED_INDICATOR, true);
         options.put(BrazeConstants.Config.LARGE_NOTIFICATION_ICON, "large-notification-icon");
         options.put(BrazeConstants.Config.SMALL_NOTIFICATION_ICON, "small-notification-icon");
         options.put(BrazeConstants.Config.SESSION_TIMEOUT, 10);
         options.put(BrazeConstants.Config.TRIGGER_INTERVAL_SECONDS, 10);
+        JSONArray deviceOptions = new JSONArray();
+        deviceOptions.put("model");
+        deviceOptions.put("android_version");
+        options.put(BrazeConstants.Config.DEVICE_OPTIONS, deviceOptions);
 
         brazeInstance.initialize(null, options, null);
 
@@ -126,12 +132,17 @@ public class BrazeInstanceTests {
         assertEquals(30, config.getValue().greatNetworkInterval.intValue());
         assertEquals("custom-endpoint", config.getValue().customEndpoint);
         assertEquals(0xFF00FF, config.getValue().defaultNotificationAccentColor.intValue());
-        assertEquals(false, config.getValue().isLocationCollectionEnabled);
+        assertEquals(true, config.getValue().isLocationCollectionEnabled);
         assertEquals(true, config.getValue().isNewsFeedVisualIndicatorOn);
         assertEquals("large-notification-icon", config.getValue().largeNotificationIcon);
         assertEquals("small-notification-icon", config.getValue().smallNotificationIcon);
         assertEquals(10, config.getValue().sessionTimeout.intValue());
         assertEquals(10, config.getValue().triggerActionMinimumTimeIntervalSeconds.intValue());
+
+        EnumSet<DeviceKey> deviceAllowList = config.getValue().deviceObjectAllowlist;
+        assertTrue(deviceAllowList.contains(DeviceKey.MODEL));
+        assertTrue(deviceAllowList.contains(DeviceKey.ANDROID_VERSION));
+        assertEquals(2, deviceAllowList.size());
     }
 
     @Test

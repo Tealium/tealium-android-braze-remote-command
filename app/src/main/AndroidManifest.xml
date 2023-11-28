@@ -29,7 +29,7 @@
         <activity android:name=".LocationActivity">
         </activity>
 
-        <receiver android:name="com.appboy.AppboyBootReceiver" android:exported="true">
+        <receiver android:name="com.braze.BrazeBootReceiver" android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
             </intent-filter>

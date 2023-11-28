@@ -43,13 +43,13 @@ class BrazeUtils {
      *
      * @param key        - name of the custom property to add.
      * @param data       - value to add to the custom property
-     * @param properties - an existing AppboyProperties object to add this key-value pair to. If
-     *                   null, then a new AppboyProperties object will be created to be returned
+     * @param properties - an existing  BrazeProperties object to add this key-value pair to. If
+     *                   null, then a new  BrazeProperties object will be created to be returned
      * @return The amended BrazeProperties including the additional one supplied
      */
     public static BrazeProperties addCustomProperty(String key, Object data, BrazeProperties properties) {
         if (properties == null) {
-            Log.d(BrazeConstants.TAG, "Creating new AppboyProperties");
+            Log.d(BrazeConstants.TAG, "Creating new  BrazeProperties");
             properties = new BrazeProperties();
         }
 
@@ -92,7 +92,7 @@ class BrazeUtils {
     }
 
     /**
-     * Short-hand method for calling addCustomProperty, generating a new AppboyProperties object at
+     * Short-hand method for calling addCustomProperty, generating a new  BrazeProperties object at
      * the same time.
      *
      * @param key  - name of the custom property to add.
@@ -104,12 +104,12 @@ class BrazeUtils {
     }
 
     /**
-     * Helper method to translate a JSONObject of key-value pairs into an AppboyProperties object.
-     * The values in the JSONObject should only be supported types for the AppboyProperties class,
+     * Helper method to translate a JSONObject of key-value pairs into an  BrazeProperties object.
+     * The values in the JSONObject should only be supported types for the  BrazeProperties class,
      * which at the time of writing is only String, Integer, Double, Date and Boolean
      *
      * @param customProperties - JSONObject of Key-Value pairs.
-     * @return AppboyProperties containing the Key-Value pairs supplied
+     * @return  BrazeProperties containing the Key-Value pairs supplied
      */
     public static BrazeProperties extractCustomProperties(JSONObject customProperties) {
         BrazeProperties props = new BrazeProperties();

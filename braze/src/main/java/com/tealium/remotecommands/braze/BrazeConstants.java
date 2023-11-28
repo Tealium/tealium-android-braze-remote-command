@@ -53,7 +53,7 @@ public final class BrazeConstants {
         public static final String AUTO_PUSH_DEEP_LINKS = "auto_push_deep_links";
         public static final String SMALL_NOTIFICATION_ICON = "small_notification_icon";
         public static final String LARGE_NOTIFICATION_ICON = "large_notification_icon";
-        public static final String DISABLE_LOCATION = "disable_location";
+        public static final String ENABLE_AUTOMATIC_LOCATION = "enable_automatic_location";
         public static final String ENABLE_NEWS_FEED_INDICATOR = "enable_news_feed_indicator";
         public static final String DEFAULT_NOTIFICATION_COLOR = "default_notification_color";
         public static final String BAD_NETWORK_INTERVAL = "bad_network_interval";
@@ -64,6 +64,7 @@ public final class BrazeConstants {
         public static final String BACKSTACK_ACTIVITY_ENABLED = "backstack_activity_enabled";
         public static final String BACKSTACK_ACTIVITY_CLASS = "backstack_activity_class";
         public static final String IS_SDK_AUTHENTICATION_ENABLED = "is_sdk_authentication_enabled";
+        public static final String DEVICE_OPTIONS = "device_options";
     }
 
     public static final class User {
@@ -94,7 +95,7 @@ public final class BrazeConstants {
         public static final String SUBSCRIPTION_GROUP_ID = "subscription_group_id";
         public static final String GOOGLE_ADID = "google_adid";
         public static final String AD_TRACKING_ENABLED = "ad_tracking_enabled";
-        public static final String SDK_AUTH_SIGNATURE = "sdk_auth_signature";
+        public static final String SDK_AUTH_SIGNATURE = "sdk_authentication_signature";
     }
 
     public static final class Event {

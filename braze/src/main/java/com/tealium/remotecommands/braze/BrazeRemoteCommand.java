@@ -52,7 +52,7 @@ public class BrazeRemoteCommand extends RemoteCommand {
      * @param sessionHandlingEnabled      - Whether session handling should be automatically handled by Braze
      * @param sessionHandlingBlacklist    - Set of classes not to open/close sessions on.
      * @param registerInAppMessageManager - Automatically registers the Braze InAppMessageManager
-     *                                    through Braze's lifecycle callabacks.
+     *                                    through Braze's lifecycle callbacks.
      * @param inAppMessageBlacklist       - Set of classes that should not show in app messages
      */
     public BrazeRemoteCommand(Application app, boolean sessionHandlingEnabled, Set<Class<?>> sessionHandlingBlacklist, boolean registerInAppMessageManager, Set<Class<?>> inAppMessageBlacklist) {
@@ -67,7 +67,7 @@ public class BrazeRemoteCommand extends RemoteCommand {
      * @param sessionHandlingEnabled      - Whether session handling should be automatically handled by Braze
      * @param sessionHandlingBlacklist    - Set of classes not to open/close sessions on.
      * @param registerInAppMessageManager - Automatically registers the Braze InAppMessageManager
-     *                                    through Braze's lifecycle callabacks.
+     *                                    through Braze's lifecycle callbacks.
      * @param inAppMessageBlacklist       - Set of classes that should not show in app messages
      * @param commandId                   - Override for the default command id as set on your TagBridge Custom
      *                                    Command tag in Tealium IQ.
@@ -396,8 +396,8 @@ public class BrazeRemoteCommand extends RemoteCommand {
 
     /**
      * Registers a ConfigOverrider object. Once all Initialization options have been added to the
-     * AppboyConfig.Builder object, the Builder will be exposed in the onOverride method, so you
-     * can override any settings necessary, or add any settings without needing to setup mappiings
+     * BrazeConfig.Builder object, the Builder will be exposed in the onOverride method, so you
+     * can override any settings necessary, or add any settings without needing to setup mappings
      * in Tealium IQ.
      *
      * @param overrider
@@ -409,7 +409,7 @@ public class BrazeRemoteCommand extends RemoteCommand {
     /**
      * Interface to allow users to inject additional configuration items that may not be present
      * in the data supplied back from the RemoteCommand. This method is called after all LaunchOption
-     * variables have been added to the AppboyConfig.Builder object, so be aware that this can
+     * variables have been added to the BrazeConfig.Builder object, so be aware that this can
      * overwrite any configuration properties that have already been setup.
      */
     @FunctionalInterface

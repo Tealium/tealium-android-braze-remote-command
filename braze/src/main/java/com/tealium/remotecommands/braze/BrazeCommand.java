@@ -29,7 +29,7 @@ interface BrazeCommand {
      * Configures a new Braze instance, setting the Braze API Key and any other configuration items
      * passed in the launchOptions parameters. This should be key-value pairs, it will look for the
      * keys as specified in the static class BrazeConstants.Config.
-     * After building any launchOptions it will execute any overrides before creating the Appboy
+     * After building any launchOptions it will execute any overrides before creating the  Braze
      * instance.
      *
      * @param apiKey

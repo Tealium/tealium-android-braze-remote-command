@@ -51,7 +51,14 @@ class EventsActivity : AppCompatActivity() {
     private fun setCustomAttributes() {
         trackEvent(
             "custom_attribute", mapOf<String, Any>(
-                "pet" to "cat", "pet_count" to 3
+                "pet" to "cat",
+                "pet_count" to 3,
+                "pet_array" to listOf("one", "two", "three"),
+                "pet_map" to mapOf("key1" to "one", "key2" to "two"),
+                "pet_objects" to listOf(
+                    mapOf("key1" to "one", "key2" to "two"),
+                    mapOf("key3" to "three", "key4" to "four"),
+                )
             )
         )
 
