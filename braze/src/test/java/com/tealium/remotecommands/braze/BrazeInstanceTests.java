@@ -4,11 +4,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyBoolean;
-import static org.mockito.ArgumentMatchers.anyDouble;
-import static org.mockito.ArgumentMatchers.anyFloat;
-import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
@@ -189,14 +184,6 @@ public class BrazeInstanceTests {
     }
 
     @Test
-    public void setUserId_DoesNothing_WhenUserIdIsNull() {
-        brazeInstance.setUserId(null, null);
-
-        verify(mockBraze, never()).changeUser(any());
-        verify(mockBraze, never()).changeUser(any(), any());
-    }
-
-    @Test
     public void setUserId_ChangesUserIdOnly() {
         brazeInstance.setUserId("user_id", null);
 
@@ -208,13 +195,6 @@ public class BrazeInstanceTests {
         brazeInstance.setUserId("user_id", "auth");
 
         verify(mockBraze).changeUser("user_id", "auth");
-    }
-
-    @Test
-    public void setAdTrackingEnabled_DoesNothing_WhenGoogleAdIdIsNull() {
-        brazeInstance.setAdTrackingEnabled(null, false);
-
-        verify(mockBraze, never()).setGoogleAdvertisingId(null, false);
     }
 
     @Test
@@ -232,9 +212,9 @@ public class BrazeInstanceTests {
     }
 
     @Test
-    public void setUserAlias_DoesNothingWhenEitherParamIsNull() {
-        brazeInstance.setUserAlias("user_alias", null);
-        brazeInstance.setUserAlias(null, "alias_label");
+    public void setUserAlias_DoesNothingWhenEitherParamIsEmpty() {
+        brazeInstance.setUserAlias("user_alias", "");
+        brazeInstance.setUserAlias("", "alias_label");
 
         verify(mockBrazeUser, never()).addAlias(any(), any());
     }
@@ -247,24 +227,10 @@ public class BrazeInstanceTests {
     }
 
     @Test
-    public void setUserFirstName_DoesNothingWhenParamIsNull() {
-        brazeInstance.setUserFirstName(null);
-
-        verify(mockBrazeUser, never()).setFirstName(any());
-    }
-
-    @Test
     public void setUserLastName_SetsLastName() {
         brazeInstance.setUserLastName("name");
 
         verify(mockBrazeUser).setLastName("name");
-    }
-
-    @Test
-    public void setUserLastName_DoesNothingWhenParamIsNull() {
-        brazeInstance.setUserLastName(null);
-
-        verify(mockBrazeUser, never()).setLastName("name");
     }
 
     @Test
@@ -275,24 +241,10 @@ public class BrazeInstanceTests {
     }
 
     @Test
-    public void setUserEmail_DoesNothingWhenParamIsNull() {
-        brazeInstance.setUserEmail(null);
-
-        verify(mockBrazeUser, never()).setEmail(any());
-    }
-
-    @Test
     public void setUserLanguage_SetsLanguage() {
         brazeInstance.setUserLanguage("en");
 
         verify(mockBrazeUser).setLanguage("en");
-    }
-
-    @Test
-    public void setUserLanguage_DoesNothingWhenParamIsNull() {
-        brazeInstance.setUserLanguage(null);
-
-        verify(mockBrazeUser, never()).setLanguage(any());
     }
 
     @Test
@@ -304,8 +256,8 @@ public class BrazeInstanceTests {
     }
 
     @Test
-    public void setUserGender_DoesNothingWhenParamIsNull() {
-        brazeInstance.setUserGender(null);
+    public void setUserGender_DoesNotSetGenderWhenInvalidString() {
+        brazeInstance.setUserGender("xyz");
 
         verify(mockBrazeUser, never()).setGender(any());
     }
@@ -318,24 +270,10 @@ public class BrazeInstanceTests {
     }
 
     @Test
-    public void setUserHomeCity_DoesNothingWhenParamIsNull() {
-        brazeInstance.setUserHomeCity(null);
-
-        verify(mockBrazeUser, never()).setHomeCity(any());
-    }
-
-    @Test
     public void setUserCountry_SetsCountry() {
         brazeInstance.setUserCountry("USA");
 
         verify(mockBrazeUser).setCountry("USA");
-    }
-
-    @Test
-    public void setUserCountry_DoesNothingWhenParamIsNull() {
-        brazeInstance.setUserCountry(null);
-
-        verify(mockBrazeUser, never()).setCountry(any());
     }
 
     @Test
@@ -346,25 +284,11 @@ public class BrazeInstanceTests {
     }
 
     @Test
-    public void setUserPhone_DoesNothingWhenParamIsNull() {
-        brazeInstance.setUserPhone(null);
-
-        verify(mockBrazeUser, never()).setPhoneNumber(any());
-    }
-
-    @Test
     public void setUserDateOfBirth_SetsDateOfBirth() {
         // String conversions tested elsewhere
         brazeInstance.setUserDateOfBirth("2000-01-01");
 
         verify(mockBrazeUser).setDateOfBirth(2000, Month.JANUARY, 1);
-    }
-
-    @Test
-    public void setUserDateOfBirth_DoesNothingWhenParamIsNull() {
-        brazeInstance.setUserDateOfBirth(null);
-
-        verify(mockBrazeUser, never()).setDateOfBirth(anyInt(), any(), anyInt());
     }
 
     @Test
@@ -398,19 +322,6 @@ public class BrazeInstanceTests {
     }
 
     @Test
-    public void setUserCustomAttribute_DoesNothingWhenParamIsNull() {
-        brazeInstance.setUserCustomAttributes(null);
-
-        verify(mockBrazeUser, never()).setCustomUserAttribute(any(), anyInt());
-        verify(mockBrazeUser, never()).setCustomUserAttribute(any(), anyLong());
-        verify(mockBrazeUser, never()).setCustomUserAttribute(any(), anyDouble());
-        verify(mockBrazeUser, never()).setCustomUserAttribute(any(), anyFloat());
-        verify(mockBrazeUser, never()).setCustomUserAttribute(any(), anyBoolean());
-        verify(mockBrazeUser, never()).setCustomUserAttribute(any(), any(JSONArray.class));
-        verify(mockBrazeUser, never()).setCustomUserAttribute(any(), any(JSONObject.class));
-    }
-
-    @Test
     public void unsetUserCustomAttribute_UnsetsAttributes() {
         JSONArray array = new JSONArray();
         array.put("attr1");
@@ -422,13 +333,6 @@ public class BrazeInstanceTests {
         verify(mockBrazeUser).unsetCustomUserAttribute("attr1");
         verify(mockBrazeUser).unsetCustomUserAttribute("attr2");
         verify(mockBrazeUser).unsetCustomUserAttribute("attr3");
-    }
-
-    @Test
-    public void unsetUserCustomAttribute_DoesNothingWhenParamIsNull() {
-        brazeInstance.unsetUserCustomAttributes(null);
-
-        verify(mockBrazeUser, never()).unsetCustomUserAttribute(any());
     }
 
     @Test
@@ -446,14 +350,6 @@ public class BrazeInstanceTests {
     }
 
     @Test
-    public void incrementUserCustomAttribute_DoesNothingWhenParamIsNull() {
-        brazeInstance.incrementUserCustomAttributes(null);
-
-        verify(mockBrazeUser, never()).incrementCustomUserAttribute(any());
-        verify(mockBrazeUser, never()).incrementCustomUserAttribute(any(), anyInt());
-    }
-
-    @Test
     public void removeUserCustomAttribute_RemovesAttributes() throws Exception {
         JSONObject attributes = new JSONObject();
         attributes.put("attr1", "value1");
@@ -465,13 +361,6 @@ public class BrazeInstanceTests {
         verify(mockBrazeUser).removeFromCustomAttributeArray("attr1", "value1");
         verify(mockBrazeUser).removeFromCustomAttributeArray("attr2", "value2");
         verify(mockBrazeUser).removeFromCustomAttributeArray("attr3", "value3");
-    }
-
-    @Test
-    public void removeUserCustomAttribute_DoesNothingWhenParamIsNull() {
-        brazeInstance.removeFromUserCustomAttributeArrays(null);
-
-        verify(mockBrazeUser, never()).removeFromCustomAttributeArray(any(), any());
     }
 
     @Test
@@ -487,13 +376,6 @@ public class BrazeInstanceTests {
     }
 
     @Test
-    public void setPushNotificationType_DoesNothingWhenParamIsNull() {
-        brazeInstance.setPushNotificationSubscriptionType(null);
-
-        verify(mockBrazeUser, never()).setPushNotificationSubscriptionType(any());
-    }
-
-    @Test
     public void setEmailSubscriptionType_SetsSubscriptionType() throws Exception {
         // other conversions tested elsewhere
         brazeInstance.setEmailSubscriptionType("opted_in");
@@ -503,13 +385,6 @@ public class BrazeInstanceTests {
         verify(mockBrazeUser).setEmailNotificationSubscriptionType(NotificationSubscriptionType.OPTED_IN);
         verify(mockBrazeUser).setEmailNotificationSubscriptionType(NotificationSubscriptionType.SUBSCRIBED);
         verify(mockBrazeUser).setEmailNotificationSubscriptionType(NotificationSubscriptionType.UNSUBSCRIBED);
-    }
-
-    @Test
-    public void setEmailSubscriptionType_DoesNothingWhenParamIsNull() {
-        brazeInstance.setEmailSubscriptionType(null);
-
-        verify(mockBrazeUser, never()).setEmailNotificationSubscriptionType(any());
     }
 
     @Test
@@ -576,17 +451,10 @@ public class BrazeInstanceTests {
     }
 
     @Test
-    public void requestFlush_FlushsSdk() {
+    public void requestFlush_FlushesSdk() {
         brazeInstance.requestFlush();
 
         verify(mockBraze).requestImmediateDataFlush();
-    }
-
-    @Test
-    public void setLastKnownLocation_DoesNothing_WhenMissingRequiredValues() {
-        brazeInstance.setLastKnownLocation(null, null, null, null);
-
-        verify(mockBrazeUser, never()).setLastKnownLocation(anyDouble(), anyDouble(), anyDouble(), anyDouble());
     }
 
     @Test
@@ -611,13 +479,6 @@ public class BrazeInstanceTests {
     }
 
     @Test
-    public void addToSubscriptionGroup_DoesNothingWhenParamIsNull() {
-        brazeInstance.addToSubscriptionGroup(null);
-
-        verify(mockBrazeUser, never()).addToSubscriptionGroup(any());
-    }
-
-    @Test
     public void removeFromSubscriptionGroup_RemovesFromSubscriptionGroup() {
         brazeInstance.removeFromSubscriptionGroup("group_id");
 
@@ -625,23 +486,9 @@ public class BrazeInstanceTests {
     }
 
     @Test
-    public void removeFromSubscriptionGroup_DoesNothingWhenParamIsNull() {
-        brazeInstance.removeFromSubscriptionGroup(null);
-
-        verify(mockBrazeUser, never()).removeFromSubscriptionGroup(any());
-    }
-
-    @Test
     public void setSdkSignature_SetsSdkSignature() {
         brazeInstance.setSdkAuthSignature("signature");
 
         verify(mockBraze).setSdkAuthenticationSignature("signature");
-    }
-
-    @Test
-    public void setSdkAuthSignature_DoesNothingWhenParamIsNull() {
-        brazeInstance.setSdkAuthSignature(null);
-
-        verify(mockBraze, never()).setSdkAuthenticationSignature(any());
     }
 }

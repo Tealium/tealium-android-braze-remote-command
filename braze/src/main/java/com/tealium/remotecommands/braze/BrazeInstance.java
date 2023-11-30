@@ -11,6 +11,7 @@ import android.os.Bundle;
 import android.util.Log;
 
 import com.braze.enums.DeviceKey;
+import com.braze.enums.Gender;
 import com.braze.enums.NotificationSubscriptionType;
 import com.braze.Braze;
 import com.braze.BrazeActivityLifecycleCallbackListener;
@@ -217,25 +218,23 @@ class BrazeInstance implements BrazeCommand, ActivityLifecycleCallbacks {
     }
 
     @Override
-    public void setUserId(String userId, @Nullable String sdkAuthSignature) {
-        if (userId != null) {
-            if (sdkAuthSignature != null) {
-                getBrazeInstance().changeUser(userId, sdkAuthSignature);
-            } else {
-                getBrazeInstance().changeUser(userId);
-            }
+    public void setUserId(@NonNull String userId, @Nullable String sdkAuthSignature) {
+        if (BrazeUtils.isNullOrEmpty(userId)) return;
+
+        if (sdkAuthSignature != null) {
+            getBrazeInstance().changeUser(userId, sdkAuthSignature);
+        } else {
+            getBrazeInstance().changeUser(userId);
         }
     }
 
     @Override
-    public void setAdTrackingEnabled(String googleAdid, boolean limitAdTracking) {
-        if (googleAdid == null) return;
-
+    public void setAdTrackingEnabled(@NonNull String googleAdid, boolean limitAdTracking) {
         getBrazeInstance().setGoogleAdvertisingId(googleAdid, limitAdTracking);
     }
 
     @Override
-    public void setUserAlias(String userAlias, String aliasLabel) {
+    public void setUserAlias(@NonNull String userAlias, @NonNull String aliasLabel) {
         if (BrazeUtils.isNullOrEmpty(userAlias) ||
                 BrazeUtils.isNullOrEmpty(aliasLabel) ||
                 getBrazeUser() == null) {
@@ -246,7 +245,7 @@ class BrazeInstance implements BrazeCommand, ActivityLifecycleCallbacks {
     }
 
     @Override
-    public void setUserFirstName(String firstName) {
+    public void setUserFirstName(@NonNull String firstName) {
         if (BrazeUtils.isNullOrEmpty(firstName) || getBrazeUser() == null) {
             return;
         }
@@ -255,7 +254,7 @@ class BrazeInstance implements BrazeCommand, ActivityLifecycleCallbacks {
     }
 
     @Override
-    public void setUserLastName(String lastName) {
+    public void setUserLastName(@NonNull String lastName) {
         if (BrazeUtils.isNullOrEmpty(lastName) || getBrazeUser() == null) {
             return;
         }
@@ -264,7 +263,7 @@ class BrazeInstance implements BrazeCommand, ActivityLifecycleCallbacks {
     }
 
     @Override
-    public void setUserEmail(String email) {
+    public void setUserEmail(@NonNull String email) {
         if (BrazeUtils.isNullOrEmpty(email) || getBrazeUser() == null) {
             return;
         }
@@ -273,7 +272,7 @@ class BrazeInstance implements BrazeCommand, ActivityLifecycleCallbacks {
     }
 
     @Override
-    public void setUserLanguage(String language) {
+    public void setUserLanguage(@NonNull String language) {
         if (BrazeUtils.isNullOrEmpty(language) || getBrazeUser() == null) {
             return;
         }
@@ -282,18 +281,19 @@ class BrazeInstance implements BrazeCommand, ActivityLifecycleCallbacks {
     }
 
     @Override
-    public void setUserGender(String gender) {
-        if (BrazeUtils.isNullOrEmpty(gender) || getBrazeUser() == null) {
+    public void setUserGender(@NonNull String genderString) {
+        if (BrazeUtils.isNullOrEmpty(genderString) || getBrazeUser() == null) {
             return;
         }
 
-        getBrazeUser().setGender(
-                BrazeUtils.getGenderEnumFromString(gender)
-        );
+        Gender gender = BrazeUtils.getGenderEnumFromString(genderString);
+        if (gender == null) return;
+
+        getBrazeUser().setGender(gender);
     }
 
     @Override
-    public void setUserHomeCity(String city) {
+    public void setUserHomeCity(@NonNull String city) {
         if (BrazeUtils.isNullOrEmpty(city) || getBrazeUser() == null) {
             return;
         }
@@ -302,7 +302,7 @@ class BrazeInstance implements BrazeCommand, ActivityLifecycleCallbacks {
     }
 
     @Override
-    public void setUserCountry(String country) {
+    public void setUserCountry(@NonNull String country) {
         if (BrazeUtils.isNullOrEmpty(country) || getBrazeUser() == null) {
             return;
         }
@@ -311,7 +311,7 @@ class BrazeInstance implements BrazeCommand, ActivityLifecycleCallbacks {
     }
 
     @Override
-    public void setUserPhone(String phone) {
+    public void setUserPhone(@NonNull String phone) {
         if (BrazeUtils.isNullOrEmpty(phone) || getBrazeUser() == null) {
             return;
         }
@@ -320,7 +320,7 @@ class BrazeInstance implements BrazeCommand, ActivityLifecycleCallbacks {
     }
 
     @Override
-    public void setUserDateOfBirth(String dob) {
+    public void setUserDateOfBirth(@NonNull String dob) {
         if (BrazeUtils.isNullOrEmpty(dob) || getBrazeUser() == null) {
             return;
         }
@@ -336,7 +336,7 @@ class BrazeInstance implements BrazeCommand, ActivityLifecycleCallbacks {
     }
 
     @Override
-    public void setUserCustomAttributes(JSONObject attributes) {
+    public void setUserCustomAttributes(@NonNull JSONObject attributes) {
         BrazeUser user = getBrazeUser();
         if (user == null || BrazeUtils.isNullOrEmpty(attributes)) {
             return;
@@ -373,7 +373,7 @@ class BrazeInstance implements BrazeCommand, ActivityLifecycleCallbacks {
     }
 
     @Override
-    public void unsetUserCustomAttributes(JSONArray keys) {
+    public void unsetUserCustomAttributes(@NonNull JSONArray keys) {
         if (BrazeUtils.isNullOrEmpty(keys)) {
             return;
         }
@@ -387,7 +387,7 @@ class BrazeInstance implements BrazeCommand, ActivityLifecycleCallbacks {
     }
 
     @Override
-    public void incrementUserCustomAttributes(JSONObject attributes) {
+    public void incrementUserCustomAttributes(@NonNull JSONObject attributes) {
         if (BrazeUtils.isNullOrEmpty(attributes)) {
             return;
         }
@@ -413,7 +413,7 @@ class BrazeInstance implements BrazeCommand, ActivityLifecycleCallbacks {
     }
 
     @Override
-    public void setUserCustomAttributeArrays(JSONObject attributes) {
+    public void setUserCustomAttributeArrays(@NonNull JSONObject attributes) {
         if (BrazeUtils.isNullOrEmpty(attributes)) {
             return;
         }
@@ -437,7 +437,7 @@ class BrazeInstance implements BrazeCommand, ActivityLifecycleCallbacks {
     }
 
     @Override
-    public void appendUserCustomAttributeArrays(JSONObject attributes) {
+    public void appendUserCustomAttributeArrays(@NonNull JSONObject attributes) {
         if (BrazeUtils.isNullOrEmpty(attributes)) {
             return;
         }
@@ -457,7 +457,7 @@ class BrazeInstance implements BrazeCommand, ActivityLifecycleCallbacks {
     }
 
     @Override
-    public void removeFromUserCustomAttributeArrays(JSONObject attributes) {
+    public void removeFromUserCustomAttributeArrays(@NonNull JSONObject attributes) {
         if (BrazeUtils.isNullOrEmpty(attributes)) {
             return;
         }
@@ -477,7 +477,7 @@ class BrazeInstance implements BrazeCommand, ActivityLifecycleCallbacks {
     }
 
     @Override
-    public void setPushNotificationSubscriptionType(String notificationType) {
+    public void setPushNotificationSubscriptionType(@NonNull String notificationType) {
         if (BrazeUtils.isNullOrEmpty(notificationType)) {
             return;
         }
@@ -488,7 +488,7 @@ class BrazeInstance implements BrazeCommand, ActivityLifecycleCallbacks {
     }
 
     @Override
-    public void setEmailSubscriptionType(String notificationType) {
+    public void setEmailSubscriptionType(@NonNull String notificationType) {
         if (BrazeUtils.isNullOrEmpty(notificationType)) {
             return;
         }
@@ -540,8 +540,6 @@ class BrazeInstance implements BrazeCommand, ActivityLifecycleCallbacks {
 
     @Override
     public void setLastKnownLocation(@NonNull Double latitude, @NonNull Double longitude, @Nullable Double altitude, @Nullable Double accuracy) {
-        if (latitude == null || longitude == null) return;
-
         getBrazeUser().setLastKnownLocation(
                 latitude,
                 longitude,
@@ -551,23 +549,17 @@ class BrazeInstance implements BrazeCommand, ActivityLifecycleCallbacks {
     }
 
     @Override
-    public void addToSubscriptionGroup(String groupId) {
-        if (groupId == null) return;
-
+    public void addToSubscriptionGroup(@NonNull String groupId) {
         getBrazeUser().addToSubscriptionGroup(groupId);
     }
 
     @Override
-    public void removeFromSubscriptionGroup(String groupId) {
-        if (groupId == null) return;
-
+    public void removeFromSubscriptionGroup(@NonNull String groupId) {
         getBrazeUser().removeFromSubscriptionGroup(groupId);
     }
 
     @Override
-    public void setSdkAuthSignature(String signature) {
-        if (signature == null) return;
-
+    public void setSdkAuthSignature(@NonNull String signature) {
         getBrazeInstance().setSdkAuthenticationSignature(signature);
     }
 
@@ -615,12 +607,12 @@ class BrazeInstance implements BrazeCommand, ActivityLifecycleCallbacks {
     }
 
     @Override
-    public void onActivitySaveInstanceState(Activity activity, Bundle outState) {
+    public void onActivitySaveInstanceState(@NonNull Activity activity, @NonNull Bundle outState) {
 
     }
 
     @Override
-    public void onActivityDestroyed(Activity activity) {
+    public void onActivityDestroyed(@NonNull Activity activity) {
 
     }
 }

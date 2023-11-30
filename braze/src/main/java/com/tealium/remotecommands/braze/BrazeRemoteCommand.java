@@ -202,7 +202,7 @@ public class BrazeRemoteCommand extends RemoteCommand {
     }
 
     private String[] splitCommands(JSONObject payload) {
-        String commandString = payload.optString(Commands.COMMAND_KEY, "");
+        String commandString = payload.optString(Commands.COMMAND_KEY);
         return commandString.split(BrazeConstants.SEPARATOR);
     }
 
@@ -230,9 +230,10 @@ public class BrazeRemoteCommand extends RemoteCommand {
                         mBraze.wipeData();
                         break;
                     case Commands.USER_IDENTIFIER:
+                        String authSignature = payload.optString(User.SDK_AUTH_SIGNATURE);
                         mBraze.setUserId(
                                 payload.optString(User.USER_ID),
-                                payload.optString(User.SDK_AUTH_SIGNATURE, null)
+                                !authSignature.isEmpty() ? authSignature : null
                         );
                         break;
                     case Commands.USER_ALIAS:
@@ -272,32 +273,32 @@ public class BrazeRemoteCommand extends RemoteCommand {
                         break;
                     case Commands.SET_CUSTOM_ATTRIBUTE:
                         mBraze.setUserCustomAttributes(
-                                payload.optJSONObject(User.SET_CUSTOM_ATTRIBUTE)
+                                payload.getJSONObject(User.SET_CUSTOM_ATTRIBUTE)
                         );
                         break;
                     case Commands.UNSET_CUSTOM_ATTRIBUTE:
                         mBraze.unsetUserCustomAttributes(
-                                payload.optJSONArray(User.UNSET_CUSTOM_ATTRIBUTE)
+                                payload.getJSONArray(User.UNSET_CUSTOM_ATTRIBUTE)
                         );
                         break;
                     case Commands.SET_CUSTOM_ARRAY_ATTRIBUTE:
                         mBraze.setUserCustomAttributeArrays(
-                                payload.optJSONObject(User.SET_CUSTOM_ARRAY_ATTRIBUTE)
+                                payload.getJSONObject(User.SET_CUSTOM_ARRAY_ATTRIBUTE)
                         );
                         break;
                     case Commands.REMOVE_CUSTOM_ARRAY_ATTRIBUTE:
                         mBraze.removeFromUserCustomAttributeArrays(
-                                payload.optJSONObject(User.REMOVE_CUSTOM_ARRAY_ATTRIBUTE)
+                                payload.getJSONObject(User.REMOVE_CUSTOM_ARRAY_ATTRIBUTE)
                         );
                         break;
                     case Commands.APPEND_CUSTOM_ARRAY_ATTRIBUTE:
                         mBraze.appendUserCustomAttributeArrays(
-                                payload.optJSONObject(User.APPEND_CUSTOM_ARRAY_ATTRIBUTE)
+                                payload.getJSONObject(User.APPEND_CUSTOM_ARRAY_ATTRIBUTE)
                         );
                         break;
                     case Commands.INCREMENT_CUSTOM_ATTRIBUTE:
                         mBraze.incrementUserCustomAttributes(
-                                payload.optJSONObject(User.INCREMENT_CUSTOM_ATTRIBUTE)
+                                payload.getJSONObject(User.INCREMENT_CUSTOM_ATTRIBUTE)
                         );
                         break;
 
@@ -307,7 +308,7 @@ public class BrazeRemoteCommand extends RemoteCommand {
                             eventProps = payload.optJSONObject(Event.EVENT_PROPERTIES_SHORTHAND);
                         }
                         mBraze.logCustomEvent(
-                                payload.optString(Event.EVENT_NAME, null),
+                                payload.getString(Event.EVENT_NAME),
                                 eventProps
                         );
                         break;
@@ -342,12 +343,12 @@ public class BrazeRemoteCommand extends RemoteCommand {
                         break;
                     case Commands.EMAIL_NOTIFICATION:
                         mBraze.setEmailSubscriptionType(
-                                payload.optString(User.EMAIL_NOTIFICATION, null)
+                                payload.getString(User.EMAIL_NOTIFICATION)
                         );
                         break;
                     case Commands.PUSH_NOTIFICATION:
                         mBraze.setPushNotificationSubscriptionType(
-                                payload.optString(User.PUSH_NOTIFICATION, null)
+                                payload.getString(User.PUSH_NOTIFICATION)
                         );
                         break;
                     case Commands.FLUSH:
@@ -355,17 +356,17 @@ public class BrazeRemoteCommand extends RemoteCommand {
                         break;
                     case Commands.ADD_TO_SUBSCRIPTION_GROUP:
                         mBraze.addToSubscriptionGroup(
-                                payload.optString(User.SUBSCRIPTION_GROUP_ID, null)
+                                payload.getString(User.SUBSCRIPTION_GROUP_ID)
                         );
                         break;
                     case Commands.REMOVE_FROM_SUBSCRIPTION_GROUP:
                         mBraze.removeFromSubscriptionGroup(
-                                payload.optString(User.SUBSCRIPTION_GROUP_ID, null)
+                                payload.getString(User.SUBSCRIPTION_GROUP_ID)
                         );
                         break;
                     case Commands.SET_SDK_AUTH_SIGNATURE:
                         mBraze.setSdkAuthSignature(
-                                payload.optString(User.SDK_AUTH_SIGNATURE, null)
+                                payload.getString(User.SDK_AUTH_SIGNATURE)
                         );
                         break;
                     case Commands.SET_LAST_KNOWN_LOCATION:

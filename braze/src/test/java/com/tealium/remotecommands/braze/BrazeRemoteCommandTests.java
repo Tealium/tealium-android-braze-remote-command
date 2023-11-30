@@ -1,6 +1,8 @@
 package com.tealium.remotecommands.braze;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -532,7 +534,7 @@ public class BrazeRemoteCommandTests {
 
         brazeRemoteCommand.onInvoke(response);
 
-        verify(mockBrazeInstance, never()).setAdTrackingEnabled(null, false);
+        verify(mockBrazeInstance, never()).setAdTrackingEnabled(anyString(), anyBoolean());
     }
 
     private static class ResponseBuilder {
