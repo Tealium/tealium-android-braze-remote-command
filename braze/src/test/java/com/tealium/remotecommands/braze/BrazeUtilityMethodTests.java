@@ -20,6 +20,7 @@ import org.robolectric.RobolectricTestRunner;
 
 import java.math.BigDecimal;
 import java.util.Date;
+import java.util.TimeZone;
 
 @RunWith(RobolectricTestRunner.class)
 public class BrazeUtilityMethodTests {
@@ -77,6 +78,7 @@ public class BrazeUtilityMethodTests {
     public void parseDateTest_SimpleDateFormat() {
         Date date = BrazeUtils.parseDate("2000-01-01T01:01:01Z");
 
+
         assertEquals(1, date.getDate());
         assertEquals(0, date.getMonth());
         assertEquals(2000 - 1900, date.getYear());
@@ -84,7 +86,9 @@ public class BrazeUtilityMethodTests {
 
     @Test
     public void parseDateTest_BrazeShort() {
+        TimeZone.setDefault(TimeZone.getTimeZone("GMT"));
         Date date = BrazeUtils.parseDate("2000-01-01");
+
 
         assertEquals(1, date.getDate());
         assertEquals(0, date.getMonth());
@@ -93,6 +97,7 @@ public class BrazeUtilityMethodTests {
 
     @Test
     public void parseDateTest_BrazeLong() {
+        TimeZone.setDefault(TimeZone.getTimeZone("GMT"));
         Date date = BrazeUtils.parseDate("2000-01-01 01:01:01");
 
         assertEquals(1, date.getDate());

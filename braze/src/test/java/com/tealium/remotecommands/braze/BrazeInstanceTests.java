@@ -37,8 +37,10 @@ import org.mockito.MockedStatic;
 import org.robolectric.RobolectricTestRunner;
 
 import java.math.BigDecimal;
+import java.util.Date;
 import java.util.EnumSet;
 import java.util.List;
+import java.util.TimeZone;
 
 @RunWith(RobolectricTestRunner.class)
 public class BrazeInstanceTests {
@@ -285,6 +287,7 @@ public class BrazeInstanceTests {
 
     @Test
     public void setUserDateOfBirth_SetsDateOfBirth() {
+        TimeZone.setDefault(TimeZone.getTimeZone("GMT"));
         // String conversions tested elsewhere
         brazeInstance.setUserDateOfBirth("2000-01-01");
 
