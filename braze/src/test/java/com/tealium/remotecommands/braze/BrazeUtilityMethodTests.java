@@ -76,8 +76,8 @@ public class BrazeUtilityMethodTests {
 
     @Test
     public void parseDateTest_SimpleDateFormat() {
+        TimeZone.setDefault(TimeZone.getTimeZone("GMT"));
         Date date = BrazeUtils.parseDate("2000-01-01T01:01:01Z");
-
 
         assertEquals(1, date.getDate());
         assertEquals(0, date.getMonth());
@@ -88,7 +88,6 @@ public class BrazeUtilityMethodTests {
     public void parseDateTest_BrazeShort() {
         TimeZone.setDefault(TimeZone.getTimeZone("GMT"));
         Date date = BrazeUtils.parseDate("2000-01-01");
-
 
         assertEquals(1, date.getDate());
         assertEquals(0, date.getMonth());
