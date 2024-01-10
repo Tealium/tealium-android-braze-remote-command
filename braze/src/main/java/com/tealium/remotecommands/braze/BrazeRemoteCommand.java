@@ -390,7 +390,7 @@ public class BrazeRemoteCommand extends RemoteCommand {
                         break;
                 }
             } catch (Exception ex) {
-                Log.w(TAG, "Error processing command: " + command, ex);
+                Log.d(TAG, "Error processing command: " + command + " - " + ex.getMessage());
             }
         }
     }

@@ -15,7 +15,7 @@
     "customer_home_city": "home_city",
     "customer_dob": "date_of_birth",
     "customer_alias": "user_alias",
-    "customer_alias_label": "alias_label",
+    "customer_alias_label": "user_alias_label",
     "pet": "set_custom_attribute.pet",
     "pet_count": "set_custom_attribute.pet_count",
     "pet_array": "set_custom_attribute.pet_array",
@@ -58,6 +58,7 @@
     "subscription_group": "subscription_group_id"
   },
   "commands": {
+    "all_events": "setlastknownlocation",
     "launch": "initialize",
     "setengagement": "emailnotification,pushnotification",
     "log_custom_event": "logcustomevent",
@@ -69,8 +70,7 @@
     "remove_custom_array_attribute": "removecustomarrayattribute",
     "increment_custom_attribute": "incrementcustomattribute",
     "log_purchase": "logpurchase",
-    "user_attribute": "userattribute,useridentifier,useralias",
-    "user_login": "useridentifier,useralias",
+    "user_login": "useridentifier,useralias,userattribute",
     "user_alias": "useralias",
     "subscribe": "addtosubscriptiongroup",
     "unsubscribe": "removefromsubscriptiongroup"
