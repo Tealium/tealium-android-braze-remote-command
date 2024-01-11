@@ -20,6 +20,7 @@ import static com.tealium.remotecommands.braze.BrazeConstants.Config;
 import static com.tealium.remotecommands.braze.BrazeConstants.User;
 import static com.tealium.remotecommands.braze.BrazeConstants.Event;
 import static com.tealium.remotecommands.braze.BrazeConstants.Purchase;
+import static com.tealium.remotecommands.braze.BrazeConstants.Location;
 
 /**
  * Created by jameskeith on 23/10/2018.
@@ -51,7 +52,7 @@ public class BrazeRemoteCommand extends RemoteCommand {
      * @param sessionHandlingEnabled      - Whether session handling should be automatically handled by Braze
      * @param sessionHandlingBlacklist    - Set of classes not to open/close sessions on.
      * @param registerInAppMessageManager - Automatically registers the Braze InAppMessageManager
-     *                                    through Braze's lifecycle callabacks.
+     *                                    through Braze's lifecycle callbacks.
      * @param inAppMessageBlacklist       - Set of classes that should not show in app messages
      */
     public BrazeRemoteCommand(Application app, boolean sessionHandlingEnabled, Set<Class<?>> sessionHandlingBlacklist, boolean registerInAppMessageManager, Set<Class<?>> inAppMessageBlacklist) {
@@ -66,7 +67,7 @@ public class BrazeRemoteCommand extends RemoteCommand {
      * @param sessionHandlingEnabled      - Whether session handling should be automatically handled by Braze
      * @param sessionHandlingBlacklist    - Set of classes not to open/close sessions on.
      * @param registerInAppMessageManager - Automatically registers the Braze InAppMessageManager
-     *                                    through Braze's lifecycle callabacks.
+     *                                    through Braze's lifecycle callbacks.
      * @param inAppMessageBlacklist       - Set of classes that should not show in app messages
      * @param commandId                   - Override for the default command id as set on your TagBridge Custom
      *                                    Command tag in Tealium IQ.
@@ -151,20 +152,6 @@ public class BrazeRemoteCommand extends RemoteCommand {
      * "remove_custom_array_attribute : {
      * "attr_array_id_1" : "string_value_to_remove"
      * },
-     * "facebook_id" : "<string>",
-     * "friends_count" : <integer>,
-     * "likes" : [
-     * "likes"
-     * ],
-     * <p>
-     * // Social
-     * "description" : "<string>",
-     * "twitter_id" : <integer>,
-     * "twitter_name" : "<string>",
-     * "profile_image_url" : "<string>",
-     * "screen_name" : "<string>",
-     * "followers_count" : <integer>,
-     * "statuses_count" : <integer>,
      * <p>
      * // Notifications
      * "email_notification" : "<string>", // "unsubscribed", "subscribed", "opted_in"
@@ -207,6 +194,7 @@ public class BrazeRemoteCommand extends RemoteCommand {
      */
     @Override
     protected void onInvoke(Response response) throws Exception {
+
         JSONObject payload = response.getRequestPayload();
         String[] commands = splitCommands(payload);
         parseCommands(commands, payload);
@@ -214,7 +202,7 @@ public class BrazeRemoteCommand extends RemoteCommand {
     }
 
     private String[] splitCommands(JSONObject payload) {
-        String commandString = payload.optString(Commands.COMMAND_KEY, "");
+        String commandString = payload.optString(Commands.COMMAND_KEY);
         return commandString.split(BrazeConstants.SEPARATOR);
     }
 
@@ -233,18 +221,19 @@ public class BrazeRemoteCommand extends RemoteCommand {
                         );
                         break;
                     case Commands.ENABLE_SDK:
-                        if (BrazeUtils.keyHasValue(payload, Config.ENABLE_SDK)) {
-                            mBraze.enableSdk(
-                                    payload.optBoolean(Config.ENABLE_SDK)
-                            );
-                        }
+                        mBraze.enableSdk();
+                        break;
+                    case Commands.DISABLE_SDK:
+                        mBraze.disableSdk();
                         break;
                     case Commands.WIPE_DATA:
                         mBraze.wipeData();
                         break;
                     case Commands.USER_IDENTIFIER:
+                        String authSignature = payload.optString(User.SDK_AUTH_SIGNATURE);
                         mBraze.setUserId(
-                                payload.optString(User.USER_ID)
+                                payload.optString(User.USER_ID),
+                                !authSignature.isEmpty() ? authSignature : null
                         );
                         break;
                     case Commands.USER_ALIAS:
@@ -272,36 +261,44 @@ public class BrazeRemoteCommand extends RemoteCommand {
                         mBraze.setUserHomeCity(
                                 payload.optString(User.HOME_CITY)
                         );
-
+                        mBraze.setUserCountry(
+                                payload.optString(User.COUNTRY)
+                        );
+                        mBraze.setUserPhone(
+                                payload.optString(User.PHONE)
+                        );
+                        mBraze.setUserDateOfBirth(
+                                payload.optString(User.DATE_OF_BIRTH)
+                        );
                         break;
                     case Commands.SET_CUSTOM_ATTRIBUTE:
                         mBraze.setUserCustomAttributes(
-                                payload.optJSONObject(User.SET_CUSTOM_ATTRIBUTE)
+                                payload.getJSONObject(User.SET_CUSTOM_ATTRIBUTE)
                         );
                         break;
                     case Commands.UNSET_CUSTOM_ATTRIBUTE:
                         mBraze.unsetUserCustomAttributes(
-                                payload.optJSONArray(User.UNSET_CUSTOM_ATTRIBUTE)
+                                payload.getJSONArray(User.UNSET_CUSTOM_ATTRIBUTE)
                         );
                         break;
                     case Commands.SET_CUSTOM_ARRAY_ATTRIBUTE:
                         mBraze.setUserCustomAttributeArrays(
-                                payload.optJSONObject(User.SET_CUSTOM_ARRAY_ATTRIBUTE)
+                                payload.getJSONObject(User.SET_CUSTOM_ARRAY_ATTRIBUTE)
                         );
                         break;
                     case Commands.REMOVE_CUSTOM_ARRAY_ATTRIBUTE:
                         mBraze.removeFromUserCustomAttributeArrays(
-                                payload.optJSONObject(User.REMOVE_CUSTOM_ARRAY_ATTRIBUTE)
+                                payload.getJSONObject(User.REMOVE_CUSTOM_ARRAY_ATTRIBUTE)
                         );
                         break;
                     case Commands.APPEND_CUSTOM_ARRAY_ATTRIBUTE:
                         mBraze.appendUserCustomAttributeArrays(
-                                payload.optJSONObject(User.APPEND_CUSTOM_ARRAY_ATTRIBUTE)
+                                payload.getJSONObject(User.APPEND_CUSTOM_ARRAY_ATTRIBUTE)
                         );
                         break;
                     case Commands.INCREMENT_CUSTOM_ATTRIBUTE:
                         mBraze.incrementUserCustomAttributes(
-                                payload.optJSONObject(User.INCREMENT_CUSTOM_ATTRIBUTE)
+                                payload.getJSONObject(User.INCREMENT_CUSTOM_ATTRIBUTE)
                         );
                         break;
 
@@ -311,7 +308,7 @@ public class BrazeRemoteCommand extends RemoteCommand {
                             eventProps = payload.optJSONObject(Event.EVENT_PROPERTIES_SHORTHAND);
                         }
                         mBraze.logCustomEvent(
-                                payload.optString(Event.EVENT_NAME, null),
+                                payload.getString(Event.EVENT_NAME),
                                 eventProps
                         );
                         break;
@@ -338,7 +335,7 @@ public class BrazeRemoteCommand extends RemoteCommand {
                             mBraze.logPurchase(
                                     payload.optString(Purchase.PRODUCT_ID),
                                     payload.optString(Purchase.PRODUCT_CURRENCY),
-                                    new BigDecimal(payload.optDouble(Purchase.PRODUCT_PRICE, 0d)),
+                                    BigDecimal.valueOf(payload.optDouble(Purchase.PRODUCT_PRICE, 0d)),
                                     payload.optInt(Purchase.PRODUCT_QTY),
                                     purchaseProps
                             );
@@ -346,43 +343,62 @@ public class BrazeRemoteCommand extends RemoteCommand {
                         break;
                     case Commands.EMAIL_NOTIFICATION:
                         mBraze.setEmailSubscriptionType(
-                                payload.optString(User.EMAIL_NOTIFICATION, null)
+                                payload.getString(User.EMAIL_NOTIFICATION)
                         );
                         break;
                     case Commands.PUSH_NOTIFICATION:
                         mBraze.setPushNotificationSubscriptionType(
-                                payload.optString(User.PUSH_NOTIFICATION, null)
+                                payload.getString(User.PUSH_NOTIFICATION)
                         );
                         break;
                     case Commands.FLUSH:
                         mBraze.requestFlush();
                         break;
-                    case Commands.REGISTER_TOKEN:
-                        mBraze.registerToken(
-                                payload.optString(User.PUSH_TOKEN, null)
-                        );
-                        break;
                     case Commands.ADD_TO_SUBSCRIPTION_GROUP:
                         mBraze.addToSubscriptionGroup(
-                                payload.optString(User.SUBSCRIPTION_GROUP_ID, null)
+                                payload.getString(User.SUBSCRIPTION_GROUP_ID)
                         );
                         break;
                     case Commands.REMOVE_FROM_SUBSCRIPTION_GROUP:
                         mBraze.removeFromSubscriptionGroup(
-                                payload.optString(User.SUBSCRIPTION_GROUP_ID, null)
+                                payload.getString(User.SUBSCRIPTION_GROUP_ID)
                         );
+                        break;
+                    case Commands.SET_SDK_AUTH_SIGNATURE:
+                        mBraze.setSdkAuthSignature(
+                                payload.getString(User.SDK_AUTH_SIGNATURE)
+                        );
+                        break;
+                    case Commands.SET_LAST_KNOWN_LOCATION:
+                        double latitude = payload.getDouble(Location.LOCATION_LATITUDE);
+                        double longitude = payload.getDouble(Location.LOCATION_LONGITUDE);
+                        double altitude = payload.optDouble(Location.LOCATION_ALTITUDE);
+                        double accuracy = payload.optDouble(Location.LOCATION_ACCURACY);
+
+                        mBraze.setLastKnownLocation(
+                                latitude,
+                                longitude,
+                                Double.isNaN(altitude) ? null : altitude,
+                                Double.isNaN(accuracy) ? null : accuracy
+                        );
+                        break;
+                    case Commands.SET_AD_TRACKING_ENABLED:
+                        String googleAdid = payload.getString(User.GOOGLE_ADID);
+                        boolean adTrackingEnabled = payload.getBoolean(User.AD_TRACKING_ENABLED);
+
+                        mBraze.setAdTrackingEnabled(googleAdid, !adTrackingEnabled);
                         break;
                 }
             } catch (Exception ex) {
-                Log.w(TAG, "Error processing command: " + command, ex);
+                Log.d(TAG, "Error processing command: " + command + " - " + ex.getMessage());
             }
         }
     }
 
     /**
      * Registers a ConfigOverrider object. Once all Initialization options have been added to the
-     * AppboyConfig.Builder object, the Builder will be exposed in the onOverride method, so you
-     * can override any settings necessary, or add any settings without needing to setup mappiings
+     * BrazeConfig.Builder object, the Builder will be exposed in the onOverride method, so you
+     * can override any settings necessary, or add any settings without needing to setup mappings
      * in Tealium IQ.
      *
      * @param overrider
@@ -394,9 +410,10 @@ public class BrazeRemoteCommand extends RemoteCommand {
     /**
      * Interface to allow users to inject additional configuration items that may not be present
      * in the data supplied back from the RemoteCommand. This method is called after all LaunchOption
-     * variables have been added to the AppboyConfig.Builder object, so be aware that this can
+     * variables have been added to the BrazeConfig.Builder object, so be aware that this can
      * overwrite any configuration properties that have already been setup.
      */
+    @FunctionalInterface
     public interface ConfigOverrider {
         void onOverride(BrazeConfig.Builder b);
     }

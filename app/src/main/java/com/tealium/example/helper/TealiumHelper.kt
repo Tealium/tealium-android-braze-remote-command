@@ -6,9 +6,11 @@ import android.webkit.WebView
 import com.tealium.core.*
 import com.tealium.dispatcher.TealiumEvent
 import com.tealium.dispatcher.TealiumView
-import com.tealium.example.MainActivity
-import com.tealium.example.UserActivity
 import com.tealium.lifecycle.Lifecycle
+import com.tealium.location.Location
+import com.tealium.location.LocationTrackingAccuracy
+import com.tealium.location.LocationTrackingOptions
+import com.tealium.location.location
 import com.tealium.remotecommanddispatcher.RemoteCommands
 import com.tealium.remotecommanddispatcher.remoteCommands
 import com.tealium.remotecommands.braze.BrazeRemoteCommand
@@ -27,17 +29,21 @@ object TealiumHelper {
     fun initialize(application: Application) {
         Log.i(TAG, "initialize(" + application.javaClass.simpleName + ")")
         WebView.setWebContentsDebuggingEnabled(true)
-        val config = TealiumConfig(application,
-                "tealiummobile",
-                "braze-tag",
-                Environment.DEV,
-                modules = mutableSetOf(Modules.Lifecycle)).apply {
+        val config = TealiumConfig(
+            application,
+            "tealiummobile",
+            "braze-tag",
+            Environment.DEV,
+            modules = mutableSetOf(Modules.Lifecycle)
+        ).apply {
 
             // TagManagement controlled RemoteCommand
             // dispatchers.add(Dispatchers.TagManagement)
 
             // JSON controlled RemoteCommand
             dispatchers.add(Dispatchers.RemoteCommands)
+        }.apply {
+            collectors.add(Collectors.Location)
         }
 
         // Optional: Setup Braze blacklists.
@@ -45,11 +51,13 @@ object TealiumHelper {
         val inAppMessageBlacklist: MutableSet<Class<*>> = mutableSetOf()
         // sessionHandlingBlacklist.add(MainActivity::class.java)
         // inAppMessageBlacklist.add(UserActivity::class.java)
-        val brc = BrazeRemoteCommand(application,
-                true,
-                sessionHandlingBlacklist,
-                true,
-                inAppMessageBlacklist)
+        val brc = BrazeRemoteCommand(
+            application,
+            true,
+            sessionHandlingBlacklist,
+            true,
+            inAppMessageBlacklist
+        )
 
         // Optional: Set config options that may not be supported yet by the Tag in Tealium IQ
         //              or simply to override settings locally.
@@ -89,5 +97,15 @@ object TealiumHelper {
 
         // Instance can be remotely destroyed through publish settings
         instance?.track(TealiumEvent(eventName, data))
+    }
+
+    @JvmStatic
+    fun startLocationTracking() {
+        Tealium[TEALIUM_MAIN]?.location?.startLocationTracking(
+            LocationTrackingOptions(
+                LocationTrackingAccuracy.BalancedAccuracy,
+                10000L,
+            )
+        )
     }
 }

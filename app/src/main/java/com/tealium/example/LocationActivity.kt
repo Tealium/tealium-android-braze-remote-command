@@ -10,6 +10,7 @@ import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import com.tealium.example.helper.TealiumHelper.startLocationTracking
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.launch
 
@@ -74,6 +75,8 @@ class LocationActivity : AppCompatActivity() {
                 Log.i(TAG, "Location permission granted.")
                 updateUI(PackageManager.PERMISSION_GRANTED)
                 Toast.makeText(this, "Location permission granted.", Toast.LENGTH_SHORT).show()
+
+                startLocationTracking()
             } else {
                 updateUI(PackageManager.PERMISSION_DENIED)
                 Log.i(TAG, "Location permission NOT granted.")

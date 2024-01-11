@@ -2,8 +2,11 @@ package com.tealium.remotecommands.braze;
 
 import android.util.Log;
 
+import com.braze.enums.BrazeDateFormat;
+import com.braze.enums.Month;
 import com.braze.enums.Gender;
 import com.braze.models.outgoing.BrazeProperties;
+import com.braze.support.DateTimeUtils;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -14,6 +17,7 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Iterator;
+import java.util.Locale;
 
 class BrazeUtils {
 
@@ -25,6 +29,11 @@ class BrazeUtils {
     public static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("E MMM dd HH:mm:ss z yyyy");
 
     /**
+     * Standard ISO 8601 date format to use when attempting to parse dates.
+     */
+    public static final SimpleDateFormat ISO_8601_DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.ROOT);
+
+    /**
      * At the time of writing, the Android SDK will stringify values in a HashMap such that
      * the native type is lost. The method being tested here will attempt to recover that.
      * As a result the expected types should be integer/double/booolean etc despite the value
@@ -34,13 +43,13 @@ class BrazeUtils {
      *
      * @param key        - name of the custom property to add.
      * @param data       - value to add to the custom property
-     * @param properties - an existing AppboyProperties object to add this key-value pair to. If
-     *                   null, then a new AppboyProperties object will be created to be returned
+     * @param properties - an existing  BrazeProperties object to add this key-value pair to. If
+     *                   null, then a new  BrazeProperties object will be created to be returned
      * @return The amended BrazeProperties including the additional one supplied
      */
     public static BrazeProperties addCustomProperty(String key, Object data, BrazeProperties properties) {
         if (properties == null) {
-            Log.d(BrazeConstants.TAG, "Creating new AppboyProperties");
+            Log.d(BrazeConstants.TAG, "Creating new  BrazeProperties");
             properties = new BrazeProperties();
         }
 
@@ -57,11 +66,10 @@ class BrazeUtils {
             } catch (NumberFormatException ignored) {
 
             }
-            try {
-                properties = addCustomProperty(key, DATE_FORMAT.parse((String) data), properties);
+            Date date;
+            if ((date = BrazeUtils.parseDate((String) data)) != null) {
+                properties = addCustomProperty(key, date, properties);
                 return properties;
-            } catch (ParseException ignored) {
-
             }
             if (((String) data).equalsIgnoreCase("true") || ((String) data).equalsIgnoreCase("false")) {
                 properties = addCustomProperty(key, Boolean.parseBoolean((String) data), properties);
@@ -84,7 +92,7 @@ class BrazeUtils {
     }
 
     /**
-     * Short-hand method for calling addCustomProperty, generating a new AppboyProperties object at
+     * Short-hand method for calling addCustomProperty, generating a new  BrazeProperties object at
      * the same time.
      *
      * @param key  - name of the custom property to add.
@@ -96,12 +104,12 @@ class BrazeUtils {
     }
 
     /**
-     * Helper method to translate a JSONObject of key-value pairs into an AppboyProperties object.
-     * The values in the JSONObject should only be supported types for the AppboyProperties class,
+     * Helper method to translate a JSONObject of key-value pairs into an  BrazeProperties object.
+     * The values in the JSONObject should only be supported types for the  BrazeProperties class,
      * which at the time of writing is only String, Integer, Double, Date and Boolean
      *
      * @param customProperties - JSONObject of Key-Value pairs.
-     * @return AppboyProperties containing the Key-Value pairs supplied
+     * @return  BrazeProperties containing the Key-Value pairs supplied
      */
     public static BrazeProperties extractCustomProperties(JSONObject customProperties) {
         BrazeProperties props = new BrazeProperties();
@@ -187,7 +195,61 @@ class BrazeUtils {
     }
 
     /**
-     * Helper to convert a JSONArray to and array of Strings
+     * Helper to convert string representation of a Month into the required enum
+     *
+     * @param month
+     * @return The Month enum if found, or null
+     */
+    public static Month getMonthEnumFromInt(int month) {
+        // Try Braze utility first
+        Month monthEnum = Month.getMonth(month);
+        if (monthEnum != null) return monthEnum;
+
+        // fallback check
+        switch (month) {
+            case 0:
+                monthEnum = Month.JANUARY;
+                break;
+            case 1:
+                monthEnum = Month.FEBRUARY;
+                break;
+            case 2:
+                monthEnum = Month.MARCH;
+                break;
+            case 3:
+                monthEnum = Month.APRIL;
+                break;
+            case 4:
+                monthEnum = Month.MAY;
+                break;
+            case 5:
+                monthEnum = Month.JUNE;
+                break;
+            case 6:
+                monthEnum = Month.JULY;
+                break;
+            case 7:
+                monthEnum = Month.AUGUST;
+                break;
+            case 8:
+                monthEnum = Month.SEPTEMBER;
+                break;
+            case 9:
+                monthEnum = Month.OCTOBER;
+                break;
+            case 10:
+                monthEnum = Month.NOVEMBER;
+                break;
+            case 11:
+                monthEnum = Month.DECEMBER;
+                break;
+        }
+
+        return monthEnum;
+    }
+
+    /**
+     * Helper to convert a JSONArray to an array of Strings
      *
      * @param jsonArray
      * @return
@@ -207,7 +269,7 @@ class BrazeUtils {
     }
 
     /**
-     * Helper to convert a JSONArray to and array of Integers
+     * Helper to convert a JSONArray to an array of Integers
      *
      * @param jsonArray
      * @return
@@ -227,7 +289,7 @@ class BrazeUtils {
     }
 
     /**
-     * Helper to convert a JSONArray to and array of BigDecimals
+     * Helper to convert a JSONArray to an array of BigDecimals
      *
      * @param jsonArray
      * @return
@@ -247,7 +309,7 @@ class BrazeUtils {
     }
 
     /**
-     * Helper to convert a JSONArray to and array of JSONObjects
+     * Helper to convert a JSONArray to an array of JSONObjects
      *
      * @param jsonArray
      * @return
@@ -299,5 +361,36 @@ class BrazeUtils {
      */
     static boolean isNullOrEmpty(String string) {
         return string == null || string.isEmpty();
+    }
+
+    public static Date parseDate(String dateString) {
+        Date date = null;
+        try {
+            // try with simple date format (in case of webview support)
+            date = BrazeUtils.DATE_FORMAT.parse(dateString);
+            if (date != null) return date;
+        } catch (ParseException ignore) {
+        }
+
+        try {
+            // try with ISO8601 date format
+            date = BrazeUtils.ISO_8601_DATE_FORMAT.parse(dateString);
+            if (date != null) return date;
+        } catch (ParseException ignore) {
+        }
+
+        // try Braze date formats
+        for (BrazeDateFormat dateFormat : BrazeDateFormat.values()) {
+            try {
+                // try with ISO8601 date format
+                date = DateTimeUtils.parseDate(dateString, dateFormat);
+            } catch (Exception ignore) {
+                /* Method does not specify ParseException, but does throw during tests. */
+            }
+
+            if (date != null) break;
+        }
+
+        return date;
     }
 }

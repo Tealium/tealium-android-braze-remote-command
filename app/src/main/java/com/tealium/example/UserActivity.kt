@@ -54,9 +54,7 @@ class UserActivity : AppCompatActivity() {
         }
         saveButton.setOnClickListener {
             val data = fieldData
-            trackEvent("user_attribute", data)
             trackEvent("user_login", data)
-            trackEvent("user_alias", data)
         }
     }
 
