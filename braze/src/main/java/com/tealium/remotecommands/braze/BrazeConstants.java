@@ -46,7 +46,10 @@ public final class BrazeConstants {
 
         public static final String API_KEY = "api_key";
         public static final String FIREBASE_ENABLED = "firebase_enabled";
+        public static final String FIREBASE_NEW_TOKEN_ENABLED = "firebase_new_token_enabled";
         public static final String FIREBASE_SENDER_ID = "firebase_sender_id";
+        public static final String FIREBASE_FALLBACK_MESSAGE_SERVICE_ENABLED = "firebase_fallback_message_service_enabled";
+        public static final String FIREBASE_MESSAGING_SERVICE_CLASSPATH = "firebase_messaging_service_classpath";
         public static final String SESSION_TIMEOUT = "session_timeout";
         public static final String CUSTOM_ENDPOINT = "custom_endpoint";
         public static final String ADM_ENABLED = "adm_enabled";
@@ -56,11 +59,14 @@ public final class BrazeConstants {
         public static final String ENABLE_AUTOMATIC_LOCATION = "enable_automatic_location";
         public static final String ENABLE_NEWS_FEED_INDICATOR = "enable_news_feed_indicator";
         public static final String DEFAULT_NOTIFICATION_COLOR = "default_notification_color";
+        public static final String DEFAULT_NOTIFICATION_CHANNEL_DESCRIPTION = "default_notification_channel_description";
+        public static final String DEFAULT_NOTIFICATION_CHANNEL_NAME = "default_notification_channel_name";
         public static final String BAD_NETWORK_INTERVAL = "bad_network_interval";
         public static final String GOOD_NETWORK_INTERVAL = "good_network_interval";
         public static final String GREAT_NETWORK_INTERVAL = "great_network_interval";
         public static final String TRIGGER_INTERVAL_SECONDS = "trigger_interval_seconds";
         public static final String ENABLE_GEOFENCES = "enable_geofences";
+        public static final String ENABLE_AUTOMATIC_GEOFENCE_REQUESTS = "enable_automatic_geofence_requests";
         public static final String BACKSTACK_ACTIVITY_ENABLED = "backstack_activity_enabled";
         public static final String BACKSTACK_ACTIVITY_CLASS = "backstack_activity_class";
         public static final String IS_SDK_AUTHENTICATION_ENABLED = "is_sdk_authentication_enabled";
