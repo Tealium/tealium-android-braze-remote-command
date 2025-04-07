@@ -97,6 +97,7 @@ public class BrazeInstanceTests {
         JSONObject options = new JSONObject();
         options.put(BrazeConstants.Config.FIREBASE_ENABLED, true);
         options.put(BrazeConstants.Config.FIREBASE_SENDER_ID, "test-id");
+        options.put(BrazeConstants.Config.FIREBASE_MESSAGING_SERVICE_CLASSPATH, "test-messaging-classpath");
         options.put(BrazeConstants.Config.ADM_ENABLED, true);
         options.put(BrazeConstants.Config.AUTO_PUSH_DEEP_LINKS, true);
         options.put(BrazeConstants.Config.BAD_NETWORK_INTERVAL, 30);
@@ -106,8 +107,14 @@ public class BrazeInstanceTests {
         options.put(BrazeConstants.Config.DEFAULT_NOTIFICATION_COLOR, 0xFF00FF);
         options.put(BrazeConstants.Config.ENABLE_AUTOMATIC_LOCATION, true);
         options.put(BrazeConstants.Config.ENABLE_NEWS_FEED_INDICATOR, true);
+        options.put(BrazeConstants.Config.FIREBASE_FALLBACK_MESSAGE_SERVICE_ENABLED, true);
+        options.put(BrazeConstants.Config.FIREBASE_NEW_TOKEN_ENABLED, true);
+        options.put(BrazeConstants.Config.ENABLE_AUTOMATIC_GEOFENCE_REQUESTS, true);
+        options.put(BrazeConstants.Config.IS_SDK_AUTHENTICATION_ENABLED, true);
         options.put(BrazeConstants.Config.LARGE_NOTIFICATION_ICON, "large-notification-icon");
         options.put(BrazeConstants.Config.SMALL_NOTIFICATION_ICON, "small-notification-icon");
+        options.put(BrazeConstants.Config.DEFAULT_NOTIFICATION_CHANNEL_DESCRIPTION, "notification-channel-description");
+        options.put(BrazeConstants.Config.DEFAULT_NOTIFICATION_CHANNEL_NAME, "notification-channel-name");
         options.put(BrazeConstants.Config.SESSION_TIMEOUT, 10);
         options.put(BrazeConstants.Config.TRIGGER_INTERVAL_SECONDS, 10);
         JSONArray deviceOptions = new JSONArray();
@@ -122,6 +129,7 @@ public class BrazeInstanceTests {
         });
         assertTrue(config.getValue().isFirebaseCloudMessagingRegistrationEnabled);
         assertEquals("test-id", config.getValue().firebaseCloudMessagingSenderIdKey);
+        assertEquals("test-messaging-classpath", config.getValue().fallbackFirebaseMessagingServiceClasspath);
         assertTrue(config.getValue().isAdmMessagingRegistrationEnabled);
         assertTrue(config.getValue().willHandlePushDeepLinksAutomatically);
         assertEquals(30, config.getValue().badNetworkInterval.intValue());
@@ -131,8 +139,14 @@ public class BrazeInstanceTests {
         assertEquals(0xFF00FF, config.getValue().defaultNotificationAccentColor.intValue());
         assertEquals(true, config.getValue().isLocationCollectionEnabled);
         assertEquals(true, config.getValue().isNewsFeedVisualIndicatorOn);
+        assertEquals(true, config.getValue().isFallbackFirebaseMessagingServiceEnabled);
+        assertEquals(true, config.getValue().isFirebaseMessagingServiceOnNewTokenRegistrationEnabled);
+        assertEquals(true, config.getValue().areAutomaticGeofenceRequestsEnabled);
+        assertEquals(true, config.getValue().isSdkAuthEnabled);
         assertEquals("large-notification-icon", config.getValue().largeNotificationIcon);
         assertEquals("small-notification-icon", config.getValue().smallNotificationIcon);
+        assertEquals("notification-channel-description", config.getValue().defaultNotificationChannelDescription);
+        assertEquals("notification-channel-name", config.getValue().defaultNotificationChannelName);
         assertEquals(10, config.getValue().sessionTimeout.intValue());
         assertEquals(10, config.getValue().triggerActionMinimumTimeIntervalSeconds.intValue());
 
