@@ -1,5 +1,6 @@
 apply plugin: 'com.android.library'
 apply plugin: 'maven-publish'
+apply plugin: 'kotlin-android'
 
 android {
     compileSdk 35
@@ -33,6 +34,11 @@ android {
         sourceCompatibility JavaVersion.VERSION_21
         targetCompatibility JavaVersion.VERSION_21
     }
+
+    kotlinOptions {
+        jvmTarget = JavaVersion.VERSION_21
+    }
+
     namespace 'com.tealium.remotecommands.braze'
     testNamespace 'com.tealium.remotecommands.brazetest'
 }
@@ -56,15 +62,16 @@ dependencies {
     androidTestImplementation 'androidx.test:core:1.4.0'
     androidTestImplementation 'junit:junit:4.12'
 }
+
 afterEvaluate {
     publishing {
         publications {
-//            release(MavenPublication) {
-//                from components.release
-//                groupId = 'com.tealium.remotecommands'
-//                artifactId = 'braze'
-//                version = tealium_braze_version
-//            }
+            release(MavenPublication) {
+                from components.release
+                groupId = 'com.tealium.remotecommands'
+                artifactId = 'braze'
+                version = tealium_braze_version
+            }
         }
         repositories {
             maven {

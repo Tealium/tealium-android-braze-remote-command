@@ -48,10 +48,10 @@ class BrazeInstance implements BrazeCommand, ActivityLifecycleCallbacks {
         this(app, true, null, true, null);
     }
 
-    public BrazeInstance(Application app, boolean sessionHandlingEnabled, Set<Class<?>> sessingHandlingBlacklist, boolean registerInAppMessageManager, Set<Class<?>> inAppMessageBlacklist) {
+    public BrazeInstance(Application app, boolean sessionHandlingEnabled, Set<Class<?>> sessionHandlingBlacklist, boolean registerInAppMessageManager, Set<Class<?>> inAppMessageBlacklist) {
         mApplication = app;
         mSessionHandlingEnabled = sessionHandlingEnabled;
-        mSessionHandlingBlacklist = sessingHandlingBlacklist;
+        mSessionHandlingBlacklist = sessionHandlingBlacklist;
         mRegisterInAppMessageManager = registerInAppMessageManager;
         mInAppMessageBlacklist = inAppMessageBlacklist;
 
