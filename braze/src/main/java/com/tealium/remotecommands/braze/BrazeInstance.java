@@ -118,7 +118,7 @@ class BrazeInstance implements BrazeCommand, ActivityLifecycleCallbacks {
             }
 
             if (BrazeUtils.keyHasValue(launchOptions, Config.FIREBASE_FALLBACK_MESSAGE_SERVICE_ENABLED)) {
-                builder.setIsFirebaseCloudMessagingRegistrationEnabled(launchOptions.optBoolean(Config.FIREBASE_FALLBACK_MESSAGE_SERVICE_ENABLED));
+                builder.setFallbackFirebaseMessagingServiceEnabled(launchOptions.optBoolean(Config.FIREBASE_FALLBACK_MESSAGE_SERVICE_ENABLED));
             }
 
             if (BrazeUtils.keyHasValue(launchOptions, Config.FIREBASE_NEW_TOKEN_ENABLED)) {
