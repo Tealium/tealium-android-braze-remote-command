@@ -80,8 +80,8 @@ class BrazeInstance implements BrazeCommand, ActivityLifecycleCallbacks {
                 builder.setFirebaseCloudMessagingSenderIdKey(launchOptions.optString(Config.FIREBASE_SENDER_ID));
             }
 
-            if (BrazeUtils.keyHasValue(launchOptions, Config.FIREBASE_MESSAGING_SERVICE_CLASSPATH)) {
-                builder.setFallbackFirebaseMessagingServiceClasspath(launchOptions.optString(Config.FIREBASE_MESSAGING_SERVICE_CLASSPATH));
+            if (BrazeUtils.keyHasValue(launchOptions, Config.FIREBASE_FALLBACK_MESSAGING_SERVICE_CLASSPATH)) {
+                builder.setFallbackFirebaseMessagingServiceClasspath(launchOptions.optString(Config.FIREBASE_FALLBACK_MESSAGING_SERVICE_CLASSPATH));
             }
 
             if (BrazeUtils.keyHasValue(launchOptions, Config.CUSTOM_ENDPOINT)) {
@@ -117,8 +117,8 @@ class BrazeInstance implements BrazeCommand, ActivityLifecycleCallbacks {
                 builder.setIsFirebaseCloudMessagingRegistrationEnabled(launchOptions.optBoolean(Config.FIREBASE_ENABLED));
             }
 
-            if (BrazeUtils.keyHasValue(launchOptions, Config.FIREBASE_FALLBACK_MESSAGE_SERVICE_ENABLED)) {
-                builder.setFallbackFirebaseMessagingServiceEnabled(launchOptions.optBoolean(Config.FIREBASE_FALLBACK_MESSAGE_SERVICE_ENABLED));
+            if (BrazeUtils.keyHasValue(launchOptions, Config.FIREBASE_FALLBACK_MESSAGING_SERVICE_ENABLED)) {
+                builder.setFallbackFirebaseMessagingServiceEnabled(launchOptions.optBoolean(Config.FIREBASE_FALLBACK_MESSAGING_SERVICE_ENABLED));
             }
 
             if (BrazeUtils.keyHasValue(launchOptions, Config.FIREBASE_NEW_TOKEN_ENABLED)) {

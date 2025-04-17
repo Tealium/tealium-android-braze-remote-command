@@ -97,7 +97,7 @@ public class BrazeInstanceTests {
         JSONObject options = new JSONObject();
         options.put(BrazeConstants.Config.FIREBASE_ENABLED, true);
         options.put(BrazeConstants.Config.FIREBASE_SENDER_ID, "test-id");
-        options.put(BrazeConstants.Config.FIREBASE_MESSAGING_SERVICE_CLASSPATH, "test-messaging-classpath");
+        options.put(BrazeConstants.Config.FIREBASE_FALLBACK_MESSAGING_SERVICE_CLASSPATH, "test-messaging-classpath");
         options.put(BrazeConstants.Config.ADM_ENABLED, true);
         options.put(BrazeConstants.Config.AUTO_PUSH_DEEP_LINKS, true);
         options.put(BrazeConstants.Config.BAD_NETWORK_INTERVAL, 30);
@@ -107,7 +107,7 @@ public class BrazeInstanceTests {
         options.put(BrazeConstants.Config.DEFAULT_NOTIFICATION_COLOR, 0xFF00FF);
         options.put(BrazeConstants.Config.ENABLE_AUTOMATIC_LOCATION, true);
         options.put(BrazeConstants.Config.ENABLE_NEWS_FEED_INDICATOR, true);
-        options.put(BrazeConstants.Config.FIREBASE_FALLBACK_MESSAGE_SERVICE_ENABLED, true);
+        options.put(BrazeConstants.Config.FIREBASE_FALLBACK_MESSAGING_SERVICE_ENABLED, true);
         options.put(BrazeConstants.Config.FIREBASE_NEW_TOKEN_ENABLED, true);
         options.put(BrazeConstants.Config.ENABLE_AUTOMATIC_GEOFENCE_REQUESTS, true);
         options.put(BrazeConstants.Config.IS_SDK_AUTHENTICATION_ENABLED, true);

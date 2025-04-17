@@ -48,8 +48,8 @@ public final class BrazeConstants {
         public static final String FIREBASE_ENABLED = "firebase_enabled";
         public static final String FIREBASE_NEW_TOKEN_ENABLED = "firebase_new_token_enabled";
         public static final String FIREBASE_SENDER_ID = "firebase_sender_id";
-        public static final String FIREBASE_FALLBACK_MESSAGE_SERVICE_ENABLED = "firebase_fallback_message_service_enabled";
-        public static final String FIREBASE_MESSAGING_SERVICE_CLASSPATH = "firebase_messaging_service_classpath";
+        public static final String FIREBASE_FALLBACK_MESSAGING_SERVICE_ENABLED = "firebase_fallback_messaging_service_enabled";
+        public static final String FIREBASE_FALLBACK_MESSAGING_SERVICE_CLASSPATH = "firebase_fallback_messaging_service_classpath";
         public static final String SESSION_TIMEOUT = "session_timeout";
         public static final String CUSTOM_ENDPOINT = "custom_endpoint";
         public static final String ADM_ENABLED = "adm_enabled";
