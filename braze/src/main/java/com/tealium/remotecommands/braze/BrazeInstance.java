@@ -48,10 +48,10 @@ class BrazeInstance implements BrazeCommand, ActivityLifecycleCallbacks {
         this(app, true, null, true, null);
     }
 
-    public BrazeInstance(Application app, boolean sessionHandlingEnabled, Set<Class<?>> sessingHandlingBlacklist, boolean registerInAppMessageManager, Set<Class<?>> inAppMessageBlacklist) {
+    public BrazeInstance(Application app, boolean sessionHandlingEnabled, Set<Class<?>> sessionHandlingBlacklist, boolean registerInAppMessageManager, Set<Class<?>> inAppMessageBlacklist) {
         mApplication = app;
         mSessionHandlingEnabled = sessionHandlingEnabled;
-        mSessionHandlingBlacklist = sessingHandlingBlacklist;
+        mSessionHandlingBlacklist = sessionHandlingBlacklist;
         mRegisterInAppMessageManager = registerInAppMessageManager;
         mInAppMessageBlacklist = inAppMessageBlacklist;
 
@@ -80,6 +80,10 @@ class BrazeInstance implements BrazeCommand, ActivityLifecycleCallbacks {
                 builder.setFirebaseCloudMessagingSenderIdKey(launchOptions.optString(Config.FIREBASE_SENDER_ID));
             }
 
+            if (BrazeUtils.keyHasValue(launchOptions, Config.FIREBASE_FALLBACK_MESSAGING_SERVICE_CLASSPATH)) {
+                builder.setFallbackFirebaseMessagingServiceClasspath(launchOptions.optString(Config.FIREBASE_FALLBACK_MESSAGING_SERVICE_CLASSPATH));
+            }
+
             if (BrazeUtils.keyHasValue(launchOptions, Config.CUSTOM_ENDPOINT)) {
                 builder.setCustomEndpoint(launchOptions.optString(Config.CUSTOM_ENDPOINT));
             }
@@ -90,6 +94,14 @@ class BrazeInstance implements BrazeCommand, ActivityLifecycleCallbacks {
 
             if (BrazeUtils.keyHasValue(launchOptions, Config.LARGE_NOTIFICATION_ICON)) {
                 builder.setLargeNotificationIcon(launchOptions.optString(Config.LARGE_NOTIFICATION_ICON));
+            }
+
+            if(BrazeUtils.keyHasValue(launchOptions, Config.DEFAULT_NOTIFICATION_CHANNEL_DESCRIPTION)) {
+                builder.setDefaultNotificationChannelDescription(launchOptions.optString(Config.DEFAULT_NOTIFICATION_CHANNEL_DESCRIPTION));
+            }
+
+            if(BrazeUtils.keyHasValue(launchOptions, Config.DEFAULT_NOTIFICATION_CHANNEL_NAME)) {
+                builder.setDefaultNotificationChannelName(launchOptions.optString(Config.DEFAULT_NOTIFICATION_CHANNEL_NAME));
             }
 
             if (BrazeUtils.keyHasValue(launchOptions, Config.BACKSTACK_ACTIVITY_CLASS)) {
@@ -103,6 +115,14 @@ class BrazeInstance implements BrazeCommand, ActivityLifecycleCallbacks {
             // Booleans
             if (BrazeUtils.keyHasValue(launchOptions, Config.FIREBASE_ENABLED)) {
                 builder.setIsFirebaseCloudMessagingRegistrationEnabled(launchOptions.optBoolean(Config.FIREBASE_ENABLED));
+            }
+
+            if (BrazeUtils.keyHasValue(launchOptions, Config.FIREBASE_FALLBACK_MESSAGING_SERVICE_ENABLED)) {
+                builder.setFallbackFirebaseMessagingServiceEnabled(launchOptions.optBoolean(Config.FIREBASE_FALLBACK_MESSAGING_SERVICE_ENABLED));
+            }
+
+            if (BrazeUtils.keyHasValue(launchOptions, Config.FIREBASE_NEW_TOKEN_ENABLED)) {
+                builder.setIsFirebaseMessagingServiceOnNewTokenRegistrationEnabled(launchOptions.optBoolean(Config.FIREBASE_NEW_TOKEN_ENABLED));
             }
 
             if (BrazeUtils.keyHasValue(launchOptions, Config.ADM_ENABLED)) {
@@ -125,8 +145,16 @@ class BrazeInstance implements BrazeCommand, ActivityLifecycleCallbacks {
                 builder.setGeofencesEnabled(launchOptions.optBoolean(Config.ENABLE_GEOFENCES));
             }
 
+            if (BrazeUtils.keyHasValue(launchOptions, Config.ENABLE_AUTOMATIC_GEOFENCE_REQUESTS))  {
+                builder.setAutomaticGeofenceRequestsEnabled(launchOptions.optBoolean(Config.ENABLE_AUTOMATIC_GEOFENCE_REQUESTS));
+            }
+
             if (BrazeUtils.keyHasValue(launchOptions, Config.BACKSTACK_ACTIVITY_ENABLED)) {
                 builder.setPushDeepLinkBackStackActivityEnabled(launchOptions.optBoolean(Config.BACKSTACK_ACTIVITY_ENABLED));
+            }
+
+            if (BrazeUtils.keyHasValue(launchOptions, Config.IS_SDK_AUTHENTICATION_ENABLED)) {
+                builder.setIsSdkAuthenticationEnabled(launchOptions.optBoolean(Config.IS_SDK_AUTHENTICATION_ENABLED));
             }
 
             // Integers
@@ -146,16 +174,16 @@ class BrazeInstance implements BrazeCommand, ActivityLifecycleCallbacks {
                 builder.setBadNetworkDataFlushInterval(launchOptions.optInt(Config.BAD_NETWORK_INTERVAL));
             }
 
+            if (BrazeUtils.keyHasValue(launchOptions, Config.BAD_NETWORK_INTERVAL)) {
+                builder.setBadNetworkDataFlushInterval(launchOptions.optInt(Config.BAD_NETWORK_INTERVAL));
+            }
+
             if (BrazeUtils.keyHasValue(launchOptions, Config.GOOD_NETWORK_INTERVAL)) {
                 builder.setGoodNetworkDataFlushInterval(launchOptions.optInt(Config.GOOD_NETWORK_INTERVAL));
             }
 
             if (BrazeUtils.keyHasValue(launchOptions, Config.GREAT_NETWORK_INTERVAL)) {
                 builder.setGreatNetworkDataFlushInterval(launchOptions.optInt(Config.GREAT_NETWORK_INTERVAL));
-            }
-
-            if (BrazeUtils.keyHasValue(launchOptions, Config.IS_SDK_AUTHENTICATION_ENABLED)) {
-                builder.setIsSdkAuthenticationEnabled(launchOptions.optBoolean(Config.IS_SDK_AUTHENTICATION_ENABLED));
             }
 
             if (BrazeUtils.keyHasValue(launchOptions, Config.DEVICE_OPTIONS)) {
