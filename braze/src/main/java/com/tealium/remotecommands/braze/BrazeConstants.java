@@ -57,7 +57,6 @@ public final class BrazeConstants {
         public static final String SMALL_NOTIFICATION_ICON = "small_notification_icon";
         public static final String LARGE_NOTIFICATION_ICON = "large_notification_icon";
         public static final String ENABLE_AUTOMATIC_LOCATION = "enable_automatic_location";
-        public static final String ENABLE_NEWS_FEED_INDICATOR = "enable_news_feed_indicator";
         public static final String DEFAULT_NOTIFICATION_COLOR = "default_notification_color";
         public static final String DEFAULT_NOTIFICATION_CHANNEL_DESCRIPTION = "default_notification_channel_description";
         public static final String DEFAULT_NOTIFICATION_CHANNEL_NAME = "default_notification_channel_name";

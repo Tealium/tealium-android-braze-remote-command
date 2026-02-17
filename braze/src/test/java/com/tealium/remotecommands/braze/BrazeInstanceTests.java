@@ -106,7 +106,6 @@ public class BrazeInstanceTests {
         options.put(BrazeConstants.Config.CUSTOM_ENDPOINT, "custom-endpoint");
         options.put(BrazeConstants.Config.DEFAULT_NOTIFICATION_COLOR, 0xFF00FF);
         options.put(BrazeConstants.Config.ENABLE_AUTOMATIC_LOCATION, true);
-        options.put(BrazeConstants.Config.ENABLE_NEWS_FEED_INDICATOR, true);
         options.put(BrazeConstants.Config.FIREBASE_FALLBACK_MESSAGING_SERVICE_ENABLED, true);
         options.put(BrazeConstants.Config.FIREBASE_NEW_TOKEN_ENABLED, true);
         options.put(BrazeConstants.Config.ENABLE_AUTOMATIC_GEOFENCE_REQUESTS, true);
@@ -137,8 +136,7 @@ public class BrazeInstanceTests {
         assertEquals(30, config.getValue().greatNetworkInterval.intValue());
         assertEquals("custom-endpoint", config.getValue().customEndpoint);
         assertEquals(0xFF00FF, config.getValue().defaultNotificationAccentColor.intValue());
-        assertEquals(true, config.getValue().isLocationCollectionEnabled);
-        assertEquals(true, config.getValue().isNewsFeedVisualIndicatorOn);
+        assertEquals(true, config.getValue().isAutomaticLocationCollectionEnabled);
         assertEquals(true, config.getValue().isFallbackFirebaseMessagingServiceEnabled);
         assertEquals(true, config.getValue().isFirebaseMessagingServiceOnNewTokenRegistrationEnabled);
         assertEquals(true, config.getValue().areAutomaticGeofenceRequestsEnabled);

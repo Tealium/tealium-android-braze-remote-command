@@ -97,7 +97,6 @@ public class BrazeRemoteCommandTests {
                     json.put(BrazeConstants.Config.CUSTOM_ENDPOINT, "custom-endpoint");
                     json.put(BrazeConstants.Config.DEFAULT_NOTIFICATION_COLOR, 0xFF00FF);
                     json.put(BrazeConstants.Config.ENABLE_AUTOMATIC_LOCATION, true);
-                    json.put(BrazeConstants.Config.ENABLE_NEWS_FEED_INDICATOR, true);
                     json.put(BrazeConstants.Config.LARGE_NOTIFICATION_ICON, "large-notification-icon");
                     json.put(BrazeConstants.Config.SMALL_NOTIFICATION_ICON, "small-notification-icon");
                     json.put(BrazeConstants.Config.SESSION_TIMEOUT, 10);
