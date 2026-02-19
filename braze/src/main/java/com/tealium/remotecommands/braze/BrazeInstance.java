@@ -134,11 +134,7 @@ class BrazeInstance implements BrazeCommand, ActivityLifecycleCallbacks {
             }
 
             if (BrazeUtils.keyHasValue(launchOptions, Config.ENABLE_AUTOMATIC_LOCATION)) {
-                builder.setIsLocationCollectionEnabled(launchOptions.optBoolean(Config.ENABLE_AUTOMATIC_LOCATION));
-            }
-
-            if (BrazeUtils.keyHasValue(launchOptions, Config.ENABLE_NEWS_FEED_INDICATOR)) {
-                builder.setNewsfeedVisualIndicatorOn(launchOptions.optBoolean(Config.ENABLE_NEWS_FEED_INDICATOR));
+                builder.setIsAutomaticLocationCollectionEnabled(launchOptions.optBoolean(Config.ENABLE_AUTOMATIC_LOCATION));
             }
 
             if (BrazeUtils.keyHasValue(launchOptions, Config.ENABLE_GEOFENCES)) {
@@ -168,10 +164,6 @@ class BrazeInstance implements BrazeCommand, ActivityLifecycleCallbacks {
 
             if (BrazeUtils.keyHasValue(launchOptions, Config.DEFAULT_NOTIFICATION_COLOR)) {
                 builder.setDefaultNotificationAccentColor(launchOptions.optInt(Config.DEFAULT_NOTIFICATION_COLOR));
-            }
-
-            if (BrazeUtils.keyHasValue(launchOptions, Config.BAD_NETWORK_INTERVAL)) {
-                builder.setBadNetworkDataFlushInterval(launchOptions.optInt(Config.BAD_NETWORK_INTERVAL));
             }
 
             if (BrazeUtils.keyHasValue(launchOptions, Config.BAD_NETWORK_INTERVAL)) {
