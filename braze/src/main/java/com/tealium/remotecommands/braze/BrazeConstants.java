@@ -70,6 +70,7 @@ public final class BrazeConstants {
         public static final String BACKSTACK_ACTIVITY_CLASS = "backstack_activity_class";
         public static final String IS_SDK_AUTHENTICATION_ENABLED = "is_sdk_authentication_enabled";
         public static final String DEVICE_OPTIONS = "device_options";
+        public static final String STRICT_PROPERTIES_ENABLED = "strict_properties_enabled";
     }
 
     public static final class User {

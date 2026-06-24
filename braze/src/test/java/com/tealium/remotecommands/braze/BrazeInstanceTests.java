@@ -171,6 +171,29 @@ public class BrazeInstanceTests {
     }
 
     @Test
+    public void initialize_SetsStrictPropertiesEnabled_When_Configured() throws JSONException {
+        JSONObject options = new JSONObject();
+
+        // enabled
+        options.put(BrazeConstants.Config.STRICT_PROPERTIES_ENABLED, true);
+        brazeInstance.initialize(null, options, null);
+        assertTrue(brazeInstance.mStrictPropertiesEnabled);
+
+        // disabled
+        options.put(BrazeConstants.Config.STRICT_PROPERTIES_ENABLED, false);
+        brazeInstance.initialize(null, options, null);
+        assertFalse(brazeInstance.mStrictPropertiesEnabled);
+    }
+
+    @Test
+    public void initialize_SetsStrictPropertiesEnabled_False_When_NotConfigured() throws JSONException {
+        JSONObject options = new JSONObject(); // not configured
+
+        brazeInstance.initialize(null, options, null);
+        assertFalse(brazeInstance.mStrictPropertiesEnabled);
+    }
+
+    @Test
     public void enableSdk_EnablesSdk() {
         brazeInstance.enableSdk();
 
