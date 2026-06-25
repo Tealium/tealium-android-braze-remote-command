@@ -530,7 +530,7 @@ class BrazeInstance implements BrazeCommand, ActivityLifecycleCallbacks {
         if (eventProperties == null) {
             brazeProperties = null;
         } else {
-            brazeProperties = BrazeUtils.extractCustomProperties(eventProperties);
+            brazeProperties = BrazeUtils.extractCustomProperties(eventProperties, mStrictPropertiesEnabled);
         }
 
         // Braze api handles an empty BrazeProperties object, so no need to wrap both calls.
@@ -543,7 +543,7 @@ class BrazeInstance implements BrazeCommand, ActivityLifecycleCallbacks {
             currency = "USD";// braze default.
         }
 
-        getBrazeInstance().logPurchase(productId, currency, unitPrice, quantity > 0 ? quantity : 1, BrazeUtils.extractCustomProperties(purchaseProperties));
+        getBrazeInstance().logPurchase(productId, currency, unitPrice, quantity > 0 ? quantity : 1, BrazeUtils.extractCustomProperties(purchaseProperties, mStrictPropertiesEnabled));
     }
 
     @Override

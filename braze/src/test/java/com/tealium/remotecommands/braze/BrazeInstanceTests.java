@@ -37,9 +37,9 @@ import org.mockito.MockedStatic;
 import org.robolectric.RobolectricTestRunner;
 
 import java.math.BigDecimal;
-import java.util.Date;
 import java.util.EnumSet;
 import java.util.List;
+import java.util.Map;
 import java.util.TimeZone;
 
 @RunWith(RobolectricTestRunner.class)
@@ -435,13 +435,104 @@ public class BrazeInstanceTests {
     @Test
     public void logCustomEvent_LogsEvent_WithProperties() throws JSONException {
         ArgumentCaptor<BrazeProperties> brazeProps = ArgumentCaptor.forClass(BrazeProperties.class);
-        JSONObject properties = new JSONObject();
-        properties.put("string-prop", "value");
+        Map<String, Object> data = Map.of(
+                "string-prop", "value",
+                "int-prop", 10,
+                "float-prop", 10.5f,
+                "double-prop", 10.5d,
+                "long-prop", 100L,
+                "false-prop", false,
+                "true-prop", true
+        );
+        JSONObject properties = new JSONObject(data);
 
         brazeInstance.logCustomEvent("event", properties);
 
         verify(mockBraze).logCustomEvent(eq("event"), brazeProps.capture());
         assertEquals("value", brazeProps.getValue().get("string-prop"));
+        assertEquals(10, brazeProps.getValue().get("int-prop"));
+        assertEquals(10.5d, brazeProps.getValue().get("float-prop"));
+        assertEquals(10.5d, brazeProps.getValue().get("double-prop"));
+        assertEquals(100L, brazeProps.getValue().get("long-prop"));
+        assertEquals(false, brazeProps.getValue().get("false-prop"));
+        assertEquals(true, brazeProps.getValue().get("true-prop"));
+    }
+
+    @Test
+    public void logCustomEvent_LogsEvent_WithStrictProperties() throws JSONException {
+        brazeInstance.mStrictPropertiesEnabled = true;
+        ArgumentCaptor<BrazeProperties> brazeProps = ArgumentCaptor.forClass(BrazeProperties.class);
+        Map<String, Object> data = Map.of(
+                "string-prop", "value",
+                "int-prop", 10,
+                "float-prop", 10.5f,
+                "double-prop", 10.5d,
+                "long-prop", 100L,
+                "false-prop", false,
+                "true-prop", true
+        );
+        JSONObject properties = new JSONObject(data);
+
+        brazeInstance.logCustomEvent("event", properties);
+
+        verify(mockBraze).logCustomEvent(eq("event"), brazeProps.capture());
+        assertEquals("value", brazeProps.getValue().get("string-prop"));
+        assertEquals(10, brazeProps.getValue().get("int-prop"));
+        assertEquals(10.5d, brazeProps.getValue().get("float-prop"));
+        assertEquals(10.5d, brazeProps.getValue().get("double-prop"));
+        assertEquals(100L, brazeProps.getValue().get("long-prop"));
+        assertEquals(false, brazeProps.getValue().get("false-prop"));
+        assertEquals(true, brazeProps.getValue().get("true-prop"));
+    }
+
+    @Test
+    public void logCustomEvent_LogsEvent_WithParsedValues_WhenStrictPropertiesDisabled() throws JSONException {
+        brazeInstance.mStrictPropertiesEnabled = false;
+        ArgumentCaptor<BrazeProperties> brazeProps = ArgumentCaptor.forClass(BrazeProperties.class);
+        Map<String, Object> data = Map.of(
+                "string-prop", "value",
+                "int-prop", "10",
+                "float-prop", "10.5",
+                "long-prop", "100000000000000",
+                "false-prop", "false",
+                "true-prop", "true"
+        );
+        JSONObject properties = new JSONObject(data);
+
+        brazeInstance.logCustomEvent("event", properties);
+
+        verify(mockBraze).logCustomEvent(eq("event"), brazeProps.capture());
+        assertEquals("value", brazeProps.getValue().get("string-prop"));
+        assertEquals(10, brazeProps.getValue().get("int-prop"));
+        assertEquals(10.5d, brazeProps.getValue().get("float-prop"));
+        assertEquals(100_000_000_000_000.0, brazeProps.getValue().get("long-prop"));
+        assertEquals(false, brazeProps.getValue().get("false-prop"));
+        assertEquals(true, brazeProps.getValue().get("true-prop"));
+    }
+
+    @Test
+    public void logCustomEvent_LogsEvent_WithStringValues_WhenStrictPropertiesEnabled() throws JSONException {
+        brazeInstance.mStrictPropertiesEnabled = true;
+        ArgumentCaptor<BrazeProperties> brazeProps = ArgumentCaptor.forClass(BrazeProperties.class);
+        Map<String, Object> data = Map.of(
+                "string-prop", "value",
+                "int-prop", "10",
+                "float-prop", "10.5",
+                "long-prop", "100000000000000",
+                "false-prop", "false",
+                "true-prop", "true"
+        );
+        JSONObject properties = new JSONObject(data);
+
+        brazeInstance.logCustomEvent("event", properties);
+
+        verify(mockBraze).logCustomEvent(eq("event"), brazeProps.capture());
+        assertEquals("value", brazeProps.getValue().get("string-prop"));
+        assertEquals("10", brazeProps.getValue().get("int-prop"));
+        assertEquals("10.5", brazeProps.getValue().get("float-prop"));
+        assertEquals("100000000000000", brazeProps.getValue().get("long-prop"));
+        assertEquals("false", brazeProps.getValue().get("false-prop"));
+        assertEquals("true", brazeProps.getValue().get("true-prop"));
     }
 
     @Test
