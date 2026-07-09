@@ -54,15 +54,16 @@ class BrazeUtils {
     /**
      * At the time of writing, the Android SDK will stringify values in a HashMap such that
      * the native type is lost. The method being tested here will attempt to recover that.
-     * As a result the expected types should be integer/double/booolean etc despite the value
+     * As a result the expected types should be integer/double/boolean, etc. despite the value
      * that was sent in the event might actually have been a string.
      * <p>
      * This is a helper method that will take
      *
      * @param key        - name of the custom property to add.
      * @param data       - value to add to the custom property
-     * @param properties - an existing  BrazeProperties object to add this key-value pair to. If
-     *                   null, then a new  BrazeProperties object will be created to be returned
+     * @param properties - an existing BrazeProperties object to add this key-value pair to. If
+     *                   null, then a new BrazeProperties object will be created to be returned
+     * @param strictPropertiesEnabled true to add String values as-is without attempting coercion, false to allow coercion
      * @return The amended BrazeProperties including the additional one supplied
      */
     public static BrazeProperties addCustomProperty(String key, Object data, BrazeProperties properties, boolean strictPropertiesEnabled) {
