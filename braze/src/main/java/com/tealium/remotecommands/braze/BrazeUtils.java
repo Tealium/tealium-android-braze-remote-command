@@ -48,12 +48,36 @@ class BrazeUtils {
      * @return The amended BrazeProperties including the additional one supplied
      */
     public static BrazeProperties addCustomProperty(String key, Object data, BrazeProperties properties) {
+        return addCustomProperty(key, data, properties, false);
+    }
+
+    /**
+     * At the time of writing, the Android SDK will stringify values in a HashMap such that
+     * the native type is lost. The method being tested here will attempt to recover that.
+     * As a result the expected types should be integer/double/boolean, etc. despite the value
+     * that was sent in the event might actually have been a string.
+     * <p>
+     * This is a helper method that will take
+     *
+     * @param key        - name of the custom property to add.
+     * @param data       - value to add to the custom property
+     * @param properties - an existing BrazeProperties object to add this key-value pair to. If
+     *                   null, then a new BrazeProperties object will be created to be returned
+     * @param strictPropertiesEnabled true to add String values as-is without attempting coercion, false to allow coercion
+     * @return The amended BrazeProperties including the additional one supplied
+     */
+    public static BrazeProperties addCustomProperty(String key, Object data, BrazeProperties properties, boolean strictPropertiesEnabled) {
         if (properties == null) {
             Log.d(BrazeConstants.TAG, "Creating new  BrazeProperties");
             properties = new BrazeProperties();
         }
 
         if (data instanceof String) {
+            if (strictPropertiesEnabled) {
+                properties.addProperty(key, data);
+                return properties;
+            }
+
             try {
                 properties = addCustomProperty(key, Integer.parseInt((String) data), properties);
                 return properties;
@@ -78,14 +102,11 @@ class BrazeUtils {
                 properties.addProperty(key, (String) data);
             }
 
-        } else if (data instanceof Integer) {
-            properties.addProperty(key, (Integer) data);
-        } else if (data instanceof Double) {
-            properties.addProperty(key, (Double) data);
-        } else if (data instanceof Boolean) {
-            properties.addProperty(key, (Boolean) data);
-        } else if (data instanceof Date) {
-            properties.addProperty(key, (Date) data);
+        } else if (data instanceof Integer || data instanceof Long || data instanceof Double || data instanceof Boolean || data instanceof Date) {
+            properties.addProperty(key, data);
+        } else if (data instanceof Float) {
+            // addProperty seems to drop Float values.
+            properties.addProperty(key, ((Float) data).doubleValue());
         }
 
         return properties;
@@ -108,10 +129,30 @@ class BrazeUtils {
      * The values in the JSONObject should only be supported types for the  BrazeProperties class,
      * which at the time of writing is only String, Integer, Double, Date and Boolean
      *
-     * @param customProperties - JSONObject of Key-Value pairs.
+     * This method will also attempt to coerce String values into supported primitives.
+     *
+     * @param customProperties JSONObject of Key-Value pairs.
      * @return  BrazeProperties containing the Key-Value pairs supplied
      */
     public static BrazeProperties extractCustomProperties(JSONObject customProperties) {
+        return extractCustomProperties(customProperties, false);
+    }
+
+    /**
+     * Helper method to translate a JSONObject of key-value pairs into an  BrazeProperties object.
+     * The values in the JSONObject should only be supported types for the  BrazeProperties class,
+     * which at the time of writing is only String, Integer, Double, Date and Boolean
+     *
+     * Use the `strictPropertiesEnabled` flag to decide how to handle string values. Set this to `true`
+     * if any properties should be passed straight through to the returned BrazeProperties object. Or
+     * `false` to allow coercion from string values into some primitives, e.g "123" -> (Int) 123,
+     * or "false" -> (Boolean) false
+     *
+     * @param customProperties JSONObject of Key-Value pairs.
+     * @param strictPropertiesEnabled true if property values should be passed on unchanged, else false to coerce string values to other primitives
+     * @return  BrazeProperties containing the Key-Value pairs supplied
+     */
+    public static BrazeProperties extractCustomProperties(JSONObject customProperties, boolean strictPropertiesEnabled) {
         BrazeProperties props = new BrazeProperties();
         if (customProperties != null) {
             try {
@@ -119,7 +160,7 @@ class BrazeUtils {
                 Iterator<String> iterator = customProperties.keys();
                 while (iterator.hasNext()) {
                     String key = iterator.next();
-                    props = BrazeUtils.addCustomProperty(key, customProperties.get(key), props);
+                    props = BrazeUtils.addCustomProperty(key, customProperties.get(key), props, strictPropertiesEnabled);
                 }
 
             } catch (JSONException jex) {

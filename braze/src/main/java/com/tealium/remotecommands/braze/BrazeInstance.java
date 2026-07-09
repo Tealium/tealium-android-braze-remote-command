@@ -43,6 +43,7 @@ class BrazeInstance implements BrazeCommand, ActivityLifecycleCallbacks {
     Set<Class<?>> mSessionHandlingBlacklist;
     boolean mRegisterInAppMessageManager;
     Set<Class<?>> mInAppMessageBlacklist;
+    boolean mStrictPropertiesEnabled;
 
     public BrazeInstance(Application app) {
         this(app, true, null, true, null);
@@ -54,6 +55,7 @@ class BrazeInstance implements BrazeCommand, ActivityLifecycleCallbacks {
         mSessionHandlingBlacklist = sessionHandlingBlacklist;
         mRegisterInAppMessageManager = registerInAppMessageManager;
         mInAppMessageBlacklist = inAppMessageBlacklist;
+        mStrictPropertiesEnabled = false; // disabled by default
 
         if (sessionHandlingEnabled) {
             // Init process will be asynchronous; need to register a temporary listener to capture
@@ -151,6 +153,10 @@ class BrazeInstance implements BrazeCommand, ActivityLifecycleCallbacks {
 
             if (BrazeUtils.keyHasValue(launchOptions, Config.IS_SDK_AUTHENTICATION_ENABLED)) {
                 builder.setIsSdkAuthenticationEnabled(launchOptions.optBoolean(Config.IS_SDK_AUTHENTICATION_ENABLED));
+            }
+
+            if (BrazeUtils.keyHasValue(launchOptions, Config.STRICT_PROPERTIES_ENABLED)) {
+                mStrictPropertiesEnabled = launchOptions.optBoolean(Config.STRICT_PROPERTIES_ENABLED, mStrictPropertiesEnabled);
             }
 
             // Integers
@@ -524,7 +530,7 @@ class BrazeInstance implements BrazeCommand, ActivityLifecycleCallbacks {
         if (eventProperties == null) {
             brazeProperties = null;
         } else {
-            brazeProperties = BrazeUtils.extractCustomProperties(eventProperties);
+            brazeProperties = BrazeUtils.extractCustomProperties(eventProperties, mStrictPropertiesEnabled);
         }
 
         // Braze api handles an empty BrazeProperties object, so no need to wrap both calls.
@@ -537,7 +543,7 @@ class BrazeInstance implements BrazeCommand, ActivityLifecycleCallbacks {
             currency = "USD";// braze default.
         }
 
-        getBrazeInstance().logPurchase(productId, currency, unitPrice, quantity > 0 ? quantity : 1, BrazeUtils.extractCustomProperties(purchaseProperties));
+        getBrazeInstance().logPurchase(productId, currency, unitPrice, quantity > 0 ? quantity : 1, BrazeUtils.extractCustomProperties(purchaseProperties, mStrictPropertiesEnabled));
     }
 
     @Override
