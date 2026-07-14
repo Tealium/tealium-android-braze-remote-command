@@ -13,6 +13,12 @@ class EventsActivity : AppCompatActivity() {
     private lateinit var incrementCustomAttributesButton: AppCompatButton
     private lateinit var logPurchaseButton: AppCompatButton
     private lateinit var logMultiplePurchaseButton: AppCompatButton
+    private lateinit var logProductViewedButton: AppCompatButton
+    private lateinit var logCartUpdatedButton: AppCompatButton
+    private lateinit var logCheckoutStartedButton: AppCompatButton
+    private lateinit var logOrderPlacedButton: AppCompatButton
+    private lateinit var logOrderCancelledButton: AppCompatButton
+    private lateinit var logOrderRefundedButton: AppCompatButton
     private var petNameCounter = 1
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -25,6 +31,12 @@ class EventsActivity : AppCompatActivity() {
         incrementCustomAttributesButton = findViewById(R.id.btn_increment_custom_attributes)
         logPurchaseButton = findViewById(R.id.btn_log_purchase)
         logMultiplePurchaseButton = findViewById(R.id.btn_log_multiple_purchase)
+        logProductViewedButton = findViewById(R.id.btn_log_product_viewed)
+        logCartUpdatedButton = findViewById(R.id.btn_log_cart_updated)
+        logCheckoutStartedButton = findViewById(R.id.btn_log_checkout_started)
+        logOrderPlacedButton = findViewById(R.id.btn_log_order_placed)
+        logOrderCancelledButton = findViewById(R.id.btn_log_order_cancelled)
+        logOrderRefundedButton = findViewById(R.id.btn_log_order_refunded)
 
         logEventButton.setOnClickListener { logEvent() }
         logEventWithPropertiesButton.setOnClickListener { logEventWithProperties() }
@@ -33,6 +45,12 @@ class EventsActivity : AppCompatActivity() {
         incrementCustomAttributesButton.setOnClickListener { incrementCustomAttributes() }
         logPurchaseButton.setOnClickListener { logPurchase() }
         logMultiplePurchaseButton.setOnClickListener { logMultiplePurchase() }
+        logProductViewedButton.setOnClickListener { logProductViewed() }
+        logCartUpdatedButton.setOnClickListener { logCartUpdated() }
+        logCheckoutStartedButton.setOnClickListener { logCheckoutStarted() }
+        logOrderPlacedButton.setOnClickListener { logOrderPlaced() }
+        logOrderCancelledButton.setOnClickListener { logOrderCancelled() }
+        logOrderRefundedButton.setOnClickListener { logOrderRefunded() }
     }
 
     private fun logEvent() {
@@ -120,6 +138,108 @@ class EventsActivity : AppCompatActivity() {
 
         trackEvent("log_purchase", data)
     }
+
+    private fun logProductViewed() {
+        trackEvent(
+            "log_product_viewed", mapOf(
+                "ec_product_id" to "sku123",
+                "ec_product_name" to "Widget",
+                "ec_variant_id" to "widget_blue_lg",
+                "ec_price" to 49.99,
+                "ec_currency" to "USD",
+                "ec_source" to "android-example"
+            )
+        )
+    }
+
+    private fun logCartUpdated() {
+        trackEvent(
+            "log_cart_updated", mapOf(
+                "ec_cart_id" to "cart-456",
+                "ec_currency" to "USD",
+                "ec_source" to "android-example",
+                "ec_total_value" to 49.99,
+                "ec_cart_action" to "add",
+                "ec_products" to listOf(exampleProduct())
+            )
+        )
+    }
+
+    private fun logCheckoutStarted() {
+        trackEvent(
+            "log_checkout_started", mapOf(
+                "ec_checkout_id" to "checkout-123",
+                "ec_cart_id" to "cart-456",
+                "ec_currency" to "USD",
+                "ec_source" to "android-example",
+                "ec_total_value" to 49.99,
+                "ec_products" to listOf(exampleProduct())
+            )
+        )
+    }
+
+    private fun logOrderPlaced() {
+        trackEvent(
+            "log_order_placed", mapOf(
+                "ec_order_id" to "order-789",
+                "ec_cart_id" to "cart-456",
+                "ec_currency" to "USD",
+                "ec_source" to "android-example",
+                "ec_total_value" to 49.99,
+                "ec_total_discounts" to 5.0,
+                "ec_discounts" to listOf(exampleDiscount()),
+                "ec_products" to listOf(exampleProduct())
+            )
+        )
+    }
+
+    private fun logOrderCancelled() {
+        trackEvent(
+            "log_order_cancelled", mapOf(
+                "ec_order_id" to "order-789",
+                "ec_currency" to "USD",
+                "ec_source" to "android-example",
+                "ec_total_value" to 49.99,
+                "ec_total_discounts" to 5.0,
+                "ec_discounts" to listOf(exampleDiscount()),
+                "ec_cancel_reason" to "customer_request",
+                "ec_products" to listOf(exampleProduct())
+            )
+        )
+    }
+
+    private fun logOrderRefunded() {
+        trackEvent(
+            "log_order_refunded", mapOf(
+                "ec_order_id" to "order-789",
+                "ec_currency" to "USD",
+                "ec_source" to "android-example",
+                "ec_total_value" to 49.99,
+                "ec_total_discounts" to 5.0,
+                "ec_discounts" to listOf(exampleDiscount()),
+                "ec_products" to listOf(exampleProduct())
+            )
+        )
+    }
+
+    // Builds a single product entry using the wrapper's raw ecommerce product keys. Values nested
+    // inside an array like this are passed straight through without friendly-name remapping.
+    private fun exampleProduct(): Map<String, Any> = mapOf(
+        "product_id" to "sku123",
+        "product_name" to "Widget",
+        "variant_id" to "widget_blue_lg",
+        "price" to 49.99,
+        "quantity" to 1,
+        "properties" to mapOf("rewards_member" to true)
+    )
+
+    // Builds a single discount entry using the wrapper's raw discount keys. Like exampleProduct(),
+    // values nested inside an array like this are passed straight through without remapping.
+    private fun exampleDiscount(): Map<String, Any> = mapOf(
+        "code" to "SUMMER10",
+        "amount" to 5.0,
+        "type" to "percentage"
+    )
 
     companion object {
         private val TAG = EventsActivity::class.java.simpleName

@@ -32,6 +32,12 @@ public final class BrazeConstants {
         public static final String PUSH_NOTIFICATION = "pushnotification";
         public static final String LOG_CUSTOM_EVENT = "logcustomevent";
         public static final String LOG_PURCHASE_EVENT = "logpurchase";
+        public static final String LOG_PRODUCT_VIEWED = "logproductviewed";
+        public static final String LOG_CART_UPDATED = "logcartupdated";
+        public static final String LOG_CHECKOUT_STARTED = "logcheckoutstarted";
+        public static final String LOG_ORDER_PLACED = "logorderplaced";
+        public static final String LOG_ORDER_CANCELLED = "logordercancelled";
+        public static final String LOG_ORDER_REFUNDED = "logorderrefunded";
         public static final String FLUSH = "flush";
         public static final String ADD_TO_SUBSCRIPTION_GROUP = "addtosubscriptiongroup";
         public static final String REMOVE_FROM_SUBSCRIPTION_GROUP = "removefromsubscriptiongroup";
@@ -123,6 +129,40 @@ public final class BrazeConstants {
         public static final String PRODUCT_CURRENCY = "product_currency";
         public static final String PURCHASE_PROPERTIES = "purchase_properties";
         public static final String PURCHASE_PROPERTIES_SHORTHAND = "purchase";
+    }
+
+    public static final class Ecommerce {
+        private Ecommerce() {
+        }
+
+        // Event-level fields.
+        public static final String CURRENCY = "ecommerce_currency";
+        public static final String SOURCE = "ecommerce_source";
+        public static final String TOTAL_VALUE = "ecommerce_total_value";
+        public static final String SUBTOTAL_VALUE = "ecommerce_subtotal_value"; // optional, order_cancelled
+        public static final String TAX = "ecommerce_tax"; // optional, order_cancelled
+        public static final String SHIPPING = "ecommerce_shipping"; // optional, order_cancelled
+        public static final String TOTAL_DISCOUNTS = "ecommerce_total_discounts";
+        public static final String DISCOUNTS = "discounts"; // JSONArray of discount objects, logorderplaced/order_cancelled/order_refunded
+        public static final String PRODUCTS = "ecommerce_products"; // JSONArray of product objects
+        public static final String PROPERTIES = "ecommerce_properties"; // event-level metadata
+        public static final String CHECKOUT_ID = "checkout_id";
+        public static final String CART_ID = "cart_id";
+        public static final String ORDER_ID = "order_id";
+        public static final String CART_ACTION = "cart_action"; // "add", "remove" or "replace"
+        public static final String CANCEL_REASON = "cancel_reason"; // logordercancelled only, required
+
+        // Product-object fields, found inside each element of the PRODUCTS array. For a
+        // ProductViewedEvent, which carries no products array, these are read from the top level
+        // of the payload instead.
+        public static final String PRODUCT_ID = "product_id";
+        public static final String PRODUCT_NAME = "product_name";
+        public static final String VARIANT_ID = "variant_id";
+        public static final String PRICE = "price";
+        public static final String QUANTITY = "quantity";
+        public static final String IMAGE_URL = "image_url";
+        public static final String PRODUCT_URL = "product_url";
+        public static final String PRODUCT_PROPERTIES = "properties"; // per-product metadata
     }
 
     public static final class Location {

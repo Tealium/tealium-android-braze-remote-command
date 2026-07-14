@@ -292,6 +292,117 @@ interface BrazeCommand {
     void logPurchase(@NonNull String[] productIds, @Nullable String[] currencies, @NonNull BigDecimal[] unitPrices, Integer[] quantities, @Nullable JSONObject[] purchaseProperties);
 
     /**
+     * Logs a Braze ecommerce ProductViewedEvent for a single product. Unlike the other ecommerce
+     * events this one carries no products array, only the flat product details.
+     * <p>
+     * Note: the Braze SDK validates its inputs and will throw if, for example, currency is not a
+     * valid ISO 4217 code, price is negative, or any string field is blank or exceeds 255
+     * characters. Such events are simply not logged.
+     *
+     * @param productId   the product identifier
+     * @param productName the product name
+     * @param variantId   the product variant identifier
+     * @param price       the product price
+     * @param currency    the currency; defaults to "USD" when null or empty
+     * @param source      the event source
+     * @param imageUrl    an optional product image url
+     * @param productUrl  an optional product url
+     * @param properties  optional custom properties to accompany the event
+     */
+    void logProductViewed(@NonNull String productId, @NonNull String productName, @NonNull String variantId, double price, @Nullable String currency, @NonNull String source, @Nullable String imageUrl, @Nullable String productUrl, @Nullable JSONObject properties);
+
+    /**
+     * Logs a Braze ecommerce CartUpdatedEvent. Each entry in the products array is expected to be a
+     * JSONObject describing a single product using the keys in BrazeConstants.Ecommerce.
+     * <p>
+     * Note: the Braze SDK validates its inputs and will throw for invalid values (see
+     * {@link #logProductViewed}); such events are simply not logged.
+     *
+     * @param cartId     the cart identifier
+     * @param currency   the currency; defaults to "USD" when null or empty
+     * @param source     the event source
+     * @param totalValue the optional cart total value; may be null for add/remove actions
+     * @param products   a JSONArray of product objects
+     * @param action     the cart action: "add", "remove" or "replace"
+     * @param properties optional custom properties to accompany the event
+     */
+    void logCartUpdated(@NonNull String cartId, @Nullable String currency, @NonNull String source, @Nullable Double totalValue, @NonNull JSONArray products, @NonNull String action, @Nullable JSONObject properties);
+
+    /**
+     * Logs a Braze ecommerce CheckoutStartedEvent. Each entry in the products array is expected to
+     * be a JSONObject describing a single product using the keys in BrazeConstants.Ecommerce.
+     * <p>
+     * Note: the Braze SDK validates its inputs and will throw for invalid values (see
+     * {@link #logProductViewed}); such events are simply not logged.
+     *
+     * @param checkoutId the checkout identifier
+     * @param currency   the currency; defaults to "USD" when null or empty
+     * @param source     the event source
+     * @param totalValue the checkout total value
+     * @param products   a JSONArray of product objects
+     * @param cartId     an optional cart identifier
+     * @param properties optional custom properties to accompany the event
+     */
+    void logCheckoutStarted(@NonNull String checkoutId, @Nullable String currency, @NonNull String source, double totalValue, @NonNull JSONArray products, @Nullable String cartId, @Nullable JSONObject properties);
+
+    /**
+     * Logs a Braze ecommerce OrderPlacedEvent. Each entry in the products array is expected to be a
+     * JSONObject describing a single product using the keys in BrazeConstants.Ecommerce.
+     * <p>
+     * Note: the Braze SDK validates its inputs and will throw for invalid values (see
+     * {@link #logProductViewed}); such events are simply not logged.
+     *
+     * @param orderId        the order identifier
+     * @param currency       the currency; defaults to "USD" when null or empty
+     * @param source         the event source
+     * @param totalValue     the order total value
+     * @param products       a JSONArray of product objects
+     * @param cartId         an optional cart identifier
+     * @param totalDiscounts an optional total discounts value
+     * @param discounts      an optional JSONArray of discount objects
+     * @param properties     optional custom properties to accompany the event
+     */
+    void logOrderPlaced(@NonNull String orderId, @Nullable String currency, @NonNull String source, double totalValue, @NonNull JSONArray products, @Nullable String cartId, @Nullable Double totalDiscounts, @Nullable JSONArray discounts, @Nullable JSONObject properties);
+
+    /**
+     * Logs an ecommerce.order_cancelled custom event. Unlike the other ecommerce events, this has
+     * no typed Braze SDK class, so it is logged via logCustomEvent with a JSONObject matching the
+     * documented wire schema. Each entry in the products array is expected to be a JSONObject
+     * describing a single product using the keys in BrazeConstants.Ecommerce.
+     *
+     * @param orderId        the order identifier
+     * @param currency       the currency; defaults to "USD" when null or empty
+     * @param source         the event source
+     * @param totalValue     the order total value
+     * @param subtotalValue  an optional subtotal value (post-discount, pre-tax/shipping)
+     * @param tax            an optional total tax applied to the order
+     * @param shipping       an optional total shipping cost
+     * @param products       a JSONArray of product objects
+     * @param cancelReason   the reason the order was cancelled
+     * @param totalDiscounts an optional total discounts value
+     * @param discounts      an optional JSONArray of discount objects
+     * @param properties     optional metadata to accompany the event
+     */
+    void logOrderCancelled(@NonNull String orderId, @Nullable String currency, @NonNull String source, double totalValue, @Nullable Double subtotalValue, @Nullable Double tax, @Nullable Double shipping, @NonNull JSONArray products, @NonNull String cancelReason, @Nullable Double totalDiscounts, @Nullable JSONArray discounts, @Nullable JSONObject properties);
+
+    /**
+     * Logs an ecommerce.order_refunded custom event. Unlike the other ecommerce events, this has
+     * no typed Braze SDK class, so it is logged via logCustomEvent with a JSONObject matching the
+     * documented wire schema. Each entry in the products array is expected to be a JSONObject
+     * describing a single product using the keys in BrazeConstants.Ecommerce.
+     *
+     * @param orderId        the order identifier
+     * @param currency       the currency; defaults to "USD" when null or empty
+     * @param source         the event source
+     * @param totalValue     the order total value
+     * @param products       a JSONArray of product objects
+     * @param totalDiscounts an optional total discounts value
+     * @param discounts      an optional JSONArray of discount objects
+     * @param properties     optional metadata to accompany the event
+     */
+    void logOrderRefunded(@NonNull String orderId, @Nullable String currency, @NonNull String source, double totalValue, @NonNull JSONArray products, @Nullable Double totalDiscounts, @Nullable JSONArray discounts, @Nullable JSONObject properties);
+
+    /**
      * Requests an immediate flush of any queued up events within the Braze SDK.
      */
     void requestFlush();

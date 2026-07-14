@@ -20,6 +20,7 @@ import static com.tealium.remotecommands.braze.BrazeConstants.Config;
 import static com.tealium.remotecommands.braze.BrazeConstants.User;
 import static com.tealium.remotecommands.braze.BrazeConstants.Event;
 import static com.tealium.remotecommands.braze.BrazeConstants.Purchase;
+import static com.tealium.remotecommands.braze.BrazeConstants.Ecommerce;
 import static com.tealium.remotecommands.braze.BrazeConstants.Location;
 
 /**
@@ -186,7 +187,55 @@ public class BrazeRemoteCommand extends RemoteCommand {
      * "property_name_3" : <integer>, // 10
      * "property_name_4" : <double>, // 10.15
      * "property_name_5" : <date>, // format "E MMM dd HH:mm:ss z yyyy"
+     * }],
+     * <p>
+     * // Ecommerce Events (Braze SDK 42.3.0+)
+     * // Commands: logproductviewed, logcartupdated, logcheckoutstarted, logorderplaced
+     * // Shared keys:
+     * "ecommerce_currency" : "<string>", // ISO 4217, e.g. "USD"; defaults to "USD"
+     * "ecommerce_source" : "<string>",
+     * "ecommerce_total_value" : <double>, // required for logcheckoutstarted/logorderplaced; missing/non-numeric skips the event
+     * "ecommerce_total_discounts" : <double>, // logorderplaced only, optional
+     * "ecommerce_properties" : { // optional event-level custom properties
+     * "property_name_1" : "string value"
+     * },
+     * "checkout_id" : "<string>", // logcheckoutstarted
+     * "cart_id" : "<string>", // logcartupdated (required), logcheckoutstarted/logorderplaced (optional)
+     * "order_id" : "<string>", // logorderplaced
+     * "cart_action" : "<string>", // logcartupdated: "add", "remove" or "replace"; missing/unrecognized defaults to "replace"
+     * "discounts" : [{ // logorderplaced, optional
+     * "code" : "<string>", // optional
+     * "amount" : <double>, // optional
+     * "type" : "<string>" // optional
+     * }],
+     * // logproductviewed reads a single product from the top-level keys below;
+     * // the other events read an array of product objects using the same keys:
+     * "ecommerce_products" : [{
+     * "product_id" : "<string>",
+     * "product_name" : "<string>",
+     * "variant_id" : "<string>",
+     * "price" : <double>,
+     * "quantity" : <integer>,
+     * "image_url" : "<string>", // optional
+     * "product_url" : "<string>", // optional
+     * "properties" : { // optional per-product custom properties
+     * "property_name_1" : "string value"
+     * }
      * }]
+     * }
+     * <p>
+     * // Ecommerce Custom Events (no typed Braze SDK class; logged via logCustomEvent)
+     * // Commands: logordercancelled, logorderrefunded
+     * {
+     * "order_id" : "<string>", // required
+     * "ecommerce_total_value" : <double>, // required; missing/non-numeric skips the event
+     * "ecommerce_currency" : "<string>", // ISO 4217, e.g. "USD"; defaults to "USD"
+     * "ecommerce_total_discounts" : <double>, // optional
+     * "discounts" : [{...}], // optional, see above
+     * "cancel_reason" : "<string>", // logordercancelled only, required
+     * "ecommerce_products" : [{...}], // required, see above ("properties" is remapped to the wire schema's "metadata" key)
+     * "ecommerce_source" : "<string>", // required
+     * "ecommerce_properties" : {...} // optional, sent as the wire schema's "metadata" key
      * }
      *
      * @param response
@@ -340,6 +389,110 @@ public class BrazeRemoteCommand extends RemoteCommand {
                                     purchaseProps
                             );
                         }
+                        break;
+                    case Commands.LOG_PRODUCT_VIEWED:
+                        mBraze.logProductViewed(
+                                payload.optString(Ecommerce.PRODUCT_ID),
+                                payload.optString(Ecommerce.PRODUCT_NAME),
+                                payload.optString(Ecommerce.VARIANT_ID),
+                                // price is required; getDouble throws (caught below, skipping
+                                // the whole event) rather than silently logging a fabricated $0 event.
+                                payload.getDouble(Ecommerce.PRICE),
+                                payload.optString(Ecommerce.CURRENCY),
+                                payload.optString(Ecommerce.SOURCE),
+                                BrazeUtils.keyHasValue(payload, Ecommerce.IMAGE_URL) ? payload.optString(Ecommerce.IMAGE_URL) : null,
+                                BrazeUtils.keyHasValue(payload, Ecommerce.PRODUCT_URL) ? payload.optString(Ecommerce.PRODUCT_URL) : null,
+                                payload.optJSONObject(Ecommerce.PROPERTIES)
+                        );
+                        break;
+                    case Commands.LOG_CART_UPDATED:
+                        String cartAction = payload.optString(Ecommerce.CART_ACTION);
+                        boolean cartTotalValueRequired = !("add".equalsIgnoreCase(cartAction) || "remove".equalsIgnoreCase(cartAction));
+                        double cartUpdatedTotal = cartTotalValueRequired
+                                // total_value is required when action is replace/omitted; getDouble
+                                // throws (caught below, skipping the whole event) rather than
+                                // silently logging a fabricated $0 event.
+                                ? payload.getDouble(Ecommerce.TOTAL_VALUE)
+                                : payload.optDouble(Ecommerce.TOTAL_VALUE);
+                        mBraze.logCartUpdated(
+                                payload.optString(Ecommerce.CART_ID),
+                                payload.optString(Ecommerce.CURRENCY),
+                                payload.optString(Ecommerce.SOURCE),
+                                Double.isNaN(cartUpdatedTotal) ? null : cartUpdatedTotal,
+                                payload.optJSONArray(Ecommerce.PRODUCTS),
+                                cartAction,
+                                payload.optJSONObject(Ecommerce.PROPERTIES)
+                        );
+                        break;
+                    case Commands.LOG_CHECKOUT_STARTED:
+                        mBraze.logCheckoutStarted(
+                                payload.optString(Ecommerce.CHECKOUT_ID),
+                                payload.optString(Ecommerce.CURRENCY),
+                                payload.optString(Ecommerce.SOURCE),
+                                // total_value is required; getDouble throws (caught below, skipping
+                                // the whole event) rather than silently logging a fabricated $0 event.
+                                payload.getDouble(Ecommerce.TOTAL_VALUE),
+                                payload.optJSONArray(Ecommerce.PRODUCTS),
+                                BrazeUtils.keyHasValue(payload, Ecommerce.CART_ID) ? payload.optString(Ecommerce.CART_ID) : null,
+                                payload.optJSONObject(Ecommerce.PROPERTIES)
+                        );
+                        break;
+                    case Commands.LOG_ORDER_PLACED:
+                        double orderPlacedDiscounts = payload.optDouble(Ecommerce.TOTAL_DISCOUNTS);
+                        mBraze.logOrderPlaced(
+                                payload.optString(Ecommerce.ORDER_ID),
+                                payload.optString(Ecommerce.CURRENCY),
+                                payload.optString(Ecommerce.SOURCE),
+                                // total_value is required; getDouble throws (caught below, skipping
+                                // the whole event) rather than silently logging a fabricated $0 event.
+                                payload.getDouble(Ecommerce.TOTAL_VALUE),
+                                payload.optJSONArray(Ecommerce.PRODUCTS),
+                                BrazeUtils.keyHasValue(payload, Ecommerce.CART_ID) ? payload.optString(Ecommerce.CART_ID) : null,
+                                Double.isNaN(orderPlacedDiscounts) ? null : orderPlacedDiscounts,
+                                payload.optJSONArray(Ecommerce.DISCOUNTS),
+                                payload.optJSONObject(Ecommerce.PROPERTIES)
+                        );
+                        break;
+                    case Commands.LOG_ORDER_CANCELLED:
+                        double orderCancelledDiscounts = payload.optDouble(Ecommerce.TOTAL_DISCOUNTS);
+                        double orderCancelledSubtotal = payload.optDouble(Ecommerce.SUBTOTAL_VALUE);
+                        double orderCancelledTax = payload.optDouble(Ecommerce.TAX);
+                        double orderCancelledShipping = payload.optDouble(Ecommerce.SHIPPING);
+                        mBraze.logOrderCancelled(
+                                payload.getString(Ecommerce.ORDER_ID),
+                                payload.optString(Ecommerce.CURRENCY),
+                                payload.getString(Ecommerce.SOURCE),
+                                // total_value is required; getDouble throws (caught below, skipping
+                                // the whole event) rather than silently logging a fabricated $0 event.
+                                payload.getDouble(Ecommerce.TOTAL_VALUE),
+                                Double.isNaN(orderCancelledSubtotal) ? null : orderCancelledSubtotal,
+                                Double.isNaN(orderCancelledTax) ? null : orderCancelledTax,
+                                Double.isNaN(orderCancelledShipping) ? null : orderCancelledShipping,
+                                // products is required; getJSONArray throws (caught below, skipping
+                                // the whole event) rather than silently logging an empty products list.
+                                payload.getJSONArray(Ecommerce.PRODUCTS),
+                                payload.getString(Ecommerce.CANCEL_REASON),
+                                Double.isNaN(orderCancelledDiscounts) ? null : orderCancelledDiscounts,
+                                payload.optJSONArray(Ecommerce.DISCOUNTS),
+                                payload.optJSONObject(Ecommerce.PROPERTIES)
+                        );
+                        break;
+                    case Commands.LOG_ORDER_REFUNDED:
+                        double orderRefundedDiscounts = payload.optDouble(Ecommerce.TOTAL_DISCOUNTS);
+                        mBraze.logOrderRefunded(
+                                payload.getString(Ecommerce.ORDER_ID),
+                                payload.optString(Ecommerce.CURRENCY),
+                                payload.getString(Ecommerce.SOURCE),
+                                // total_value is required; getDouble throws (caught below, skipping
+                                // the whole event) rather than silently logging a fabricated $0 event.
+                                payload.getDouble(Ecommerce.TOTAL_VALUE),
+                                // products is required; getJSONArray throws (caught below, skipping
+                                // the whole event) rather than silently logging an empty products list.
+                                payload.getJSONArray(Ecommerce.PRODUCTS),
+                                Double.isNaN(orderRefundedDiscounts) ? null : orderRefundedDiscounts,
+                                payload.optJSONArray(Ecommerce.DISCOUNTS),
+                                payload.optJSONObject(Ecommerce.PROPERTIES)
+                        );
                         break;
                     case Commands.EMAIL_NOTIFICATION:
                         mBraze.setEmailSubscriptionType(

@@ -6,6 +6,8 @@ import com.braze.enums.BrazeDateFormat;
 import com.braze.enums.Month;
 import com.braze.enums.Gender;
 import com.braze.models.outgoing.BrazeProperties;
+import com.braze.models.recommended.ecommerce.CartUpdatedAction;
+import com.braze.models.recommended.ecommerce.EcommerceProduct;
 import com.braze.support.DateTimeUtils;
 
 import org.json.JSONArray;
@@ -15,9 +17,13 @@ import org.json.JSONObject;
 import java.math.BigDecimal;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 class BrazeUtils {
 
@@ -233,6 +239,188 @@ class BrazeUtils {
         }
 
         return genderEnum;
+    }
+
+    /**
+     * Helper to convert a string representation of a cart action into the Braze CartUpdatedAction
+     * enum used by CartUpdatedEvent.
+     * <p>
+     * add = CartUpdatedAction.ADD
+     * remove = CartUpdatedAction.REMOVE
+     * replace = CartUpdatedAction.REPLACE
+     * <p>
+     * else returns CartUpdatedAction.REPLACE, matching Braze's documented wire behavior that
+     * omitting the action defaults to a full cart replacement.
+     *
+     * @param action the cart action as a string
+     * @return The CartUpdatedAction enum if found, else CartUpdatedAction.REPLACE
+     */
+    public static CartUpdatedAction getCartUpdatedActionFromString(String action) {
+        if (action == null) return CartUpdatedAction.REPLACE;
+
+        CartUpdatedAction actionEnum;
+        switch (action.toLowerCase(Locale.ROOT)) {
+            case "add":
+                actionEnum = CartUpdatedAction.ADD;
+                break;
+            case "remove":
+                actionEnum = CartUpdatedAction.REMOVE;
+                break;
+            case "replace":
+                actionEnum = CartUpdatedAction.REPLACE;
+                break;
+            default:
+                actionEnum = CartUpdatedAction.REPLACE;
+                break;
+        }
+
+        return actionEnum;
+    }
+
+    /**
+     * Helper to build a list of Braze EcommerceProduct objects from a JSONArray of product objects.
+     * Each element is expected to be a JSONObject using the keys in BrazeConstants.Ecommerce
+     * (product_id, product_name, variant_id, price, quantity and the optional image_url, product_url
+     * and properties). Any per-product custom properties are extracted into a BrazeProperties object.
+     *
+     * @param products                the JSONArray of product objects
+     * @param strictPropertiesEnabled whether custom property values should be passed on unchanged
+     * @return a list of EcommerceProduct, empty if the array is null or empty
+     */
+    static List<EcommerceProduct> getEcommerceProductsFromJson(JSONArray products, boolean strictPropertiesEnabled) {
+        List<EcommerceProduct> result = new ArrayList<>();
+        if (isNullOrEmpty(products)) {
+            return result;
+        }
+
+        for (int i = 0; i < products.length(); i++) {
+            JSONObject product = products.optJSONObject(i);
+            if (product == null) {
+                continue;
+            }
+
+            // price is required per product; skip (rather than silently fabricating $0) any
+            // product entry missing it, so one bad line item doesn't corrupt the rest of the event.
+            double price;
+            try {
+                price = product.getDouble(BrazeConstants.Ecommerce.PRICE);
+            } catch (JSONException jex) {
+                Log.w(BrazeConstants.TAG, "Skipping ecommerce product missing required price", jex);
+                continue;
+            }
+
+            result.add(new EcommerceProduct(
+                    product.optString(BrazeConstants.Ecommerce.PRODUCT_ID),
+                    product.optString(BrazeConstants.Ecommerce.PRODUCT_NAME),
+                    product.optString(BrazeConstants.Ecommerce.VARIANT_ID),
+                    price,
+                    product.optLong(BrazeConstants.Ecommerce.QUANTITY, 1L),
+                    keyHasValue(product, BrazeConstants.Ecommerce.IMAGE_URL) ? product.optString(BrazeConstants.Ecommerce.IMAGE_URL) : null,
+                    keyHasValue(product, BrazeConstants.Ecommerce.PRODUCT_URL) ? product.optString(BrazeConstants.Ecommerce.PRODUCT_URL) : null,
+                    extractCustomProperties(product.optJSONObject(BrazeConstants.Ecommerce.PRODUCT_PROPERTIES), strictPropertiesEnabled)
+            ));
+        }
+
+        return result;
+    }
+
+    /**
+     * Helper to build a list of discount maps from a JSONArray of discount objects, for use with
+     * OrderPlacedEvent's discounts parameter. Each element is expected to be a JSONObject using
+     * whatever keys are present among "code" (String), "amount" (Number) and "type" (String);
+     * absent or null keys are simply skipped for that entry rather than forcing all three.
+     *
+     * @param discounts the JSONArray of discount objects
+     * @return a list of Map<String, Object>, empty if the array is null or empty
+     */
+    static List<Map<String, Object>> getDiscountsListFromJson(JSONArray discounts) {
+        List<Map<String, Object>> result = new ArrayList<>();
+        if (isNullOrEmpty(discounts)) {
+            return result;
+        }
+
+        for (int i = 0; i < discounts.length(); i++) {
+            JSONObject discount = discounts.optJSONObject(i);
+            if (discount == null) {
+                continue;
+            }
+
+            Map<String, Object> entry = new HashMap<>();
+            if (keyHasValue(discount, "code")) {
+                entry.put("code", discount.optString("code"));
+            }
+            if (keyHasValue(discount, "amount")) {
+                entry.put("amount", discount.optDouble("amount"));
+            }
+            if (keyHasValue(discount, "type")) {
+                entry.put("type", discount.optString("type"));
+            }
+
+            result.add(entry);
+        }
+
+        return result;
+    }
+
+    /**
+     * Helper to rebuild a JSONArray of product objects into the wire schema expected by the
+     * untyped ecommerce.order_cancelled / ecommerce.order_refunded custom events. Each product's
+     * fields are copied straight through, except the internal "properties" key (used by the four
+     * typed ecommerce events) is renamed to "metadata" to match the documented wire schema for
+     * these two events; the key is omitted entirely when absent.
+     *
+     * @param products the JSONArray of product objects, using BrazeConstants.Ecommerce keys
+     * @return a new JSONArray of plain JSONObjects using the wire schema's "metadata" key
+     */
+    static JSONArray getEcommerceProductsAsWireJson(JSONArray products) {
+        JSONArray result = new JSONArray();
+        if (isNullOrEmpty(products)) {
+            return result;
+        }
+
+        for (int i = 0; i < products.length(); i++) {
+            JSONObject product = products.optJSONObject(i);
+            if (product == null) {
+                continue;
+            }
+
+            // price is required per product; skip (rather than silently fabricating $0) any
+            // product entry missing it, so one bad line item doesn't corrupt the rest of the event.
+            if (!keyHasValue(product, BrazeConstants.Ecommerce.PRICE)) {
+                Log.w(BrazeConstants.TAG, "Skipping ecommerce product missing required price");
+                continue;
+            }
+
+            JSONObject wireProduct = new JSONObject();
+            try {
+                wireProduct.put(BrazeConstants.Ecommerce.PRODUCT_ID, product.optString(BrazeConstants.Ecommerce.PRODUCT_ID));
+                wireProduct.put(BrazeConstants.Ecommerce.PRODUCT_NAME, product.optString(BrazeConstants.Ecommerce.PRODUCT_NAME));
+                wireProduct.put(BrazeConstants.Ecommerce.VARIANT_ID, product.optString(BrazeConstants.Ecommerce.VARIANT_ID));
+                wireProduct.put(BrazeConstants.Ecommerce.PRICE, product.optDouble(BrazeConstants.Ecommerce.PRICE));
+                wireProduct.put(BrazeConstants.Ecommerce.QUANTITY, product.optInt(BrazeConstants.Ecommerce.QUANTITY, 1));
+                if (keyHasValue(product, BrazeConstants.Ecommerce.IMAGE_URL)) {
+                    wireProduct.put(BrazeConstants.Ecommerce.IMAGE_URL, product.optString(BrazeConstants.Ecommerce.IMAGE_URL));
+                }
+                if (keyHasValue(product, BrazeConstants.Ecommerce.PRODUCT_URL)) {
+                    wireProduct.put(BrazeConstants.Ecommerce.PRODUCT_URL, product.optString(BrazeConstants.Ecommerce.PRODUCT_URL));
+                }
+                if (keyHasValue(product, BrazeConstants.Ecommerce.PRODUCT_PROPERTIES)) {
+                    // The wire schema for order_cancelled/order_refunded calls this key "metadata",
+                    // whereas the internal payload shape (shared with the four typed events) uses
+                    // "properties" - rename it here since these two events aren't SDK-typed.
+                    wireProduct.put("metadata", product.optJSONObject(BrazeConstants.Ecommerce.PRODUCT_PROPERTIES));
+                }
+            } catch (JSONException jex) {
+                // A non-finite price (NaN/Infinity) makes JSONObject.put throw mid-build; skip the
+                // partially-built product rather than appending it, matching getEcommerceProductsFromJson.
+                Log.w(BrazeConstants.TAG, "Failed to build wire-schema ecommerce product JSON", jex);
+                continue;
+            }
+
+            result.put(wireProduct);
+        }
+
+        return result;
     }
 
     /**
