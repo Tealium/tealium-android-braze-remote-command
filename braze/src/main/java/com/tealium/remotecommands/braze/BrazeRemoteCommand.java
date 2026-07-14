@@ -419,7 +419,7 @@ public class BrazeRemoteCommand extends RemoteCommand {
                                 payload.optString(Ecommerce.CURRENCY),
                                 payload.optString(Ecommerce.SOURCE),
                                 Double.isNaN(cartUpdatedTotal) ? null : cartUpdatedTotal,
-                                payload.optJSONArray(Ecommerce.PRODUCTS),
+                                payload.getJSONArray(Ecommerce.PRODUCTS),
                                 cartAction,
                                 payload.optJSONObject(Ecommerce.PROPERTIES)
                         );
@@ -432,7 +432,7 @@ public class BrazeRemoteCommand extends RemoteCommand {
                                 // total_value is required; getDouble throws (caught below, skipping
                                 // the whole event) rather than silently logging a fabricated $0 event.
                                 payload.getDouble(Ecommerce.TOTAL_VALUE),
-                                payload.optJSONArray(Ecommerce.PRODUCTS),
+                                payload.getJSONArray(Ecommerce.PRODUCTS),
                                 BrazeUtils.keyHasValue(payload, Ecommerce.CART_ID) ? payload.optString(Ecommerce.CART_ID) : null,
                                 payload.optJSONObject(Ecommerce.PROPERTIES)
                         );
@@ -446,7 +446,7 @@ public class BrazeRemoteCommand extends RemoteCommand {
                                 // total_value is required; getDouble throws (caught below, skipping
                                 // the whole event) rather than silently logging a fabricated $0 event.
                                 payload.getDouble(Ecommerce.TOTAL_VALUE),
-                                payload.optJSONArray(Ecommerce.PRODUCTS),
+                                payload.getJSONArray(Ecommerce.PRODUCTS),
                                 BrazeUtils.keyHasValue(payload, Ecommerce.CART_ID) ? payload.optString(Ecommerce.CART_ID) : null,
                                 Double.isNaN(orderPlacedDiscounts) ? null : orderPlacedDiscounts,
                                 payload.optJSONArray(Ecommerce.DISCOUNTS),

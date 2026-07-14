@@ -42,7 +42,7 @@ class BrazeUtils {
     /**
      * At the time of writing, the Android SDK will stringify values in a HashMap such that
      * the native type is lost. The method being tested here will attempt to recover that.
-     * As a result the expected types should be integer/double/booolean etc despite the value
+     * As a result the expected types should be integer/double/boolean etc despite the value
      * that was sent in the event might actually have been a string.
      * <p>
      * This is a helper method that will take
