@@ -263,7 +263,7 @@ interface BrazeCommand {
      *   if true, all properties are passed through unaffected, else any string values will attempt
      *   to be parsed into primitive values
      */
-    void logCustomEvent(@NonNull String eventName, @Nullable JSONObject eventProperties, @NonNull Boolean strictPropertiesEnabled);
+    void logCustomEvent(@NonNull String eventName, @Nullable JSONObject eventProperties, boolean strictPropertiesEnabled);
 
     /**
      * Logs a purchase event with the provided productId, currency, unitPrice, quantity and any
@@ -283,7 +283,7 @@ interface BrazeCommand {
      *   if true, all properties are passed through unaffected, else any string values will attempt
      *   to be parsed into primitive values
      */
-    void logPurchase(@NonNull String productId, @Nullable String currency, @NonNull BigDecimal unitPrice, Integer quantity, @Nullable JSONObject purchaseProperties, @NonNull Boolean strictPropertiesEnabled);
+    void logPurchase(@NonNull String productId, @Nullable String currency, @NonNull BigDecimal unitPrice, Integer quantity, @Nullable JSONObject purchaseProperties, boolean strictPropertiesEnabled);
 
     /**
      * Helper method that will take each bit of purchase information and attempt to log multiple
@@ -298,7 +298,7 @@ interface BrazeCommand {
      *   if true, all properties are passed through unaffected, else any string values will attempt
      *   to be parsed into primitive values
      */
-    void logPurchase(@NonNull String[] productIds, @Nullable String[] currencies, @NonNull BigDecimal[] unitPrices, Integer[] quantities, @Nullable JSONObject[] purchaseProperties, @NonNull Boolean strictPropertiesEnabled);
+    void logPurchase(@NonNull String[] productIds, @Nullable String[] currencies, @NonNull BigDecimal[] unitPrices, Integer[] quantities, @Nullable JSONObject[] purchaseProperties, boolean strictPropertiesEnabled);
 
     /**
      * Requests an immediate flush of any queued up events within the Braze SDK.

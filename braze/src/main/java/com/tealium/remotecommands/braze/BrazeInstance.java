@@ -519,7 +519,7 @@ class BrazeInstance implements BrazeCommand, ActivityLifecycleCallbacks {
     }
 
     @Override
-    public void logCustomEvent(@NonNull String eventName, @Nullable JSONObject eventProperties, @NonNull Boolean strictPropertiesEnabled) {
+    public void logCustomEvent(@NonNull String eventName, @Nullable JSONObject eventProperties, boolean strictPropertiesEnabled) {
         BrazeProperties brazeProperties;
         if (eventProperties == null) {
             brazeProperties = null;
@@ -532,7 +532,7 @@ class BrazeInstance implements BrazeCommand, ActivityLifecycleCallbacks {
     }
 
     @Override
-    public void logPurchase(@NonNull String productId, @Nullable String currency, @NonNull BigDecimal unitPrice, Integer quantity, JSONObject purchaseProperties, @NonNull Boolean strictPropertiesEnabled) {
+    public void logPurchase(@NonNull String productId, @Nullable String currency, @NonNull BigDecimal unitPrice, Integer quantity, JSONObject purchaseProperties, boolean strictPropertiesEnabled) {
         if (BrazeUtils.isNullOrEmpty(currency)) {
             currency = "USD";// braze default.
         }
@@ -541,7 +541,7 @@ class BrazeInstance implements BrazeCommand, ActivityLifecycleCallbacks {
     }
 
     @Override
-    public void logPurchase(@NonNull String[] productIds, String[] currencies, @NonNull BigDecimal[] unitPrices, Integer[] quantities, JSONObject[] purchaseProperties, @NonNull Boolean strictPropertiesEnabled) {
+    public void logPurchase(@NonNull String[] productIds, String[] currencies, @NonNull BigDecimal[] unitPrices, Integer[] quantities, JSONObject[] purchaseProperties, boolean strictPropertiesEnabled) {
         for (int i = 0; i < productIds.length; i++) {
             logPurchase(
                     productIds[i],

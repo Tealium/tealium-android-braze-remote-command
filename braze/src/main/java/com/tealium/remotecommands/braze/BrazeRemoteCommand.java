@@ -313,7 +313,7 @@ public class BrazeRemoteCommand extends RemoteCommand {
                         break;
                     case Commands.LOG_PURCHASE_EVENT:
                         Object productId = payload.get(Purchase.PRODUCT_ID);
-                        Boolean strictPropertiesEnabled = extractStrictPropertiesEnabled(payload, mStrictPropertiesEnabled);
+                        boolean strictPropertiesEnabled = extractStrictPropertiesEnabled(payload, mStrictPropertiesEnabled);
                         if (productId instanceof JSONArray) {
                             JSONArray purchaseProps = payload.optJSONArray(Purchase.PURCHASE_PROPERTIES);
                             if (purchaseProps == null) {
@@ -422,12 +422,14 @@ public class BrazeRemoteCommand extends RemoteCommand {
 
     /**
      * Extracts the {@link com.tealium.remotecommands.braze.BrazeConstants.Config#STRICT_PROPERTIES_ENABLED STRICT_PROPERTIES_ENABLED }
-     * key from the payload. If it's a valid boolean, then it will be returned, otherwise <code>null</code>
+     * key from the payload.
+     * If it's a valid boolean, then it will be returned, otherwise the fallback is returned
      *
      * @param payload the full payload of Remote Command event
-     * @return
+     * @param fallback the value to return in case no boolean value was found in the payload
+     * @return the boolean value the payload for strict properties, else the fallback provided
      */
-    static Boolean extractStrictPropertiesEnabled(JSONObject payload, boolean fallback) {
+    static boolean extractStrictPropertiesEnabled(JSONObject payload, boolean fallback) {
         return payload.optBoolean(Config.STRICT_PROPERTIES_ENABLED, fallback);
     }
 }
