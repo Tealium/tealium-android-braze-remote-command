@@ -404,7 +404,7 @@ public class BrazeInstanceTests {
 
     @Test
     public void logCustomEvent_LogsEvent_WithoutProperties() throws Exception {
-        brazeInstance.logCustomEvent("event", null, null);
+        brazeInstance.logCustomEvent("event", null, false);
 
         verify(mockBraze).logCustomEvent("event", null);
     }
