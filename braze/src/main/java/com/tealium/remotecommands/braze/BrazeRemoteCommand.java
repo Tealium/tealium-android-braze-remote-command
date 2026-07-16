@@ -421,13 +421,13 @@ public class BrazeRemoteCommand extends RemoteCommand {
     }
 
     /**
-     * Extracts the {@link com.tealium.remotecommands.braze.BrazeConstants.Config#STRICT_PROPERTIES_ENABLED STRICT_PROPERTIES_ENABLED }
+     * Extracts the {@link com.tealium.remotecommands.braze.BrazeConstants.Config#STRICT_PROPERTIES_ENABLED STRICT_PROPERTIES_ENABLED}
      * key from the payload.
-     * If it's a valid boolean, then it will be returned, otherwise the fallback is returned
+     * If a boolean value is present, it is returned; otherwise the provided fallback is returned.
      *
-     * @param payload the full payload of Remote Command event
-     * @param fallback the value to return in case no boolean value was found in the payload
-     * @return the boolean value the payload for strict properties, else the fallback provided
+     * @param payload the full payload of the Remote Command event
+     * @param fallback the value to return when no boolean value was found in the payload
+     * @return the strict-properties boolean from the payload, or {@code fallback} if not present
      */
     static boolean extractStrictPropertiesEnabled(JSONObject payload, boolean fallback) {
         return payload.optBoolean(Config.STRICT_PROPERTIES_ENABLED, fallback);

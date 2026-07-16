@@ -18,6 +18,7 @@ import androidx.test.core.app.ApplicationProvider;
 import com.tealium.remotecommands.RemoteCommand;
 import com.tealium.remotecommands.braze.BrazeConstants.Commands;
 import com.tealium.remotecommands.braze.BrazeConstants.Config;
+import com.tealium.remotecommands.braze.BrazeConstants.Event;
 import com.tealium.remotecommands.braze.BrazeConstants.Location;
 import com.tealium.remotecommands.braze.BrazeConstants.Purchase;
 import com.tealium.remotecommands.braze.BrazeConstants.User;
@@ -89,20 +90,20 @@ public class BrazeRemoteCommandTests {
                 .addCommand(Commands.INITIALIZE)
                 .populatePayload((json) -> {
                     json.put(Config.API_KEY, "api_key");
-                    json.put(BrazeConstants.Config.FIREBASE_ENABLED, true);
-                    json.put(BrazeConstants.Config.FIREBASE_SENDER_ID, "test-id");
-                    json.put(BrazeConstants.Config.ADM_ENABLED, true);
-                    json.put(BrazeConstants.Config.AUTO_PUSH_DEEP_LINKS, true);
-                    json.put(BrazeConstants.Config.BAD_NETWORK_INTERVAL, 30);
-                    json.put(BrazeConstants.Config.GOOD_NETWORK_INTERVAL, 30);
-                    json.put(BrazeConstants.Config.GREAT_NETWORK_INTERVAL, 30);
-                    json.put(BrazeConstants.Config.CUSTOM_ENDPOINT, "custom-endpoint");
-                    json.put(BrazeConstants.Config.DEFAULT_NOTIFICATION_COLOR, 0xFF00FF);
-                    json.put(BrazeConstants.Config.ENABLE_AUTOMATIC_LOCATION, true);
-                    json.put(BrazeConstants.Config.LARGE_NOTIFICATION_ICON, "large-notification-icon");
-                    json.put(BrazeConstants.Config.SMALL_NOTIFICATION_ICON, "small-notification-icon");
-                    json.put(BrazeConstants.Config.SESSION_TIMEOUT, 10);
-                    json.put(BrazeConstants.Config.TRIGGER_INTERVAL_SECONDS, 10);
+                    json.put(Config.FIREBASE_ENABLED, true);
+                    json.put(Config.FIREBASE_SENDER_ID, "test-id");
+                    json.put(Config.ADM_ENABLED, true);
+                    json.put(Config.AUTO_PUSH_DEEP_LINKS, true);
+                    json.put(Config.BAD_NETWORK_INTERVAL, 30);
+                    json.put(Config.GOOD_NETWORK_INTERVAL, 30);
+                    json.put(Config.GREAT_NETWORK_INTERVAL, 30);
+                    json.put(Config.CUSTOM_ENDPOINT, "custom-endpoint");
+                    json.put(Config.DEFAULT_NOTIFICATION_COLOR, 0xFF00FF);
+                    json.put(Config.ENABLE_AUTOMATIC_LOCATION, true);
+                    json.put(Config.LARGE_NOTIFICATION_ICON, "large-notification-icon");
+                    json.put(Config.SMALL_NOTIFICATION_ICON, "small-notification-icon");
+                    json.put(Config.SESSION_TIMEOUT, 10);
+                    json.put(Config.TRIGGER_INTERVAL_SECONDS, 10);
                 })
                 .build();
 
@@ -118,7 +119,7 @@ public class BrazeRemoteCommandTests {
                 .addCommand(Commands.INITIALIZE)
                 .populatePayload((json) -> {
                     json.put(Config.API_KEY, "api_key")
-                        .put(BrazeConstants.Config.STRICT_PROPERTIES_ENABLED, true);
+                        .put(Config.STRICT_PROPERTIES_ENABLED, true);
                 })
                 .build();
         brazeRemoteCommand.onInvoke(response);
@@ -129,7 +130,7 @@ public class BrazeRemoteCommandTests {
                 .addCommand(Commands.INITIALIZE)
                 .populatePayload((json) -> {
                     json.put(Config.API_KEY, "api_key")
-                            .put(BrazeConstants.Config.STRICT_PROPERTIES_ENABLED, false);
+                            .put(Config.STRICT_PROPERTIES_ENABLED, false);
                 })
                 .build();
         brazeRemoteCommand.onInvoke(response);
@@ -153,7 +154,7 @@ public class BrazeRemoteCommandTests {
         RemoteCommand.Response response = ResponseBuilder.create()
                 .addCommand(Commands.LOG_CUSTOM_EVENT)
                 .populatePayload((json) -> {
-                    json.put(BrazeConstants.Event.EVENT_NAME, "event");
+                    json.put(Event.EVENT_NAME, "event");
                 })
                 .build();
 
@@ -168,8 +169,8 @@ public class BrazeRemoteCommandTests {
         RemoteCommand.Response response = ResponseBuilder.create()
                 .addCommand(Commands.LOG_CUSTOM_EVENT)
                 .populatePayload((json) -> {
-                    json.put(BrazeConstants.Event.EVENT_NAME, "event");
-                    json.put(BrazeConstants.Event.EVENT_PROPERTIES, eventProps);
+                    json.put(Event.EVENT_NAME, "event");
+                    json.put(Event.EVENT_PROPERTIES, eventProps);
                 })
                 .build();
 
@@ -184,8 +185,8 @@ public class BrazeRemoteCommandTests {
         RemoteCommand.Response response = ResponseBuilder.create()
                 .addCommand(Commands.LOG_CUSTOM_EVENT)
                 .populatePayload((json) -> {
-                    json.put(BrazeConstants.Event.EVENT_NAME, "event");
-                    json.put(BrazeConstants.Event.EVENT_PROPERTIES_SHORTHAND, eventProps);
+                    json.put(Event.EVENT_NAME, "event");
+                    json.put(Event.EVENT_PROPERTIES_SHORTHAND, eventProps);
                 })
                 .build();
 
@@ -201,8 +202,8 @@ public class BrazeRemoteCommandTests {
         ResponseBuilder response = ResponseBuilder.create()
                 .addCommand(Commands.LOG_CUSTOM_EVENT)
                 .populatePayload((json) -> {
-                    json.put(BrazeConstants.Event.EVENT_NAME, "event");
-                    json.put(BrazeConstants.Event.EVENT_PROPERTIES_SHORTHAND, eventProps);
+                    json.put(Event.EVENT_NAME, "event");
+                    json.put(Event.EVENT_PROPERTIES_SHORTHAND, eventProps);
                     json.put(Config.STRICT_PROPERTIES_ENABLED, true);
                 });
 
@@ -217,8 +218,8 @@ public class BrazeRemoteCommandTests {
         ResponseBuilder response = ResponseBuilder.create()
                 .addCommand(Commands.LOG_CUSTOM_EVENT)
                 .populatePayload((json) -> {
-                    json.put(BrazeConstants.Event.EVENT_NAME, "event");
-                    json.put(BrazeConstants.Event.EVENT_PROPERTIES_SHORTHAND, eventProps);
+                    json.put(Event.EVENT_NAME, "event");
+                    json.put(Event.EVENT_PROPERTIES_SHORTHAND, eventProps);
                 });
 
         brazeRemoteCommand.onInvoke(response.build());
