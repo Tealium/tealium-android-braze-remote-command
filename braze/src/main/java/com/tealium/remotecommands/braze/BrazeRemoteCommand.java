@@ -33,6 +33,7 @@ public class BrazeRemoteCommand extends RemoteCommand {
 
     BrazeCommand mBraze;
     List<ConfigOverrider> configOverriders = new LinkedList<>();
+    boolean mStrictPropertiesEnabled = false;
 
     /**
      * Constructs a RemoteCommand that integrates with the Braze SDK to allow Braze API calls to be
@@ -214,11 +215,10 @@ public class BrazeRemoteCommand extends RemoteCommand {
                 switch (command) {
                     case Commands.INITIALIZE:
                         String apiKey = payload.optString(Config.API_KEY);
-                        mBraze.initialize(
-                                apiKey,
-                                payload,
-                                configOverriders
-                        );
+                        if (BrazeUtils.keyHasValue(payload, Config.STRICT_PROPERTIES_ENABLED)) {
+                            mStrictPropertiesEnabled = payload.optBoolean(Config.STRICT_PROPERTIES_ENABLED, mStrictPropertiesEnabled);
+                        }
+                        mBraze.initialize(apiKey, payload, configOverriders);
                         break;
                     case Commands.ENABLE_SDK:
                         mBraze.enableSdk();
@@ -310,12 +310,12 @@ public class BrazeRemoteCommand extends RemoteCommand {
                         mBraze.logCustomEvent(
                                 payload.getString(Event.EVENT_NAME),
                                 eventProps,
-                                extractStrictPropertiesEnabled(payload)
+                                extractStrictPropertiesEnabled(payload, mStrictPropertiesEnabled)
                         );
                         break;
                     case Commands.LOG_PURCHASE_EVENT:
                         Object productId = payload.get(Purchase.PRODUCT_ID);
-                        Boolean strictPropertiesEnabled = extractStrictPropertiesEnabled(payload);
+                        Boolean strictPropertiesEnabled = extractStrictPropertiesEnabled(payload, mStrictPropertiesEnabled);
                         if (productId instanceof JSONArray) {
                             JSONArray purchaseProps = payload.optJSONArray(Purchase.PURCHASE_PROPERTIES);
                             if (purchaseProps == null) {
@@ -429,13 +429,7 @@ public class BrazeRemoteCommand extends RemoteCommand {
      * @param payload the full payload of Remote Command event
      * @return
      */
-    static Boolean extractStrictPropertiesEnabled(JSONObject payload) {
-        Object strictPropertiesEnabled = payload.opt(Config.STRICT_PROPERTIES_ENABLED);
-
-        if (strictPropertiesEnabled instanceof Boolean) {
-            return (Boolean) strictPropertiesEnabled;
-        }
-
-        return null;
+    static Boolean extractStrictPropertiesEnabled(JSONObject payload, boolean fallback) {
+        return payload.optBoolean(Config.STRICT_PROPERTIES_ENABLED, fallback);
     }
 }

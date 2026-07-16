@@ -260,7 +260,7 @@ interface BrazeCommand {
      * @param eventName The event name
      * @param eventProperties The optional properties that accompany this custom event
      */
-    void logCustomEvent(@NonNull String eventName, @Nullable JSONObject eventProperties, @Nullable Boolean strictPropertiesEnabled);
+    void logCustomEvent(@NonNull String eventName, @Nullable JSONObject eventProperties, @NonNull Boolean strictPropertiesEnabled);
 
     /**
      * Logs a purchase event with the provided productId, currency, unitPrice, quantity and any
@@ -277,7 +277,7 @@ interface BrazeCommand {
      *                           "custom_property_3" : false
      *                           }
      */
-    void logPurchase(@NonNull String productId, @Nullable String currency, @NonNull BigDecimal unitPrice, Integer quantity, @Nullable JSONObject purchaseProperties, @Nullable Boolean strictPropertiesEnabled);
+    void logPurchase(@NonNull String productId, @Nullable String currency, @NonNull BigDecimal unitPrice, Integer quantity, @Nullable JSONObject purchaseProperties, @NonNull Boolean strictPropertiesEnabled);
 
     /**
      * Helper method that will take each bit of purchase information and attempt to log multiple
@@ -289,7 +289,7 @@ interface BrazeCommand {
      * @param quantities An array of quantities for this purchase
      * @param purchaseProperties Any optional properties to accomapny this purchase event
      */
-    void logPurchase(@NonNull String[] productIds, @Nullable String[] currencies, @NonNull BigDecimal[] unitPrices, Integer[] quantities, @Nullable JSONObject[] purchaseProperties, @Nullable Boolean strictPropertiesEnabled);
+    void logPurchase(@NonNull String[] productIds, @Nullable String[] currencies, @NonNull BigDecimal[] unitPrices, Integer[] quantities, @Nullable JSONObject[] purchaseProperties, @NonNull Boolean strictPropertiesEnabled);
 
     /**
      * Requests an immediate flush of any queued up events within the Braze SDK.

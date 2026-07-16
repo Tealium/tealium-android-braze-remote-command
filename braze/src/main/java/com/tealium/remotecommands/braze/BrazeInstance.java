@@ -43,7 +43,6 @@ class BrazeInstance implements BrazeCommand, ActivityLifecycleCallbacks {
     Set<Class<?>> mSessionHandlingBlacklist;
     boolean mRegisterInAppMessageManager;
     Set<Class<?>> mInAppMessageBlacklist;
-    boolean mStrictPropertiesEnabled;
 
     public BrazeInstance(Application app) {
         this(app, true, null, true, null);
@@ -55,7 +54,6 @@ class BrazeInstance implements BrazeCommand, ActivityLifecycleCallbacks {
         mSessionHandlingBlacklist = sessionHandlingBlacklist;
         mRegisterInAppMessageManager = registerInAppMessageManager;
         mInAppMessageBlacklist = inAppMessageBlacklist;
-        mStrictPropertiesEnabled = false; // disabled by default
 
         if (sessionHandlingEnabled) {
             // Init process will be asynchronous; need to register a temporary listener to capture
@@ -153,10 +151,6 @@ class BrazeInstance implements BrazeCommand, ActivityLifecycleCallbacks {
 
             if (BrazeUtils.keyHasValue(launchOptions, Config.IS_SDK_AUTHENTICATION_ENABLED)) {
                 builder.setIsSdkAuthenticationEnabled(launchOptions.optBoolean(Config.IS_SDK_AUTHENTICATION_ENABLED));
-            }
-
-            if (BrazeUtils.keyHasValue(launchOptions, Config.STRICT_PROPERTIES_ENABLED)) {
-                mStrictPropertiesEnabled = launchOptions.optBoolean(Config.STRICT_PROPERTIES_ENABLED, mStrictPropertiesEnabled);
             }
 
             // Integers
@@ -525,12 +519,11 @@ class BrazeInstance implements BrazeCommand, ActivityLifecycleCallbacks {
     }
 
     @Override
-    public void logCustomEvent(@NonNull String eventName, @Nullable JSONObject eventProperties, @Nullable Boolean strictPropertiesEnabled) {
+    public void logCustomEvent(@NonNull String eventName, @Nullable JSONObject eventProperties, @NonNull Boolean strictPropertiesEnabled) {
         BrazeProperties brazeProperties;
         if (eventProperties == null) {
             brazeProperties = null;
         } else {
-            strictPropertiesEnabled = strictPropertiesEnabled != null ? strictPropertiesEnabled : mStrictPropertiesEnabled;
             brazeProperties = BrazeUtils.extractCustomProperties(eventProperties, strictPropertiesEnabled);
         }
 
@@ -539,18 +532,16 @@ class BrazeInstance implements BrazeCommand, ActivityLifecycleCallbacks {
     }
 
     @Override
-    public void logPurchase(@NonNull String productId, @Nullable String currency, @NonNull BigDecimal unitPrice, Integer quantity, JSONObject purchaseProperties, Boolean strictPropertiesEnabled) {
+    public void logPurchase(@NonNull String productId, @Nullable String currency, @NonNull BigDecimal unitPrice, Integer quantity, JSONObject purchaseProperties, @NonNull Boolean strictPropertiesEnabled) {
         if (BrazeUtils.isNullOrEmpty(currency)) {
             currency = "USD";// braze default.
         }
-
-        strictPropertiesEnabled = strictPropertiesEnabled != null ? strictPropertiesEnabled : mStrictPropertiesEnabled;
 
         getBrazeInstance().logPurchase(productId, currency, unitPrice, quantity > 0 ? quantity : 1, BrazeUtils.extractCustomProperties(purchaseProperties, strictPropertiesEnabled));
     }
 
     @Override
-    public void logPurchase(@NonNull String[] productIds, String[] currencies, @NonNull BigDecimal[] unitPrices, Integer[] quantities, JSONObject[] purchaseProperties, Boolean strictPropertiesEnabled) {
+    public void logPurchase(@NonNull String[] productIds, String[] currencies, @NonNull BigDecimal[] unitPrices, Integer[] quantities, JSONObject[] purchaseProperties, @NonNull Boolean strictPropertiesEnabled) {
         for (int i = 0; i < productIds.length; i++) {
             logPurchase(
                     productIds[i],
