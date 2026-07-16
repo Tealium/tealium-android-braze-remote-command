@@ -120,7 +120,7 @@ public class BrazeRemoteCommandTests {
 
         brazeRemoteCommand.onInvoke(response);
 
-        verify(mockBrazeInstance).logCustomEvent(eq("event"), eq(null));
+        verify(mockBrazeInstance).logCustomEvent(eq("event"), eq(null), null);
     }
 
     @Test
@@ -136,7 +136,7 @@ public class BrazeRemoteCommandTests {
 
         brazeRemoteCommand.onInvoke(response);
 
-        verify(mockBrazeInstance).logCustomEvent(eq("event"), eq(eventProps));
+        verify(mockBrazeInstance).logCustomEvent(eq("event"), eq(eventProps), null);
     }
 
     @Test
@@ -152,7 +152,7 @@ public class BrazeRemoteCommandTests {
 
         brazeRemoteCommand.onInvoke(response);
 
-        verify(mockBrazeInstance).logCustomEvent(eq("event"), eq(eventProps));
+        verify(mockBrazeInstance).logCustomEvent(eq("event"), eq(eventProps), null);
     }
 
     @Test
@@ -169,7 +169,7 @@ public class BrazeRemoteCommandTests {
 
         brazeRemoteCommand.onInvoke(response);
 
-        verify(mockBrazeInstance).logPurchase("product_id", "GBP",  BigDecimal.valueOf(10.10), 10, null);
+        verify(mockBrazeInstance).logPurchase("product_id", "GBP",  BigDecimal.valueOf(10.10), 10, null, null);
     }
 
     @Test
@@ -188,7 +188,7 @@ public class BrazeRemoteCommandTests {
 
         brazeRemoteCommand.onInvoke(response);
 
-        verify(mockBrazeInstance).logPurchase("product_id", "GBP",  BigDecimal.valueOf(10.10), 10, purchaseProps);
+        verify(mockBrazeInstance).logPurchase("product_id", "GBP",  BigDecimal.valueOf(10.10), 10, purchaseProps, null);
     }
 
     @Test
@@ -207,7 +207,7 @@ public class BrazeRemoteCommandTests {
 
         brazeRemoteCommand.onInvoke(response);
 
-        verify(mockBrazeInstance).logPurchase("product_id", "GBP",  BigDecimal.valueOf(10.10), 10, purchaseProps);
+        verify(mockBrazeInstance).logPurchase("product_id", "GBP",  BigDecimal.valueOf(10.10), 10, purchaseProps, null);
     }
 
     @Test

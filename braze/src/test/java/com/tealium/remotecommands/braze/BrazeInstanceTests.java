@@ -427,7 +427,7 @@ public class BrazeInstanceTests {
 
     @Test
     public void logCustomEvent_LogsEvent_WithoutProperties() throws Exception {
-        brazeInstance.logCustomEvent("event", null);
+        brazeInstance.logCustomEvent("event", null, null);
 
         verify(mockBraze).logCustomEvent("event", null);
     }
@@ -446,7 +446,7 @@ public class BrazeInstanceTests {
         );
         JSONObject properties = new JSONObject(data);
 
-        brazeInstance.logCustomEvent("event", properties);
+        brazeInstance.logCustomEvent("event", properties, null);
 
         verify(mockBraze).logCustomEvent(eq("event"), brazeProps.capture());
         assertEquals("value", brazeProps.getValue().get("string-prop"));
@@ -473,7 +473,7 @@ public class BrazeInstanceTests {
         );
         JSONObject properties = new JSONObject(data);
 
-        brazeInstance.logCustomEvent("event", properties);
+        brazeInstance.logCustomEvent("event", properties, null);
 
         verify(mockBraze).logCustomEvent(eq("event"), brazeProps.capture());
         assertEquals("value", brazeProps.getValue().get("string-prop"));
@@ -499,7 +499,7 @@ public class BrazeInstanceTests {
         );
         JSONObject properties = new JSONObject(data);
 
-        brazeInstance.logCustomEvent("event", properties);
+        brazeInstance.logCustomEvent("event", properties, null);
 
         verify(mockBraze).logCustomEvent(eq("event"), brazeProps.capture());
         assertEquals("value", brazeProps.getValue().get("string-prop"));
@@ -524,7 +524,7 @@ public class BrazeInstanceTests {
         );
         JSONObject properties = new JSONObject(data);
 
-        brazeInstance.logCustomEvent("event", properties);
+        brazeInstance.logCustomEvent("event", properties, null);
 
         verify(mockBraze).logCustomEvent(eq("event"), brazeProps.capture());
         assertEquals("value", brazeProps.getValue().get("string-prop"));
@@ -539,11 +539,11 @@ public class BrazeInstanceTests {
     public void logPurchase_LogsPurchase_WithoutProperties() throws Exception {
         ArgumentCaptor<BrazeProperties> brazeProps = ArgumentCaptor.forClass(BrazeProperties.class);
 
-        brazeInstance.logPurchase("product1", "GBP", BigDecimal.ONE, 1, null);
+        brazeInstance.logPurchase("product1", "GBP", BigDecimal.ONE, 1, null, null);
         verify(mockBraze).logPurchase(eq("product1"), eq("GBP"), eq(BigDecimal.ONE), eq(1), brazeProps.capture());
         assertEquals(0, brazeProps.getValue().getSize());
 
-        brazeInstance.logPurchase("product1", null, BigDecimal.TEN, 10, null);
+        brazeInstance.logPurchase("product1", null, BigDecimal.TEN, 10, null, null);
         verify(mockBraze).logPurchase(eq("product1"), eq("USD"), eq(BigDecimal.TEN), eq(10), brazeProps.capture());
         assertEquals(0, brazeProps.getValue().getSize());
     }
@@ -554,7 +554,7 @@ public class BrazeInstanceTests {
         JSONObject properties = new JSONObject();
         properties.put("string-prop", "value");
 
-        brazeInstance.logPurchase("product1", "GBP", BigDecimal.ONE, 1, properties);
+        brazeInstance.logPurchase("product1", "GBP", BigDecimal.ONE, 1, properties, null);
 
         verify(mockBraze).logPurchase(eq("product1"), eq("GBP"), eq(BigDecimal.ONE), eq(1), brazeProps.capture());
         assertEquals("value", brazeProps.getValue().get("string-prop"));
@@ -571,7 +571,9 @@ public class BrazeInstanceTests {
                 new String[]{"GBP", null},
                 new BigDecimal[]{BigDecimal.ONE, BigDecimal.TEN},
                 new Integer[]{10},
-                new JSONObject[]{properties});
+                new JSONObject[]{properties},
+                null
+        );
 
         verify(mockBraze).logPurchase(eq("product1"), eq("GBP"), eq(BigDecimal.ONE), eq(10), brazeProps.capture());
         assertEquals("value", brazeProps.getValue().get("string-prop"));

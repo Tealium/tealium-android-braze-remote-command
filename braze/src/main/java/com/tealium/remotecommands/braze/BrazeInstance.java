@@ -525,12 +525,13 @@ class BrazeInstance implements BrazeCommand, ActivityLifecycleCallbacks {
     }
 
     @Override
-    public void logCustomEvent(@NonNull String eventName, @Nullable JSONObject eventProperties) {
+    public void logCustomEvent(@NonNull String eventName, @Nullable JSONObject eventProperties, @Nullable Boolean strictPropertiesEnabled) {
         BrazeProperties brazeProperties;
         if (eventProperties == null) {
             brazeProperties = null;
         } else {
-            brazeProperties = BrazeUtils.extractCustomProperties(eventProperties, mStrictPropertiesEnabled);
+            strictPropertiesEnabled = strictPropertiesEnabled != null ? strictPropertiesEnabled : mStrictPropertiesEnabled;
+            brazeProperties = BrazeUtils.extractCustomProperties(eventProperties, strictPropertiesEnabled);
         }
 
         // Braze api handles an empty BrazeProperties object, so no need to wrap both calls.
@@ -538,23 +539,26 @@ class BrazeInstance implements BrazeCommand, ActivityLifecycleCallbacks {
     }
 
     @Override
-    public void logPurchase(@NonNull String productId, @Nullable String currency, @NonNull BigDecimal unitPrice, Integer quantity, JSONObject purchaseProperties) {
+    public void logPurchase(@NonNull String productId, @Nullable String currency, @NonNull BigDecimal unitPrice, Integer quantity, JSONObject purchaseProperties, Boolean strictPropertiesEnabled) {
         if (BrazeUtils.isNullOrEmpty(currency)) {
             currency = "USD";// braze default.
         }
 
-        getBrazeInstance().logPurchase(productId, currency, unitPrice, quantity > 0 ? quantity : 1, BrazeUtils.extractCustomProperties(purchaseProperties, mStrictPropertiesEnabled));
+        strictPropertiesEnabled = strictPropertiesEnabled != null ? strictPropertiesEnabled : mStrictPropertiesEnabled;
+
+        getBrazeInstance().logPurchase(productId, currency, unitPrice, quantity > 0 ? quantity : 1, BrazeUtils.extractCustomProperties(purchaseProperties, strictPropertiesEnabled));
     }
 
     @Override
-    public void logPurchase(@NonNull String[] productIds, String[] currencies, @NonNull BigDecimal[] unitPrices, Integer[] quantities, JSONObject[] purchaseProperties) {
+    public void logPurchase(@NonNull String[] productIds, String[] currencies, @NonNull BigDecimal[] unitPrices, Integer[] quantities, JSONObject[] purchaseProperties, Boolean strictPropertiesEnabled) {
         for (int i = 0; i < productIds.length; i++) {
             logPurchase(
                     productIds[i],
                     currencies != null && currencies.length > i ? currencies[i] : null,
                     unitPrices != null && unitPrices.length > i ? unitPrices[i] : BigDecimal.ZERO,
                     quantities != null && quantities.length > i ? quantities[i] : 1,
-                    purchaseProperties != null && purchaseProperties.length > i ? purchaseProperties[i] : null
+                    purchaseProperties != null && purchaseProperties.length > i ? purchaseProperties[i] : null,
+                    strictPropertiesEnabled
             );
         }
     }
