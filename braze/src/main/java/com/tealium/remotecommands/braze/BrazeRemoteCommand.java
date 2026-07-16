@@ -1,5 +1,13 @@
 package com.tealium.remotecommands.braze;
 
+import static com.tealium.remotecommands.braze.BrazeConstants.Commands;
+import static com.tealium.remotecommands.braze.BrazeConstants.Config;
+import static com.tealium.remotecommands.braze.BrazeConstants.Event;
+import static com.tealium.remotecommands.braze.BrazeConstants.Location;
+import static com.tealium.remotecommands.braze.BrazeConstants.Purchase;
+import static com.tealium.remotecommands.braze.BrazeConstants.TAG;
+import static com.tealium.remotecommands.braze.BrazeConstants.User;
+
 import android.app.Application;
 import android.util.Log;
 
@@ -13,14 +21,6 @@ import java.math.BigDecimal;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
-
-import static com.tealium.remotecommands.braze.BrazeConstants.TAG;
-import static com.tealium.remotecommands.braze.BrazeConstants.Commands;
-import static com.tealium.remotecommands.braze.BrazeConstants.Config;
-import static com.tealium.remotecommands.braze.BrazeConstants.User;
-import static com.tealium.remotecommands.braze.BrazeConstants.Event;
-import static com.tealium.remotecommands.braze.BrazeConstants.Purchase;
-import static com.tealium.remotecommands.braze.BrazeConstants.Location;
 
 /**
  * Created by jameskeith on 23/10/2018.
@@ -39,7 +39,7 @@ public class BrazeRemoteCommand extends RemoteCommand {
      * Constructs a RemoteCommand that integrates with the Braze SDK to allow Braze API calls to be
      * implemented through Tealium.
      *
-     * @param app                         - The Application instance
+     * @param app - The Application instance
      */
     public BrazeRemoteCommand(Application app) {
         this(app, true, null, true, null, DEFAULT_COMMAND_ID, DEFAULT_COMMAND_DESCRIPTION);
@@ -215,9 +215,7 @@ public class BrazeRemoteCommand extends RemoteCommand {
                 switch (command) {
                     case Commands.INITIALIZE:
                         String apiKey = payload.optString(Config.API_KEY);
-                        if (BrazeUtils.keyHasValue(payload, Config.STRICT_PROPERTIES_ENABLED)) {
-                            mStrictPropertiesEnabled = payload.optBoolean(Config.STRICT_PROPERTIES_ENABLED, mStrictPropertiesEnabled);
-                        }
+                        mStrictPropertiesEnabled = extractStrictPropertiesEnabled(payload, mStrictPropertiesEnabled);
                         mBraze.initialize(apiKey, payload, configOverriders);
                         break;
                     case Commands.ENABLE_SDK:

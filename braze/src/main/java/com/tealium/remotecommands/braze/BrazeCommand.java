@@ -259,6 +259,9 @@ interface BrazeCommand {
      *
      * @param eventName The event name
      * @param eventProperties The optional properties that accompany this custom event
+     * @param strictPropertiesEnabled
+     *   if true, all properties are passed through unaffected, else any string values will attempt
+     *   to be parsed into primitive values
      */
     void logCustomEvent(@NonNull String eventName, @Nullable JSONObject eventProperties, @NonNull Boolean strictPropertiesEnabled);
 
@@ -276,6 +279,9 @@ interface BrazeCommand {
      *                           "custom_property_2" : 10,
      *                           "custom_property_3" : false
      *                           }
+     * @param strictPropertiesEnabled
+     *   if true, all properties are passed through unaffected, else any string values will attempt
+     *   to be parsed into primitive values
      */
     void logPurchase(@NonNull String productId, @Nullable String currency, @NonNull BigDecimal unitPrice, Integer quantity, @Nullable JSONObject purchaseProperties, @NonNull Boolean strictPropertiesEnabled);
 
@@ -288,6 +294,9 @@ interface BrazeCommand {
      * @param unitPrices An array of unit prices for this purchase
      * @param quantities An array of quantities for this purchase
      * @param purchaseProperties Any optional properties to accomapny this purchase event
+     * @param strictPropertiesEnabled
+     *   if true, all properties are passed through unaffected, else any string values will attempt
+     *   to be parsed into primitive values
      */
     void logPurchase(@NonNull String[] productIds, @Nullable String[] currencies, @NonNull BigDecimal[] unitPrices, Integer[] quantities, @Nullable JSONObject[] purchaseProperties, @NonNull Boolean strictPropertiesEnabled);
 
