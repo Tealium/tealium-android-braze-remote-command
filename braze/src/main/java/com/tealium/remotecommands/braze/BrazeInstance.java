@@ -586,6 +586,23 @@ class BrazeInstance implements BrazeCommand, ActivityLifecycleCallbacks {
     }
 
     @Override
+    public void logProductViewed(@NonNull String[] productIds, String[] productNames, String[] variantIds, @NonNull BigDecimal[] prices, String currency, @NonNull String source, String[] imageUrls, String[] productUrls, JSONObject[] properties) {
+        for (int i = 0; i < productIds.length; i++) {
+            logProductViewed(
+                    productIds[i],
+                    productNames != null && productNames.length > i ? productNames[i] : null,
+                    variantIds != null && variantIds.length > i ? variantIds[i] : null,
+                    prices != null && prices.length > i ? prices[i].doubleValue() : 0d,
+                    currency,
+                    source,
+                    imageUrls != null && imageUrls.length > i ? imageUrls[i] : null,
+                    productUrls != null && productUrls.length > i ? productUrls[i] : null,
+                    properties != null && properties.length > i ? properties[i] : null
+            );
+        }
+    }
+
+    @Override
     public void logCartUpdated(@NonNull String cartId, @Nullable String currency, @NonNull String source, @Nullable Double totalValue, @NonNull JSONArray products, @NonNull String action, @Nullable JSONObject properties) {
         if (BrazeUtils.isNullOrEmpty(currency)) {
             currency = "USD";// braze default.
@@ -644,35 +661,31 @@ class BrazeInstance implements BrazeCommand, ActivityLifecycleCallbacks {
             currency = "USD";// braze default.
         }
 
-        // Note: the wire schema's key names ("total_value", "currency", "source", "total_discounts",
-        // "metadata") differ from this codebase's internal Ecommerce.* constants (which carry an
-        // "ecommerce_" prefix, matching the remote command payload's own key names) - use literals
-        // for those, but reuse the constants that happen to already match the wire schema.
         JSONObject wirePayload = new JSONObject();
         try {
             wirePayload.put(BrazeConstants.Ecommerce.ORDER_ID, orderId);
-            wirePayload.put("total_value", totalValue);
+            wirePayload.put(BrazeConstants.WireOutputKeys.TOTAL_VALUE, totalValue);
             if (subtotalValue != null) {
-                wirePayload.put("subtotal_value", subtotalValue);
+                wirePayload.put(BrazeConstants.WireOutputKeys.SUBTOTAL_VALUE, subtotalValue);
             }
             if (tax != null) {
-                wirePayload.put("tax", tax);
+                wirePayload.put(BrazeConstants.WireOutputKeys.TAX, tax);
             }
             if (shipping != null) {
-                wirePayload.put("shipping", shipping);
+                wirePayload.put(BrazeConstants.WireOutputKeys.SHIPPING, shipping);
             }
-            wirePayload.put("currency", currency);
+            wirePayload.put(BrazeConstants.WireOutputKeys.CURRENCY, currency);
             wirePayload.put(BrazeConstants.Ecommerce.CANCEL_REASON, cancelReason);
-            wirePayload.put("products", BrazeUtils.getEcommerceProductsAsWireJson(products));
-            wirePayload.put("source", source);
+            wirePayload.put(BrazeConstants.WireOutputKeys.PRODUCTS, BrazeUtils.getEcommerceProductsAsWireJson(products));
+            wirePayload.put(BrazeConstants.WireOutputKeys.SOURCE, source);
             if (totalDiscounts != null) {
-                wirePayload.put("total_discounts", totalDiscounts);
+                wirePayload.put(BrazeConstants.WireOutputKeys.TOTAL_DISCOUNTS, totalDiscounts);
             }
             if (!BrazeUtils.isNullOrEmpty(discounts)) {
                 wirePayload.put(BrazeConstants.Ecommerce.DISCOUNTS, discounts);
             }
             if (properties != null) {
-                wirePayload.put("metadata", properties);
+                wirePayload.put(BrazeConstants.WireOutputKeys.METADATA, properties);
             }
         } catch (JSONException jex) {
             Log.w(TAG, "Failed to build ecommerce.order_cancelled payload", jex);
@@ -691,18 +704,18 @@ class BrazeInstance implements BrazeCommand, ActivityLifecycleCallbacks {
         JSONObject wirePayload = new JSONObject();
         try {
             wirePayload.put(BrazeConstants.Ecommerce.ORDER_ID, orderId);
-            wirePayload.put("total_value", totalValue);
-            wirePayload.put("currency", currency);
-            wirePayload.put("products", BrazeUtils.getEcommerceProductsAsWireJson(products));
-            wirePayload.put("source", source);
+            wirePayload.put(BrazeConstants.WireOutputKeys.TOTAL_VALUE, totalValue);
+            wirePayload.put(BrazeConstants.WireOutputKeys.CURRENCY, currency);
+            wirePayload.put(BrazeConstants.WireOutputKeys.PRODUCTS, BrazeUtils.getEcommerceProductsAsWireJson(products));
+            wirePayload.put(BrazeConstants.WireOutputKeys.SOURCE, source);
             if (totalDiscounts != null) {
-                wirePayload.put("total_discounts", totalDiscounts);
+                wirePayload.put(BrazeConstants.WireOutputKeys.TOTAL_DISCOUNTS, totalDiscounts);
             }
             if (!BrazeUtils.isNullOrEmpty(discounts)) {
                 wirePayload.put(BrazeConstants.Ecommerce.DISCOUNTS, discounts);
             }
             if (properties != null) {
-                wirePayload.put("metadata", properties);
+                wirePayload.put(BrazeConstants.WireOutputKeys.METADATA, properties);
             }
         } catch (JSONException jex) {
             Log.w(TAG, "Failed to build ecommerce.order_refunded payload", jex);

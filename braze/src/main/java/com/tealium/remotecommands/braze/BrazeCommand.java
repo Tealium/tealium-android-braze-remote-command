@@ -312,6 +312,22 @@ interface BrazeCommand {
     void logProductViewed(@NonNull String productId, @NonNull String productName, @NonNull String variantId, double price, @Nullable String currency, @NonNull String source, @Nullable String imageUrl, @Nullable String productUrl, @Nullable JSONObject properties);
 
     /**
+     * Logs multiple product-viewed events, one per array index. Each array should be matched in
+     * length; currency and source are event-level and shared across all fired events.
+     *
+     * @param productIds   An array of product ids, one per product-viewed event
+     * @param productNames An array of product names
+     * @param variantIds   An array of product variant ids
+     * @param prices       An array of product prices
+     * @param currency     The currency; defaults to "USD" when null or empty
+     * @param source       The event source
+     * @param imageUrls    An optional array of product image urls
+     * @param productUrls  An optional array of product urls
+     * @param properties   An optional array of custom properties, one per product-viewed event
+     */
+    void logProductViewed(@NonNull String[] productIds, String[] productNames, String[] variantIds, @NonNull BigDecimal[] prices, @Nullable String currency, @NonNull String source, @Nullable String[] imageUrls, @Nullable String[] productUrls, @Nullable JSONObject[] properties);
+
+    /**
      * Logs a Braze ecommerce CartUpdatedEvent. Each entry in the products array is expected to be a
      * JSONObject describing a single product using the keys in BrazeConstants.Ecommerce.
      * <p>
@@ -439,3 +455,4 @@ interface BrazeCommand {
      */
     void setLastKnownLocation(@NonNull Double latitude, @NonNull Double longitude, @Nullable Double altitude, @Nullable Double accuracy);
 }
+

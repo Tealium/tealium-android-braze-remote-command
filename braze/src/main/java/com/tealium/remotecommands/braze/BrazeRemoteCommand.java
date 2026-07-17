@@ -391,19 +391,35 @@ public class BrazeRemoteCommand extends RemoteCommand {
                         }
                         break;
                     case Commands.LOG_PRODUCT_VIEWED:
-                        mBraze.logProductViewed(
-                                payload.optString(Ecommerce.PRODUCT_ID),
-                                payload.optString(Ecommerce.PRODUCT_NAME),
-                                payload.optString(Ecommerce.VARIANT_ID),
-                                // price is required; getDouble throws (caught below, skipping
-                                // the whole event) rather than silently logging a fabricated $0 event.
-                                payload.getDouble(Ecommerce.PRICE),
-                                payload.optString(Ecommerce.CURRENCY),
-                                payload.optString(Ecommerce.SOURCE),
-                                BrazeUtils.keyHasValue(payload, Ecommerce.IMAGE_URL) ? payload.optString(Ecommerce.IMAGE_URL) : null,
-                                BrazeUtils.keyHasValue(payload, Ecommerce.PRODUCT_URL) ? payload.optString(Ecommerce.PRODUCT_URL) : null,
-                                payload.optJSONObject(Ecommerce.PROPERTIES)
-                        );
+                        Object viewedProductId = payload.get(Ecommerce.PRODUCT_ID);
+                        if (viewedProductId instanceof JSONArray) {
+                            mBraze.logProductViewed(
+                                    BrazeUtils.getStringArrayFromJson(payload.optJSONArray(Ecommerce.PRODUCT_ID)),
+                                    BrazeUtils.getStringArrayFromJson(payload.optJSONArray(Ecommerce.PRODUCT_NAME)),
+                                    BrazeUtils.getStringArrayFromJson(payload.optJSONArray(Ecommerce.VARIANT_ID)),
+                                    BrazeUtils.getBigDecimalArrayFromJson(payload.optJSONArray(Ecommerce.PRICE)),
+                                    payload.optString(Ecommerce.CURRENCY),
+                                    payload.optString(Ecommerce.SOURCE),
+                                    BrazeUtils.getStringArrayFromJson(payload.optJSONArray(Ecommerce.IMAGE_URL)),
+                                    BrazeUtils.getStringArrayFromJson(payload.optJSONArray(Ecommerce.PRODUCT_URL)),
+                                    BrazeUtils.getJSONObjectArrayFromJson(payload.optJSONArray(Ecommerce.PROPERTIES))
+                            );
+                        } else {
+                            // assume a single product-viewed event
+                            mBraze.logProductViewed(
+                                    payload.optString(Ecommerce.PRODUCT_ID),
+                                    payload.optString(Ecommerce.PRODUCT_NAME),
+                                    payload.optString(Ecommerce.VARIANT_ID),
+                                    // price is required; getDouble throws (caught below, skipping
+                                    // the whole event) rather than silently logging a fabricated $0 event.
+                                    payload.getDouble(Ecommerce.PRICE),
+                                    payload.optString(Ecommerce.CURRENCY),
+                                    payload.optString(Ecommerce.SOURCE),
+                                    BrazeUtils.keyHasValue(payload, Ecommerce.IMAGE_URL) ? payload.optString(Ecommerce.IMAGE_URL) : null,
+                                    BrazeUtils.keyHasValue(payload, Ecommerce.PRODUCT_URL) ? payload.optString(Ecommerce.PRODUCT_URL) : null,
+                                    payload.optJSONObject(Ecommerce.PROPERTIES)
+                            );
+                        }
                         break;
                     case Commands.LOG_CART_UPDATED:
                         String cartAction = payload.optString(Ecommerce.CART_ACTION);

@@ -9,6 +9,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -644,6 +645,32 @@ public class BrazeInstanceTests {
 
         verify(mockBraze).logEcommerceEvent(event.capture());
         assertEquals("USD", event.getValue().getCurrency());
+    }
+
+    @Test
+    public void logProductViewed_LogsMultipleProductViewedEvents_WithProperties() throws JSONException {
+        ArgumentCaptor<ProductViewedEvent> event = ArgumentCaptor.forClass(ProductViewedEvent.class);
+        JSONObject properties = new JSONObject();
+        properties.put("string-prop", "value");
+
+        brazeInstance.logProductViewed(
+                new String[]{"sku123", "sku456"},
+                new String[]{"Widget", "Gadget"},
+                new String[]{"widget_blue", "gadget_red"},
+                new BigDecimal[]{BigDecimal.valueOf(49.99), BigDecimal.valueOf(19.99)},
+                "GBP",
+                "test-source",
+                null,
+                null,
+                new JSONObject[]{properties});
+
+        verify(mockBraze, times(2)).logEcommerceEvent(event.capture());
+        List<ProductViewedEvent> events = event.getAllValues();
+        assertEquals("sku123", events.get(0).getProducts().get(0).getProductId());
+        assertEquals("value", events.get(0).getProducts().get(0).getMetadata().get("string-prop"));
+        assertEquals("sku456", events.get(1).getProducts().get(0).getProductId());
+        assertEquals("GBP", events.get(0).getCurrency());
+        assertEquals("GBP", events.get(1).getCurrency());
     }
 
     @Test

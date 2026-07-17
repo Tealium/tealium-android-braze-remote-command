@@ -1,5 +1,6 @@
 package com.tealium.remotecommands.braze;
 
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.mockito.ArgumentMatchers.any;
@@ -244,6 +245,30 @@ public class BrazeRemoteCommandTests {
         brazeRemoteCommand.onInvoke(response);
 
         verify(mockBrazeInstance).logProductViewed(eq("sku123"), eq("Widget"), eq("widget_blue"), eq(49.99), eq("USD"), eq("test-source"), eq(null), eq(null), eq(null));
+    }
+
+    @Test
+    public void testProductViewedEvent_LogsMultipleEvents_WhenPayloadIsArrayShaped() throws Exception {
+        RemoteCommand.Response response = ResponseBuilder.create()
+                .addCommand(Commands.LOG_PRODUCT_VIEWED)
+                .populatePayload((json) -> {
+                    json.put(Ecommerce.PRODUCT_ID, new JSONArray(new String[]{"sku123", "sku456"}));
+                    json.put(Ecommerce.PRODUCT_NAME, new JSONArray(new String[]{"Widget", "Gadget"}));
+                    json.put(Ecommerce.VARIANT_ID, new JSONArray(new String[]{"widget_blue", "gadget_red"}));
+                    json.put(Ecommerce.PRICE, new JSONArray(new double[]{49.99, 19.99}));
+                    json.put(Ecommerce.CURRENCY, "USD");
+                    json.put(Ecommerce.SOURCE, "test-source");
+                })
+                .build();
+
+        brazeRemoteCommand.onInvoke(response);
+
+        ArgumentCaptor<String[]> productIdsCaptor = ArgumentCaptor.forClass(String[].class);
+        ArgumentCaptor<BigDecimal[]> pricesCaptor = ArgumentCaptor.forClass(BigDecimal[].class);
+        verify(mockBrazeInstance).logProductViewed(productIdsCaptor.capture(), any(), any(), pricesCaptor.capture(), eq("USD"), eq("test-source"), any(), any(), any());
+        assertArrayEquals(new String[]{"sku123", "sku456"}, productIdsCaptor.getValue());
+        assertEquals(49.99, pricesCaptor.getValue()[0].doubleValue(), 0.001);
+        assertEquals(19.99, pricesCaptor.getValue()[1].doubleValue(), 0.001);
     }
 
     @Test

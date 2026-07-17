@@ -174,4 +174,28 @@ public final class BrazeConstants {
         public static final String LOCATION_ALTITUDE = "location_altitude";
         public static final String LOCATION_ACCURACY = "location_accuracy";
     }
+
+    /**
+     * Braze {@code ecommerce.order_cancelled} / {@code ecommerce.order_refunded} OUTPUT wire
+     * property names, as opposed to {@link Ecommerce}, which holds INPUT payload keys read from
+     * the remote command call. These are fixed by the Braze schema and have no safe equivalent in
+     * {@link Ecommerce} (its constants carry an "ecommerce_" prefix matching the remote command
+     * payload's own key names, e.g. {@code Ecommerce.TOTAL_VALUE} is "ecommerce_total_value", not
+     * "total_value"). Do not assume a {@code WireOutputKeys.X} and {@code Ecommerce.X} pair share a
+     * value just because they share a name.
+     */
+    public static final class WireOutputKeys {
+        private WireOutputKeys() {
+        }
+
+        public static final String TOTAL_VALUE = "total_value";
+        public static final String SUBTOTAL_VALUE = "subtotal_value";
+        public static final String TAX = "tax";
+        public static final String SHIPPING = "shipping";
+        public static final String CURRENCY = "currency";
+        public static final String PRODUCTS = "products";
+        public static final String SOURCE = "source";
+        public static final String TOTAL_DISCOUNTS = "total_discounts";
+        public static final String METADATA = "metadata";
+    }
 }
