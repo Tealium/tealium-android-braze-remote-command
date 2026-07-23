@@ -94,14 +94,34 @@
             app:layout_constraintTop_toBottomOf="@id/btn_log_multiple_purchase" />
 
         <androidx.appcompat.widget.AppCompatButton
-            android:id="@+id/btn_log_cart_updated"
+            android:id="@+id/btn_log_cart_updated_add"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_margin="16dp"
-            android:hint="@string/btn_log_cart_updated"
+            android:hint="@string/btn_log_cart_updated_add"
             app:layout_constraintLeft_toLeftOf="parent"
             app:layout_constraintRight_toRightOf="parent"
             app:layout_constraintTop_toBottomOf="@id/btn_log_product_viewed" />
+
+        <androidx.appcompat.widget.AppCompatButton
+            android:id="@+id/btn_log_cart_updated_remove"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_margin="16dp"
+            android:hint="@string/btn_log_cart_updated_remove"
+            app:layout_constraintLeft_toLeftOf="parent"
+            app:layout_constraintRight_toRightOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/btn_log_cart_updated_add" />
+
+        <androidx.appcompat.widget.AppCompatButton
+            android:id="@+id/btn_log_cart_updated_replace"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_margin="16dp"
+            android:hint="@string/btn_log_cart_updated_replace"
+            app:layout_constraintLeft_toLeftOf="parent"
+            app:layout_constraintRight_toRightOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/btn_log_cart_updated_remove" />
 
         <androidx.appcompat.widget.AppCompatButton
             android:id="@+id/btn_log_checkout_started"
@@ -111,7 +131,7 @@
             android:hint="@string/btn_log_checkout_started"
             app:layout_constraintLeft_toLeftOf="parent"
             app:layout_constraintRight_toRightOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/btn_log_cart_updated" />
+            app:layout_constraintTop_toBottomOf="@id/btn_log_cart_updated_replace" />
 
         <androidx.appcompat.widget.AppCompatButton
             android:id="@+id/btn_log_order_placed"

@@ -14,7 +14,9 @@ class EventsActivity : AppCompatActivity() {
     private lateinit var logPurchaseButton: AppCompatButton
     private lateinit var logMultiplePurchaseButton: AppCompatButton
     private lateinit var logProductViewedButton: AppCompatButton
-    private lateinit var logCartUpdatedButton: AppCompatButton
+    private lateinit var logCartUpdatedAddButton: AppCompatButton
+    private lateinit var logCartUpdatedRemoveButton: AppCompatButton
+    private lateinit var logCartUpdatedReplaceButton: AppCompatButton
     private lateinit var logCheckoutStartedButton: AppCompatButton
     private lateinit var logOrderPlacedButton: AppCompatButton
     private lateinit var logOrderCancelledButton: AppCompatButton
@@ -32,7 +34,9 @@ class EventsActivity : AppCompatActivity() {
         logPurchaseButton = findViewById(R.id.btn_log_purchase)
         logMultiplePurchaseButton = findViewById(R.id.btn_log_multiple_purchase)
         logProductViewedButton = findViewById(R.id.btn_log_product_viewed)
-        logCartUpdatedButton = findViewById(R.id.btn_log_cart_updated)
+        logCartUpdatedAddButton = findViewById(R.id.btn_log_cart_updated_add)
+        logCartUpdatedRemoveButton = findViewById(R.id.btn_log_cart_updated_remove)
+        logCartUpdatedReplaceButton = findViewById(R.id.btn_log_cart_updated_replace)
         logCheckoutStartedButton = findViewById(R.id.btn_log_checkout_started)
         logOrderPlacedButton = findViewById(R.id.btn_log_order_placed)
         logOrderCancelledButton = findViewById(R.id.btn_log_order_cancelled)
@@ -46,7 +50,9 @@ class EventsActivity : AppCompatActivity() {
         logPurchaseButton.setOnClickListener { logPurchase() }
         logMultiplePurchaseButton.setOnClickListener { logMultiplePurchase() }
         logProductViewedButton.setOnClickListener { logProductViewed() }
-        logCartUpdatedButton.setOnClickListener { logCartUpdated() }
+        logCartUpdatedAddButton.setOnClickListener { logCartUpdatedAdd() }
+        logCartUpdatedRemoveButton.setOnClickListener { logCartUpdatedRemove() }
+        logCartUpdatedReplaceButton.setOnClickListener { logCartUpdatedReplace() }
         logCheckoutStartedButton.setOnClickListener { logCheckoutStarted() }
         logOrderPlacedButton.setOnClickListener { logOrderPlaced() }
         logOrderCancelledButton.setOnClickListener { logOrderCancelled() }
@@ -140,6 +146,7 @@ class EventsActivity : AppCompatActivity() {
     }
 
     private fun logProductViewed() {
+        // logProductViewed describes a single product, so its fields are plain scalars (no arrays).
         trackEvent(
             "log_product_viewed", mapOf(
                 "ec_product_id" to "sku123",
@@ -152,89 +159,77 @@ class EventsActivity : AppCompatActivity() {
         )
     }
 
-    private fun logCartUpdated() {
-        trackEvent(
-            "log_cart_updated", mapOf(
-                "ec_cart_id" to "cart-456",
-                "ec_currency" to "USD",
-                "ec_source" to "android-example",
-                "ec_total_value" to 49.99,
-                "ec_cart_action" to "add",
-                "ec_products" to listOf(exampleProduct())
-            )
-        )
+    private fun logCartUpdatedAdd() {
+        trackEvent("log_cart_updated_add", cartData())
+    }
+
+    private fun logCartUpdatedRemove() {
+        trackEvent("log_cart_updated_remove", cartData())
+    }
+
+    private fun logCartUpdatedReplace() {
+        // Replace is a full snapshot and requires total_value.
+        trackEvent("log_cart_updated_replace", cartData() + mapOf("ec_total_value" to 109.96))
     }
 
     private fun logCheckoutStarted() {
         trackEvent(
-            "log_checkout_started", mapOf(
+            "log_checkout_started", cartData() + mapOf(
                 "ec_checkout_id" to "checkout-123",
-                "ec_cart_id" to "cart-456",
-                "ec_currency" to "USD",
-                "ec_source" to "android-example",
-                "ec_total_value" to 49.99,
-                "ec_products" to listOf(exampleProduct())
+                "ec_total_value" to 109.96
             )
         )
     }
 
     private fun logOrderPlaced() {
         trackEvent(
-            "log_order_placed", mapOf(
+            "log_order_placed", cartData() + mapOf(
                 "ec_order_id" to "order-789",
-                "ec_cart_id" to "cart-456",
-                "ec_currency" to "USD",
-                "ec_source" to "android-example",
-                "ec_total_value" to 49.99,
+                "ec_total_value" to 109.96,
                 "ec_total_discounts" to 5.0,
-                "ec_discounts" to listOf(exampleDiscount()),
-                "ec_products" to listOf(exampleProduct())
+                "ec_discounts" to listOf(exampleDiscount())
             )
         )
     }
 
     private fun logOrderCancelled() {
         trackEvent(
-            "log_order_cancelled", mapOf(
+            "log_order_cancelled", cartData() + mapOf(
                 "ec_order_id" to "order-789",
-                "ec_currency" to "USD",
-                "ec_source" to "android-example",
-                "ec_total_value" to 49.99,
+                "ec_total_value" to 109.96,
                 "ec_total_discounts" to 5.0,
                 "ec_discounts" to listOf(exampleDiscount()),
-                "ec_cancel_reason" to "customer_request",
-                "ec_products" to listOf(exampleProduct())
+                "ec_cancel_reason" to "customer_request"
             )
         )
     }
 
     private fun logOrderRefunded() {
         trackEvent(
-            "log_order_refunded", mapOf(
+            "log_order_refunded", cartData() + mapOf(
                 "ec_order_id" to "order-789",
-                "ec_currency" to "USD",
-                "ec_source" to "android-example",
-                "ec_total_value" to 49.99,
+                "ec_total_value" to 109.96,
                 "ec_total_discounts" to 5.0,
-                "ec_discounts" to listOf(exampleDiscount()),
-                "ec_products" to listOf(exampleProduct())
+                "ec_discounts" to listOf(exampleDiscount())
             )
         )
     }
 
-    // Builds a single product entry using the wrapper's raw ecommerce product keys. Values nested
-    // inside an array like this are passed straight through without friendly-name remapping.
-    private fun exampleProduct(): Map<String, Any> = mapOf(
-        "product_id" to "sku123",
-        "product_name" to "Widget",
-        "variant_id" to "widget_blue_lg",
-        "price" to 49.99,
-        "quantity" to 1,
-        "properties" to mapOf("rewards_member" to true)
+    // Sample multi-product cart payload shared by the cart / checkout / order demo events. Products
+    // are supplied as PARALLEL TOP-LEVEL ARRAYS (one array per field, zipped by index).
+    private fun cartData(): Map<String, Any> = mapOf(
+        "ec_cart_id" to "cart-456",
+        "ec_currency" to "USD",
+        "ec_source" to "android-example",
+        "ec_product_id" to listOf("sku123", "sku456"),
+        "ec_product_name" to listOf("Widget", "Gadget"),
+        "ec_variant_id" to listOf("widget_blue_lg", "gadget_red"),
+        "ec_price" to listOf(49.99, 19.99),
+        "ec_quantity" to listOf(1, 3)
     )
 
-    // Builds a single discount entry using the wrapper's raw discount keys. Like exampleProduct(),
-    // values nested inside an array like this are passed straight through without remapping.
+    // Builds a single discount entry using the wrapper's raw discount keys. Values nested inside an
+    // array like this are passed straight through without friendly-name remapping.
     private fun exampleDiscount(): Map<String, Any> = mapOf(
         "code" to "SUMMER10",
         "amount" to 5.0,
