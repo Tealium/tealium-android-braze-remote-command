@@ -6,7 +6,6 @@ import com.braze.enums.BrazeDateFormat;
 import com.braze.enums.Month;
 import com.braze.enums.Gender;
 import com.braze.models.outgoing.BrazeProperties;
-import com.braze.models.recommended.ecommerce.CartUpdatedAction;
 import com.braze.models.recommended.ecommerce.EcommerceProduct;
 import com.braze.support.DateTimeUtils;
 
@@ -191,6 +190,19 @@ class BrazeUtils {
     }
 
     /**
+     * Helper to determine whether the element at {@code index} of a JSONArray is present and not a
+     * JSON null. Used for optional per-product arrays (image_url, product_url) where an individual
+     * element may be null for a product that lacks that field.
+     *
+     * @param array - the JSONArray to inspect
+     * @param index - the element index to check
+     * @return true when the element exists and is not null
+     */
+    static boolean keyHasValue(JSONArray array, int index) {
+        return (array != null && !array.isNull(index));
+    }
+
+    /**
      * Helper to convert string representation of a Gender into the required.
      * <p>
      * (m)ale = Gender.MALE
@@ -241,47 +253,64 @@ class BrazeUtils {
         return genderEnum;
     }
 
-    /**
-     * Helper to convert a string representation of a cart action into the Braze CartUpdatedAction
-     * enum used by CartUpdatedEvent.
-     * <p>
-     * add = CartUpdatedAction.ADD
-     * remove = CartUpdatedAction.REMOVE
-     * replace = CartUpdatedAction.REPLACE
-     * <p>
-     * else returns CartUpdatedAction.REPLACE, matching Braze's documented wire behavior that
-     * omitting the action defaults to a full cart replacement.
-     *
-     * @param action the cart action as a string
-     * @return The CartUpdatedAction enum if found, else CartUpdatedAction.REPLACE
-     */
-    public static CartUpdatedAction getCartUpdatedActionFromString(String action) {
-        if (action == null) return CartUpdatedAction.REPLACE;
 
-        CartUpdatedAction actionEnum;
-        switch (action.toLowerCase(Locale.ROOT)) {
-            case "add":
-                actionEnum = CartUpdatedAction.ADD;
-                break;
-            case "remove":
-                actionEnum = CartUpdatedAction.REMOVE;
-                break;
-            case "replace":
-                actionEnum = CartUpdatedAction.REPLACE;
-                break;
-            default:
-                actionEnum = CartUpdatedAction.REPLACE;
-                break;
+    /**
+     * Normalizes the parallel top-level product arrays of an ecommerce payload into a JSONArray of
+     * product objects. Products are supplied on the wire as columnar arrays (product_id: [...],
+     * product_unit_price: [...], product_qty: [...], ...) zipped by index -- unifying the shape with
+     * the iOS remote command and the existing logPurchase path -- and this reshapes them into the
+     * array-of-objects form the downstream builders ({@link #getEcommerceProductsFromJson},
+     * {@link #getEcommerceProductsAsWireJson}) consume. product_id, product_name, variant_id,
+     * product_unit_price and product_qty (fallback quantity) are required and length-matched;
+     * image_url, product_url and product_metadata are optional per-index arrays. Returns an empty
+     * array when the required arrays are missing or mismatched, so the caller skips the whole event.
+     *
+     * @param payload the full command payload holding the parallel product arrays
+     * @return a JSONArray of product objects keyed by the BrazeConstants.Ecommerce input keys
+     * @throws JSONException when a required product array is missing or the arrays' lengths don't
+     *                       match -- so the caller skips the whole event (mirroring the previous
+     *                       {@code getJSONArray} behavior and the iOS remote command)
+     */
+    static JSONArray normalizeProductArrays(JSONObject payload) throws JSONException {
+        JSONArray result = new JSONArray();
+        ProductArrays arrays = ProductArrays.from(payload);
+        if (arrays == null) {
+            throw new JSONException("Missing or mismatched required ecommerce product arrays");
         }
 
-        return actionEnum;
+        for (int i = 0; i < arrays.count; i++) {
+            JSONObject product = new JSONObject();
+            try {
+                product.put(BrazeConstants.Ecommerce.PRODUCT_ID, arrays.productIds.opt(i));
+                product.put(BrazeConstants.Ecommerce.PRODUCT_NAME, arrays.productNames.opt(i));
+                product.put(BrazeConstants.Ecommerce.VARIANT_ID, arrays.variantIds.opt(i));
+                product.put(BrazeConstants.Ecommerce.PRICE, arrays.prices.opt(i));
+                product.put(BrazeConstants.Ecommerce.QUANTITY, arrays.quantities.opt(i));
+                if (arrays.imageUrls != null && keyHasValue(arrays.imageUrls, i)) {
+                    product.put(BrazeConstants.Ecommerce.IMAGE_URL, arrays.imageUrls.optString(i));
+                }
+                if (arrays.productUrls != null && keyHasValue(arrays.productUrls, i)) {
+                    product.put(BrazeConstants.Ecommerce.PRODUCT_URL, arrays.productUrls.optString(i));
+                }
+                if (arrays.metadatas != null && arrays.metadatas.optJSONObject(i) != null) {
+                    product.put(BrazeConstants.Ecommerce.PRODUCT_PROPERTIES, arrays.metadatas.optJSONObject(i));
+                }
+            } catch (JSONException jex) {
+                Log.w(BrazeConstants.TAG, "Skipping ecommerce product at index " + i, jex);
+                continue;
+            }
+            result.put(product);
+        }
+
+        return result;
     }
 
     /**
-     * Helper to build a list of Braze EcommerceProduct objects from a JSONArray of product objects.
-     * Each element is expected to be a JSONObject using the keys in BrazeConstants.Ecommerce
-     * (product_id, product_name, variant_id, price, quantity and the optional image_url, product_url
-     * and properties). Any per-product custom properties are extracted into a BrazeProperties object.
+     * Helper to build a list of Braze EcommerceProduct objects from a JSONArray of product objects
+     * (as produced by {@link #normalizeProductArrays}). Each element is a JSONObject using the keys
+     * in BrazeConstants.Ecommerce (product_id, product_name, variant_id, product_unit_price,
+     * product_qty and the optional image_url, product_url and product_metadata). Any per-product
+     * custom properties are extracted into a BrazeProperties object.
      *
      * @param products                the JSONArray of product objects
      * @param strictPropertiesEnabled whether custom property values should be passed on unchanged
@@ -363,14 +392,15 @@ class BrazeUtils {
     }
 
     /**
-     * Helper to rebuild a JSONArray of product objects into the wire schema expected by the
-     * untyped ecommerce.order_cancelled / ecommerce.order_refunded custom events. Each product's
-     * fields are copied straight through, except the internal "properties" key (used by the four
-     * typed ecommerce events) is renamed to "metadata" to match the documented wire schema for
-     * these two events; the key is omitted entirely when absent.
+     * Rebuilds a JSONArray of product objects (as produced by {@link #normalizeProductArrays}) into
+     * the wire schema expected by the untyped ecommerce.order_cancelled / ecommerce.order_refunded
+     * custom events. Input product-level keys (product_unit_price, product_qty, product_metadata) are
+     * mapped to the Braze wire names (price, quantity, metadata); optional fields are omitted when
+     * absent. A product missing its required price is logged and skipped rather than corrupting the
+     * rest of the event.
      *
-     * @param products the JSONArray of product objects, using BrazeConstants.Ecommerce keys
-     * @return a new JSONArray of plain JSONObjects using the wire schema's "metadata" key
+     * @param products the JSONArray of product objects, using BrazeConstants.Ecommerce input keys
+     * @return a new JSONArray of plain JSONObjects using the Braze wire schema
      */
     static JSONArray getEcommerceProductsAsWireJson(JSONArray products) {
         JSONArray result = new JSONArray();
@@ -393,26 +423,25 @@ class BrazeUtils {
 
             JSONObject wireProduct = new JSONObject();
             try {
-                wireProduct.put(BrazeConstants.Ecommerce.PRODUCT_ID, product.optString(BrazeConstants.Ecommerce.PRODUCT_ID));
-                wireProduct.put(BrazeConstants.Ecommerce.PRODUCT_NAME, product.optString(BrazeConstants.Ecommerce.PRODUCT_NAME));
-                wireProduct.put(BrazeConstants.Ecommerce.VARIANT_ID, product.optString(BrazeConstants.Ecommerce.VARIANT_ID));
-                wireProduct.put(BrazeConstants.Ecommerce.PRICE, product.optDouble(BrazeConstants.Ecommerce.PRICE));
-                wireProduct.put(BrazeConstants.Ecommerce.QUANTITY, product.optInt(BrazeConstants.Ecommerce.QUANTITY, 1));
+                wireProduct.put(BrazeConstants.WireOutputKeys.PRODUCT_ID, product.optString(BrazeConstants.Ecommerce.PRODUCT_ID));
+                wireProduct.put(BrazeConstants.WireOutputKeys.PRODUCT_NAME, product.optString(BrazeConstants.Ecommerce.PRODUCT_NAME));
+                wireProduct.put(BrazeConstants.WireOutputKeys.VARIANT_ID, product.optString(BrazeConstants.Ecommerce.VARIANT_ID));
+                wireProduct.put(BrazeConstants.WireOutputKeys.PRICE, product.optDouble(BrazeConstants.Ecommerce.PRICE));
+                wireProduct.put(BrazeConstants.WireOutputKeys.QUANTITY, product.optInt(BrazeConstants.Ecommerce.QUANTITY, 1));
                 if (keyHasValue(product, BrazeConstants.Ecommerce.IMAGE_URL)) {
-                    wireProduct.put(BrazeConstants.Ecommerce.IMAGE_URL, product.optString(BrazeConstants.Ecommerce.IMAGE_URL));
+                    wireProduct.put(BrazeConstants.WireOutputKeys.IMAGE_URL, product.optString(BrazeConstants.Ecommerce.IMAGE_URL));
                 }
                 if (keyHasValue(product, BrazeConstants.Ecommerce.PRODUCT_URL)) {
-                    wireProduct.put(BrazeConstants.Ecommerce.PRODUCT_URL, product.optString(BrazeConstants.Ecommerce.PRODUCT_URL));
+                    wireProduct.put(BrazeConstants.WireOutputKeys.PRODUCT_URL, product.optString(BrazeConstants.Ecommerce.PRODUCT_URL));
                 }
                 if (keyHasValue(product, BrazeConstants.Ecommerce.PRODUCT_PROPERTIES)) {
                     // The wire schema for order_cancelled/order_refunded calls this key "metadata",
-                    // whereas the internal payload shape (shared with the four typed events) uses
-                    // "properties" - rename it here since these two events aren't SDK-typed.
-                    wireProduct.put("metadata", product.optJSONObject(BrazeConstants.Ecommerce.PRODUCT_PROPERTIES));
+                    // whereas the input payload uses "product_metadata".
+                    wireProduct.put(BrazeConstants.WireOutputKeys.METADATA, product.optJSONObject(BrazeConstants.Ecommerce.PRODUCT_PROPERTIES));
                 }
             } catch (JSONException jex) {
                 // A non-finite price (NaN/Infinity) makes JSONObject.put throw mid-build; skip the
-                // partially-built product rather than appending it, matching getEcommerceProductsFromJson.
+                // partially-built product rather than appending it.
                 Log.w(BrazeConstants.TAG, "Failed to build wire-schema ecommerce product JSON", jex);
                 continue;
             }
@@ -421,6 +450,114 @@ class BrazeUtils {
         }
 
         return result;
+    }
+
+    /**
+     * The parallel top-level product arrays shared by every ecommerce event that carries products
+     * (cart/checkout/order). Required arrays are length-matched; a mismatch or a missing required
+     * array yields null so the caller skips the whole event. Optional arrays are kept only when
+     * their length matches the required count (a misaligned optional array can't be safely indexed).
+     */
+    private static final class ProductArrays {
+        final JSONArray productIds;
+        final JSONArray productNames;
+        final JSONArray variantIds;
+        final JSONArray quantities;
+        final JSONArray prices;
+        final JSONArray imageUrls;
+        final JSONArray productUrls;
+        final JSONArray metadatas;
+        final int count;
+
+        private ProductArrays(JSONArray productIds, JSONArray productNames, JSONArray variantIds,
+                              JSONArray quantities, JSONArray prices, JSONArray imageUrls,
+                              JSONArray productUrls, JSONArray metadatas, int count) {
+            this.productIds = productIds;
+            this.productNames = productNames;
+            this.variantIds = variantIds;
+            this.quantities = quantities;
+            this.prices = prices;
+            this.imageUrls = imageUrls;
+            this.productUrls = productUrls;
+            this.metadatas = metadatas;
+            this.count = count;
+        }
+
+        static ProductArrays from(JSONObject payload) {
+            JSONArray productIds = payload.optJSONArray(BrazeConstants.Ecommerce.PRODUCT_ID);
+            JSONArray productNames = payload.optJSONArray(BrazeConstants.Ecommerce.PRODUCT_NAME);
+            JSONArray variantIds = payload.optJSONArray(BrazeConstants.Ecommerce.VARIANT_ID);
+            JSONArray quantities = payload.optJSONArray(BrazeConstants.Ecommerce.QUANTITY);
+            if (quantities == null) {
+                quantities = payload.optJSONArray(BrazeConstants.Ecommerce.QUANTITY_FALLBACK);
+            }
+            JSONArray prices = payload.optJSONArray(BrazeConstants.Ecommerce.PRICE);
+
+            if (productIds == null || productNames == null || variantIds == null
+                    || quantities == null || prices == null) {
+                return null;
+            }
+            int count = productIds.length();
+            if (productNames.length() != count || variantIds.length() != count
+                    || quantities.length() != count || prices.length() != count) {
+                Log.w(BrazeConstants.TAG, "Skipping ecommerce event: mismatched product array lengths");
+                return null;
+            }
+
+            return new ProductArrays(productIds, productNames, variantIds, quantities, prices,
+                    optionalMatchedArray(payload, BrazeConstants.Ecommerce.IMAGE_URL, count),
+                    optionalMatchedArray(payload, BrazeConstants.Ecommerce.PRODUCT_URL, count),
+                    optionalMatchedArray(payload, BrazeConstants.Ecommerce.PRODUCT_PROPERTIES, count),
+                    count);
+        }
+
+        /**
+         * Returns the optional array at {@code key} only when present and length-matched to
+         * {@code count}; otherwise null, so a misaligned optional array is dropped whole rather than
+         * indexed out of step with the required arrays.
+         */
+        private static JSONArray optionalMatchedArray(JSONObject payload, String key, int count) {
+            JSONArray array = payload.optJSONArray(key);
+            return (array != null && array.length() == count) ? array : null;
+        }
+    }
+
+    // Scalar-string readers for logProductViewed, which is scalar-only (it carries no products
+    // array, unlike cart/checkout/order). These reject a JSONArray value explicitly because
+    // Android's org.json coerces a JSONArray to its literal string form (e.g. "[\"sku\"]") via
+    // getString()/optString() rather than throwing -- unlike getDouble()/getJSONArray(), and
+    // unlike the reference org.json used in off-device tests. Without this guard an array value
+    // would be logged as a corrupted scalar instead of skipping the event, and would diverge from
+    // the iOS remote command (whose `as? String` cast cleanly rejects an array).
+
+    /**
+     * Reads a required scalar String. Rejects a missing key, a JSON null, an array, or any
+     * non-String value (matching the iOS `as? String` strictness).
+     *
+     * @param json the payload
+     * @param key  the key to read
+     * @return the scalar String value
+     * @throws JSONException if the value is absent or is not a String
+     */
+    static String requireScalarString(JSONObject json, String key) throws JSONException {
+        Object raw = json.opt(key);
+        if (raw instanceof String) {
+            return (String) raw;
+        }
+        throw new JSONException("Expected a scalar String for '" + key + "'");
+    }
+
+    /**
+     * Reads an optional scalar String. Returns null when the key is absent, is a JSON null, is an
+     * array, or is any non-String value (matching the iOS `as? String` cast).
+     *
+     * @param json the payload
+     * @param key  the key to read
+     * @return the scalar String value, or null
+     */
+    static String optionalScalarString(JSONObject json, String key) {
+        Object raw = json.opt(key);
+        return raw instanceof String ? (String) raw : null;
     }
 
     /**

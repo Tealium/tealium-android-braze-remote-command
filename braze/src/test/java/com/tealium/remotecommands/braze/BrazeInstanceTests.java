@@ -648,38 +648,12 @@ public class BrazeInstanceTests {
     }
 
     @Test
-    public void logProductViewed_LogsMultipleProductViewedEvents_WithProperties() throws JSONException {
-        ArgumentCaptor<ProductViewedEvent> event = ArgumentCaptor.forClass(ProductViewedEvent.class);
-        JSONObject properties = new JSONObject();
-        properties.put("string-prop", "value");
-
-        brazeInstance.logProductViewed(
-                new String[]{"sku123", "sku456"},
-                new String[]{"Widget", "Gadget"},
-                new String[]{"widget_blue", "gadget_red"},
-                new BigDecimal[]{BigDecimal.valueOf(49.99), BigDecimal.valueOf(19.99)},
-                "GBP",
-                "test-source",
-                null,
-                null,
-                new JSONObject[]{properties});
-
-        verify(mockBraze, times(2)).logEcommerceEvent(event.capture());
-        List<ProductViewedEvent> events = event.getAllValues();
-        assertEquals("sku123", events.get(0).getProducts().get(0).getProductId());
-        assertEquals("value", events.get(0).getProducts().get(0).getMetadata().get("string-prop"));
-        assertEquals("sku456", events.get(1).getProducts().get(0).getProductId());
-        assertEquals("GBP", events.get(0).getCurrency());
-        assertEquals("GBP", events.get(1).getCurrency());
-    }
-
-    @Test
     public void logCartUpdated_LogsCartUpdatedEvent_ForEachAction() throws JSONException {
         ArgumentCaptor<CartUpdatedEvent> event = ArgumentCaptor.forClass(CartUpdatedEvent.class);
 
-        brazeInstance.logCartUpdated("cart-1", "USD", "test-source", 49.99, singleProductArray(), "add", null);
-        brazeInstance.logCartUpdated("cart-1", "USD", "test-source", null, singleProductArray(), "remove", null);
-        brazeInstance.logCartUpdated("cart-1", "USD", "test-source", 49.99, singleProductArray(), "replace", null);
+        brazeInstance.logCartUpdated("cart-1", "USD", "test-source", 49.99, singleProductArray(), CartUpdatedAction.ADD, null);
+        brazeInstance.logCartUpdated("cart-1", "USD", "test-source", null, singleProductArray(), CartUpdatedAction.REMOVE, null);
+        brazeInstance.logCartUpdated("cart-1", "USD", "test-source", 49.99, singleProductArray(), CartUpdatedAction.REPLACE, null);
 
         verify(mockBraze, org.mockito.Mockito.times(3)).logEcommerceEvent(event.capture());
         assertEquals(CartUpdatedAction.ADD, event.getAllValues().get(0).getAction());
@@ -691,25 +665,10 @@ public class BrazeInstanceTests {
     }
 
     @Test
-    public void logCartUpdated_DoesNotThrow_AndDefaultsToReplace_WhenActionMissingOrInvalid() throws JSONException {
-        ArgumentCaptor<CartUpdatedEvent> event = ArgumentCaptor.forClass(CartUpdatedEvent.class);
-
-        // Directly exercising BrazeInstance (no blanket try/catch here, unlike BrazeRemoteCommand)
-        // to prove the null-crash risk described in BrazeUtils.getCartUpdatedActionFromString is
-        // actually fixed at this layer, not merely masked by the dispatcher's exception handling.
-        brazeInstance.logCartUpdated("cart-1", "USD", "test-source", 49.99, singleProductArray(), null, null);
-        brazeInstance.logCartUpdated("cart-1", "USD", "test-source", 49.99, singleProductArray(), "unexpected", null);
-
-        verify(mockBraze, org.mockito.Mockito.times(2)).logEcommerceEvent(event.capture());
-        assertEquals(CartUpdatedAction.REPLACE, event.getAllValues().get(0).getAction());
-        assertEquals(CartUpdatedAction.REPLACE, event.getAllValues().get(1).getAction());
-    }
-
-    @Test
     public void logCartUpdated_LogsCartUpdatedEvent_WithMultipleProducts() throws JSONException {
         ArgumentCaptor<CartUpdatedEvent> event = ArgumentCaptor.forClass(CartUpdatedEvent.class);
 
-        brazeInstance.logCartUpdated("cart-1", "USD", "test-source", 69.98, multiProductArray(), "add", null);
+        brazeInstance.logCartUpdated("cart-1", "USD", "test-source", 69.98, multiProductArray(), CartUpdatedAction.ADD, null);
 
         verify(mockBraze).logEcommerceEvent(event.capture());
         assertEquals(2, event.getValue().getProducts().size());

@@ -3,6 +3,7 @@ package com.tealium.remotecommands.braze;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
+import com.braze.models.recommended.ecommerce.CartUpdatedAction;
 import com.tealium.remotecommands.braze.BrazeRemoteCommand.ConfigOverrider;
 
 import org.json.JSONArray;
@@ -312,22 +313,6 @@ interface BrazeCommand {
     void logProductViewed(@NonNull String productId, @NonNull String productName, @NonNull String variantId, double price, @Nullable String currency, @NonNull String source, @Nullable String imageUrl, @Nullable String productUrl, @Nullable JSONObject properties);
 
     /**
-     * Logs multiple product-viewed events, one per array index. Each array should be matched in
-     * length; currency and source are event-level and shared across all fired events.
-     *
-     * @param productIds   An array of product ids, one per product-viewed event
-     * @param productNames An array of product names
-     * @param variantIds   An array of product variant ids
-     * @param prices       An array of product prices
-     * @param currency     The currency; defaults to "USD" when null or empty
-     * @param source       The event source
-     * @param imageUrls    An optional array of product image urls
-     * @param productUrls  An optional array of product urls
-     * @param properties   An optional array of custom properties, one per product-viewed event
-     */
-    void logProductViewed(@NonNull String[] productIds, String[] productNames, String[] variantIds, @NonNull BigDecimal[] prices, @Nullable String currency, @NonNull String source, @Nullable String[] imageUrls, @Nullable String[] productUrls, @Nullable JSONObject[] properties);
-
-    /**
      * Logs a Braze ecommerce CartUpdatedEvent. Each entry in the products array is expected to be a
      * JSONObject describing a single product using the keys in BrazeConstants.Ecommerce.
      * <p>
@@ -339,10 +324,10 @@ interface BrazeCommand {
      * @param source     the event source
      * @param totalValue the optional cart total value; may be null for add/remove actions
      * @param products   a JSONArray of product objects
-     * @param action     the cart action: "add", "remove" or "replace"
+     * @param action     the cart action (ADD, REMOVE or REPLACE), selected by the command name
      * @param properties optional custom properties to accompany the event
      */
-    void logCartUpdated(@NonNull String cartId, @Nullable String currency, @NonNull String source, @Nullable Double totalValue, @NonNull JSONArray products, @NonNull String action, @Nullable JSONObject properties);
+    void logCartUpdated(@NonNull String cartId, @Nullable String currency, @NonNull String source, @Nullable Double totalValue, @NonNull JSONArray products, @NonNull CartUpdatedAction action, @Nullable JSONObject properties);
 
     /**
      * Logs a Braze ecommerce CheckoutStartedEvent. Each entry in the products array is expected to

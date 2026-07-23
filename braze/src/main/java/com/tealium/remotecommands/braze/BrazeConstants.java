@@ -33,7 +33,9 @@ public final class BrazeConstants {
         public static final String LOG_CUSTOM_EVENT = "logcustomevent";
         public static final String LOG_PURCHASE_EVENT = "logpurchase";
         public static final String LOG_PRODUCT_VIEWED = "logproductviewed";
-        public static final String LOG_CART_UPDATED = "logcartupdated";
+        public static final String LOG_CART_UPDATED_ADD = "logcartupdatedadd";
+        public static final String LOG_CART_UPDATED_REMOVE = "logcartupdatedremove";
+        public static final String LOG_CART_UPDATED_REPLACE = "logcartupdatedreplace";
         public static final String LOG_CHECKOUT_STARTED = "logcheckoutstarted";
         public static final String LOG_ORDER_PLACED = "logorderplaced";
         public static final String LOG_ORDER_CANCELLED = "logordercancelled";
@@ -144,25 +146,25 @@ public final class BrazeConstants {
         public static final String SHIPPING = "ecommerce_shipping"; // optional, order_cancelled
         public static final String TOTAL_DISCOUNTS = "ecommerce_total_discounts";
         public static final String DISCOUNTS = "discounts"; // JSONArray of discount objects, logorderplaced/order_cancelled/order_refunded
-        public static final String PRODUCTS = "ecommerce_products"; // JSONArray of product objects
         public static final String PROPERTIES = "ecommerce_properties"; // event-level metadata
         public static final String CHECKOUT_ID = "checkout_id";
         public static final String CART_ID = "cart_id";
         public static final String ORDER_ID = "order_id";
-        public static final String CART_ACTION = "cart_action"; // "add", "remove" or "replace"
         public static final String CANCEL_REASON = "cancel_reason"; // logordercancelled only, required
 
-        // Product-object fields, found inside each element of the PRODUCTS array. For a
-        // ProductViewedEvent, which carries no products array, these are read from the top level
-        // of the payload instead.
+        // Product-level fields. For cart/checkout/order events these are PARALLEL TOP-LEVEL ARRAYS
+        // (product_id: [...], product_unit_price: [...], ...) zipped by index; for a
+        // ProductViewedEvent (no products array) they are read as top-level scalars. Key names are
+        // unified with the iOS remote command.
         public static final String PRODUCT_ID = "product_id";
         public static final String PRODUCT_NAME = "product_name";
         public static final String VARIANT_ID = "variant_id";
-        public static final String PRICE = "price";
-        public static final String QUANTITY = "quantity";
+        public static final String PRICE = "product_unit_price";
+        public static final String QUANTITY = "product_qty";
+        public static final String QUANTITY_FALLBACK = "quantity"; // legacy alias for product_qty
         public static final String IMAGE_URL = "image_url";
         public static final String PRODUCT_URL = "product_url";
-        public static final String PRODUCT_PROPERTIES = "properties"; // per-product metadata
+        public static final String PRODUCT_PROPERTIES = "product_metadata"; // per-product metadata
     }
 
     public static final class Location {
@@ -197,5 +199,16 @@ public final class BrazeConstants {
         public static final String SOURCE = "source";
         public static final String TOTAL_DISCOUNTS = "total_discounts";
         public static final String METADATA = "metadata";
+
+        // Product-object OUTPUT wire keys, nested inside each element of PRODUCTS. Braze's schema
+        // uses bare "price"/"quantity" here, distinct from the "product_unit_price"/"product_qty"
+        // INPUT keys in Ecommerce.
+        public static final String PRODUCT_ID = "product_id";
+        public static final String PRODUCT_NAME = "product_name";
+        public static final String VARIANT_ID = "variant_id";
+        public static final String PRICE = "price";
+        public static final String QUANTITY = "quantity";
+        public static final String IMAGE_URL = "image_url";
+        public static final String PRODUCT_URL = "product_url";
     }
 }

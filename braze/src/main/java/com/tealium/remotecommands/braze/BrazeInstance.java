@@ -586,24 +586,7 @@ class BrazeInstance implements BrazeCommand, ActivityLifecycleCallbacks {
     }
 
     @Override
-    public void logProductViewed(@NonNull String[] productIds, String[] productNames, String[] variantIds, @NonNull BigDecimal[] prices, String currency, @NonNull String source, String[] imageUrls, String[] productUrls, JSONObject[] properties) {
-        for (int i = 0; i < productIds.length; i++) {
-            logProductViewed(
-                    productIds[i],
-                    productNames != null && productNames.length > i ? productNames[i] : null,
-                    variantIds != null && variantIds.length > i ? variantIds[i] : null,
-                    prices != null && prices.length > i ? prices[i].doubleValue() : 0d,
-                    currency,
-                    source,
-                    imageUrls != null && imageUrls.length > i ? imageUrls[i] : null,
-                    productUrls != null && productUrls.length > i ? productUrls[i] : null,
-                    properties != null && properties.length > i ? properties[i] : null
-            );
-        }
-    }
-
-    @Override
-    public void logCartUpdated(@NonNull String cartId, @Nullable String currency, @NonNull String source, @Nullable Double totalValue, @NonNull JSONArray products, @NonNull String action, @Nullable JSONObject properties) {
+    public void logCartUpdated(@NonNull String cartId, @Nullable String currency, @NonNull String source, @Nullable Double totalValue, @NonNull JSONArray products, @NonNull CartUpdatedAction action, @Nullable JSONObject properties) {
         if (BrazeUtils.isNullOrEmpty(currency)) {
             currency = "USD";// braze default.
         }
@@ -615,7 +598,7 @@ class BrazeInstance implements BrazeCommand, ActivityLifecycleCallbacks {
                 totalValue,
                 BrazeUtils.getEcommerceProductsFromJson(products, mStrictPropertiesEnabled),
                 BrazeUtils.extractCustomProperties(properties, mStrictPropertiesEnabled),
-                BrazeUtils.getCartUpdatedActionFromString(action)
+                action
         ));
     }
 
