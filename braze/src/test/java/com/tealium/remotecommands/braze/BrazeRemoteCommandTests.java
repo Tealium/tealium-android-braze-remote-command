@@ -536,6 +536,61 @@ public class BrazeRemoteCommandTests {
     }
 
     @Test
+    public void testCartUpdatedEvent_NotDispatched_WhenProductsMissing() throws Exception {
+        RemoteCommand.Response response = ResponseBuilder.create()
+                .addCommand(Commands.LOG_CART_UPDATED)
+                .populatePayload((json) -> {
+                    json.put(Ecommerce.CART_ID, "cart-1");
+                    json.put(Ecommerce.CURRENCY, "USD");
+                    json.put(Ecommerce.SOURCE, "test-source");
+                    json.put(Ecommerce.TOTAL_VALUE, 49.99);
+                    json.put(Ecommerce.ACTION, "add");
+                    // products intentionally omitted; required per the wire schema.
+                })
+                .build();
+
+        brazeRemoteCommand.onInvoke(response);
+
+        verify(mockBrazeInstance, never()).logCartUpdated(any(), any(), any(), any(), any(), any(), any());
+    }
+
+    @Test
+    public void testCheckoutStartedEvent_NotDispatched_WhenProductsMissing() throws Exception {
+        RemoteCommand.Response response = ResponseBuilder.create()
+                .addCommand(Commands.LOG_CHECKOUT_STARTED)
+                .populatePayload((json) -> {
+                    json.put(Ecommerce.CHECKOUT_ID, "checkout-1");
+                    json.put(Ecommerce.CURRENCY, "USD");
+                    json.put(Ecommerce.SOURCE, "test-source");
+                    json.put(Ecommerce.TOTAL_VALUE, 49.99);
+                    // products intentionally omitted; required per the wire schema.
+                })
+                .build();
+
+        brazeRemoteCommand.onInvoke(response);
+
+        verify(mockBrazeInstance, never()).logCheckoutStarted(any(), any(), any(), anyDouble(), any(), any(), any());
+    }
+
+    @Test
+    public void testOrderPlacedEvent_NotDispatched_WhenProductsMissing() throws Exception {
+        RemoteCommand.Response response = ResponseBuilder.create()
+                .addCommand(Commands.LOG_ORDER_PLACED)
+                .populatePayload((json) -> {
+                    json.put(Ecommerce.ORDER_ID, "order-1");
+                    json.put(Ecommerce.CURRENCY, "USD");
+                    json.put(Ecommerce.SOURCE, "test-source");
+                    json.put(Ecommerce.TOTAL_VALUE, 49.99);
+                    // products intentionally omitted; required per the wire schema.
+                })
+                .build();
+
+        brazeRemoteCommand.onInvoke(response);
+
+        verify(mockBrazeInstance, never()).logOrderPlaced(anyString(), anyString(), anyString(), anyDouble(), any(), any(), any(), any(), any());
+    }
+
+    @Test
     public void testEcommerceEvent_DoesNotDispatch_OnInvalidPayload() throws Exception {
         // Missing every ecommerce field, including the now-required total_value; dispatch must not
         // propagate an exception, but must also not fabricate a $0 order.

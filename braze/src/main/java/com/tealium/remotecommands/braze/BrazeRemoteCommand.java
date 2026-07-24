@@ -403,20 +403,10 @@ public class BrazeRemoteCommand extends RemoteCommand {
                         }
                         break;
                     case Commands.LOG_PRODUCT_VIEWED:
-                        // logProductViewed describes a single product detail view (Braze's
-                        // ProductViewedEvent carries no products array), so every product field is
-                        // a plain scalar. Unlike cart/checkout/order -- whose products are genuinely
-                        // arrays -- an array value here is a caller mistake and is rejected: the
-                        // required readers throw (caught below, skipping the whole event) rather
-                        // than being coerced into a corrupted scalar. requireScalarString is used
-                        // instead of getString because Android's org.json coerces a JSONArray to
-                        // its literal string form rather than throwing (see BrazeUtils).
                         mBraze.logProductViewed(
                                 BrazeUtils.requireScalarString(payload, Ecommerce.PRODUCT_ID),
                                 BrazeUtils.requireScalarString(payload, Ecommerce.PRODUCT_NAME),
                                 BrazeUtils.requireScalarString(payload, Ecommerce.VARIANT_ID),
-                                // price is required; getDouble throws (caught below, skipping the
-                                // whole event) rather than silently logging a fabricated $0 event.
                                 payload.getDouble(Ecommerce.PRICE),
                                 payload.optString(Ecommerce.CURRENCY),
                                 payload.optString(Ecommerce.SOURCE),
@@ -426,8 +416,6 @@ public class BrazeRemoteCommand extends RemoteCommand {
                         );
                         break;
                     case Commands.LOG_CART_UPDATED:
-                        // total_value is optional for add/remove, required for replace; the SDK-side
-                        // validation (once implemented) is responsible for enforcing that distinction.
                         double cartTotalValue = payload.optDouble(Ecommerce.TOTAL_VALUE);
                         mBraze.logCartUpdated(
                                 payload.optString(Ecommerce.CART_ID),
@@ -435,7 +423,7 @@ public class BrazeRemoteCommand extends RemoteCommand {
                                 payload.optString(Ecommerce.SOURCE),
                                 Double.isNaN(cartTotalValue) ? null : cartTotalValue,
                                 Ecommerce.Action.from(BrazeUtils.optionalScalarString(payload, Ecommerce.ACTION)),
-                                payload.optJSONObject(Ecommerce.PRODUCTS),
+                                payload.getJSONObject(Ecommerce.PRODUCTS),
                                 payload.optJSONObject(Ecommerce.METADATA)
                         );
                         break;
@@ -444,10 +432,8 @@ public class BrazeRemoteCommand extends RemoteCommand {
                                 payload.optString(Ecommerce.CHECKOUT_ID),
                                 payload.optString(Ecommerce.CURRENCY),
                                 payload.optString(Ecommerce.SOURCE),
-                                // total_value is required; getDouble throws (caught below, skipping
-                                // the whole event) rather than silently logging a fabricated $0 event.
                                 payload.getDouble(Ecommerce.TOTAL_VALUE),
-                                payload.optJSONObject(Ecommerce.PRODUCTS),
+                                payload.getJSONObject(Ecommerce.PRODUCTS),
                                 BrazeUtils.keyHasValue(payload, Ecommerce.CART_ID) ? payload.optString(Ecommerce.CART_ID) : null,
                                 payload.optJSONObject(Ecommerce.METADATA)
                         );
@@ -458,10 +444,8 @@ public class BrazeRemoteCommand extends RemoteCommand {
                                 payload.optString(Ecommerce.ORDER_ID),
                                 payload.optString(Ecommerce.CURRENCY),
                                 payload.optString(Ecommerce.SOURCE),
-                                // total_value is required; getDouble throws (caught below, skipping
-                                // the whole event) rather than silently logging a fabricated $0 event.
                                 payload.getDouble(Ecommerce.TOTAL_VALUE),
-                                payload.optJSONObject(Ecommerce.PRODUCTS),
+                                payload.getJSONObject(Ecommerce.PRODUCTS),
                                 BrazeUtils.keyHasValue(payload, Ecommerce.CART_ID) ? payload.optString(Ecommerce.CART_ID) : null,
                                 Double.isNaN(orderPlacedDiscounts) ? null : orderPlacedDiscounts,
                                 payload.optJSONObject(Ecommerce.DISCOUNTS),
@@ -477,13 +461,11 @@ public class BrazeRemoteCommand extends RemoteCommand {
                                 payload.getString(Ecommerce.ORDER_ID),
                                 payload.optString(Ecommerce.CURRENCY),
                                 payload.getString(Ecommerce.SOURCE),
-                                // total_value is required; getDouble throws (caught below, skipping
-                                // the whole event) rather than silently logging a fabricated $0 event.
                                 payload.getDouble(Ecommerce.TOTAL_VALUE),
                                 Double.isNaN(orderCancelledSubtotal) ? null : orderCancelledSubtotal,
                                 Double.isNaN(orderCancelledTax) ? null : orderCancelledTax,
                                 Double.isNaN(orderCancelledShipping) ? null : orderCancelledShipping,
-                                payload.optJSONObject(Ecommerce.PRODUCTS),
+                                payload.getJSONObject(Ecommerce.PRODUCTS),
                                 payload.getString(Ecommerce.CANCEL_REASON),
                                 Double.isNaN(orderCancelledDiscounts) ? null : orderCancelledDiscounts,
                                 payload.optJSONObject(Ecommerce.DISCOUNTS),
@@ -496,10 +478,8 @@ public class BrazeRemoteCommand extends RemoteCommand {
                                 payload.getString(Ecommerce.ORDER_ID),
                                 payload.optString(Ecommerce.CURRENCY),
                                 payload.getString(Ecommerce.SOURCE),
-                                // total_value is required; getDouble throws (caught below, skipping
-                                // the whole event) rather than silently logging a fabricated $0 event.
                                 payload.getDouble(Ecommerce.TOTAL_VALUE),
-                                payload.optJSONObject(Ecommerce.PRODUCTS),
+                                payload.getJSONObject(Ecommerce.PRODUCTS),
                                 Double.isNaN(orderRefundedDiscounts) ? null : orderRefundedDiscounts,
                                 payload.optJSONObject(Ecommerce.DISCOUNTS),
                                 payload.optJSONObject(Ecommerce.METADATA)
