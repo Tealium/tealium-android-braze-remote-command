@@ -18,7 +18,6 @@ import com.braze.BrazeActivityLifecycleCallbackListener;
 import com.braze.BrazeUser;
 import com.braze.configuration.BrazeConfig;
 import com.braze.models.outgoing.BrazeProperties;
-import com.braze.models.recommended.ecommerce.CartUpdatedAction;
 import com.braze.models.recommended.ecommerce.CartUpdatedEvent;
 import com.braze.models.recommended.ecommerce.CheckoutStartedEvent;
 import com.braze.models.recommended.ecommerce.EcommerceProduct;
@@ -568,10 +567,6 @@ class BrazeInstance implements BrazeCommand, ActivityLifecycleCallbacks {
 
     @Override
     public void logProductViewed(@NonNull String productId, @NonNull String productName, @NonNull String variantId, double price, @Nullable String currency, @NonNull String source, @Nullable String imageUrl, @Nullable String productUrl, @Nullable JSONObject properties) {
-        if (BrazeUtils.isNullOrEmpty(currency)) {
-            currency = "USD";// braze default.
-        }
-
         getBrazeInstance().logEcommerceEvent(new ProductViewedEvent(
                 productId,
                 productName,
@@ -586,89 +581,74 @@ class BrazeInstance implements BrazeCommand, ActivityLifecycleCallbacks {
     }
 
     @Override
-    public void logCartUpdated(@NonNull String cartId, @Nullable String currency, @NonNull String source, @Nullable Double totalValue, @NonNull JSONArray products, @NonNull CartUpdatedAction action, @Nullable JSONObject properties) {
-        if (BrazeUtils.isNullOrEmpty(currency)) {
-            currency = "USD";// braze default.
-        }
-
+    public void logCartUpdated(@NonNull String cartId, @Nullable String currency, @NonNull String source, @Nullable Double totalValue, @NonNull BrazeConstants.Ecommerce.Action action, @Nullable JSONObject products, @Nullable JSONObject properties) {
         getBrazeInstance().logEcommerceEvent(new CartUpdatedEvent(
                 cartId,
                 currency,
                 source,
                 totalValue,
-                BrazeUtils.getEcommerceProductsFromJson(products, mStrictPropertiesEnabled),
+                BrazeUtils.getProductsFromNestedArrays(products, mStrictPropertiesEnabled),
                 BrazeUtils.extractCustomProperties(properties, mStrictPropertiesEnabled),
-                action
+                action.brazeAction
         ));
     }
 
     @Override
-    public void logCheckoutStarted(@NonNull String checkoutId, @Nullable String currency, @NonNull String source, double totalValue, @NonNull JSONArray products, @Nullable String cartId, @Nullable JSONObject properties) {
-        if (BrazeUtils.isNullOrEmpty(currency)) {
-            currency = "USD";// braze default.
-        }
-
+    public void logCheckoutStarted(@NonNull String checkoutId, @Nullable String currency, @NonNull String source, double totalValue, @Nullable JSONObject products, @Nullable String cartId, @Nullable JSONObject properties) {
         getBrazeInstance().logEcommerceEvent(new CheckoutStartedEvent(
                 checkoutId,
                 currency,
                 source,
                 totalValue,
-                BrazeUtils.getEcommerceProductsFromJson(products, mStrictPropertiesEnabled),
+                BrazeUtils.getProductsFromNestedArrays(products, mStrictPropertiesEnabled),
                 cartId,
                 BrazeUtils.extractCustomProperties(properties, mStrictPropertiesEnabled)
         ));
     }
 
     @Override
-    public void logOrderPlaced(@NonNull String orderId, @Nullable String currency, @NonNull String source, double totalValue, @NonNull JSONArray products, @Nullable String cartId, @Nullable Double totalDiscounts, @Nullable JSONArray discounts, @Nullable JSONObject properties) {
-        if (BrazeUtils.isNullOrEmpty(currency)) {
-            currency = "USD";// braze default.
-        }
-
+    public void logOrderPlaced(@NonNull String orderId, @Nullable String currency, @NonNull String source, double totalValue, @Nullable JSONObject products, @Nullable String cartId, @Nullable Double totalDiscounts, @Nullable JSONObject discounts, @Nullable JSONObject properties) {
         getBrazeInstance().logEcommerceEvent(new OrderPlacedEvent(
                 orderId,
                 currency,
                 source,
                 totalValue,
-                BrazeUtils.getEcommerceProductsFromJson(products, mStrictPropertiesEnabled),
+                BrazeUtils.getProductsFromNestedArrays(products, mStrictPropertiesEnabled),
                 cartId,
                 totalDiscounts,
-                BrazeUtils.getDiscountsListFromJson(discounts),
+                BrazeUtils.getDiscountsFromNestedArrays(discounts),
                 BrazeUtils.extractCustomProperties(properties, mStrictPropertiesEnabled)
         ));
     }
 
     @Override
-    public void logOrderCancelled(@NonNull String orderId, @Nullable String currency, @NonNull String source, double totalValue, @Nullable Double subtotalValue, @Nullable Double tax, @Nullable Double shipping, @NonNull JSONArray products, @NonNull String cancelReason, @Nullable Double totalDiscounts, @Nullable JSONArray discounts, @Nullable JSONObject properties) {
-        if (BrazeUtils.isNullOrEmpty(currency)) {
-            currency = "USD";// braze default.
-        }
-
+    public void logOrderCancelled(@NonNull String orderId, @Nullable String currency, @NonNull String source, double totalValue, @Nullable Double subtotalValue, @Nullable Double tax, @Nullable Double shipping, @Nullable JSONObject products, @NonNull String cancelReason, @Nullable Double totalDiscounts, @Nullable JSONObject discounts, @Nullable JSONObject properties) {
         JSONObject wirePayload = new JSONObject();
         try {
             wirePayload.put(BrazeConstants.Ecommerce.ORDER_ID, orderId);
-            wirePayload.put(BrazeConstants.WireOutputKeys.TOTAL_VALUE, totalValue);
+            wirePayload.put(BrazeConstants.Ecommerce.TOTAL_VALUE, totalValue);
             if (subtotalValue != null) {
-                wirePayload.put(BrazeConstants.WireOutputKeys.SUBTOTAL_VALUE, subtotalValue);
+                wirePayload.put(BrazeConstants.Ecommerce.SUBTOTAL_VALUE, subtotalValue);
             }
             if (tax != null) {
-                wirePayload.put(BrazeConstants.WireOutputKeys.TAX, tax);
+                wirePayload.put(BrazeConstants.Ecommerce.TAX, tax);
             }
             if (shipping != null) {
-                wirePayload.put(BrazeConstants.WireOutputKeys.SHIPPING, shipping);
+                wirePayload.put(BrazeConstants.Ecommerce.SHIPPING, shipping);
             }
-            wirePayload.put(BrazeConstants.WireOutputKeys.CURRENCY, currency);
+            wirePayload.put(BrazeConstants.Ecommerce.CURRENCY, currency);
             wirePayload.put(BrazeConstants.Ecommerce.CANCEL_REASON, cancelReason);
-            wirePayload.put(BrazeConstants.WireOutputKeys.PRODUCTS, BrazeUtils.getEcommerceProductsAsWireJson(products));
-            wirePayload.put(BrazeConstants.WireOutputKeys.SOURCE, source);
+            wirePayload.put(BrazeConstants.Ecommerce.PRODUCTS, BrazeUtils.getProductsAsWireJson(products));
+            wirePayload.put(BrazeConstants.Ecommerce.SOURCE, source);
             if (totalDiscounts != null) {
-                wirePayload.put(BrazeConstants.WireOutputKeys.TOTAL_DISCOUNTS, totalDiscounts);
+                wirePayload.put(BrazeConstants.Ecommerce.TOTAL_DISCOUNTS, totalDiscounts);
             }
-            if (!BrazeUtils.isNullOrEmpty(discounts)) {
-                wirePayload.put(BrazeConstants.Ecommerce.DISCOUNTS, discounts);
+            JSONArray discountsJson = BrazeUtils.getDiscountsAsWireJson(discounts);
+            if (discountsJson.length() > 0) {
+                wirePayload.put(BrazeConstants.Ecommerce.DISCOUNTS, discountsJson);
             }
             if (properties != null) {
-                wirePayload.put(BrazeConstants.WireOutputKeys.METADATA, properties);
+                wirePayload.put(BrazeConstants.Ecommerce.METADATA, properties);
             }
         } catch (JSONException jex) {
             Log.w(TAG, "Failed to build ecommerce.order_cancelled payload", jex);
@@ -679,26 +659,23 @@ class BrazeInstance implements BrazeCommand, ActivityLifecycleCallbacks {
     }
 
     @Override
-    public void logOrderRefunded(@NonNull String orderId, @Nullable String currency, @NonNull String source, double totalValue, @NonNull JSONArray products, @Nullable Double totalDiscounts, @Nullable JSONArray discounts, @Nullable JSONObject properties) {
-        if (BrazeUtils.isNullOrEmpty(currency)) {
-            currency = "USD";// braze default.
-        }
-
+    public void logOrderRefunded(@NonNull String orderId, @Nullable String currency, @NonNull String source, double totalValue, @Nullable JSONObject products, @Nullable Double totalDiscounts, @Nullable JSONObject discounts, @Nullable JSONObject properties) {
         JSONObject wirePayload = new JSONObject();
         try {
             wirePayload.put(BrazeConstants.Ecommerce.ORDER_ID, orderId);
-            wirePayload.put(BrazeConstants.WireOutputKeys.TOTAL_VALUE, totalValue);
-            wirePayload.put(BrazeConstants.WireOutputKeys.CURRENCY, currency);
-            wirePayload.put(BrazeConstants.WireOutputKeys.PRODUCTS, BrazeUtils.getEcommerceProductsAsWireJson(products));
-            wirePayload.put(BrazeConstants.WireOutputKeys.SOURCE, source);
+            wirePayload.put(BrazeConstants.Ecommerce.TOTAL_VALUE, totalValue);
+            wirePayload.put(BrazeConstants.Ecommerce.CURRENCY, currency);
+            wirePayload.put(BrazeConstants.Ecommerce.PRODUCTS, BrazeUtils.getProductsAsWireJson(products));
+            wirePayload.put(BrazeConstants.Ecommerce.SOURCE, source);
             if (totalDiscounts != null) {
-                wirePayload.put(BrazeConstants.WireOutputKeys.TOTAL_DISCOUNTS, totalDiscounts);
+                wirePayload.put(BrazeConstants.Ecommerce.TOTAL_DISCOUNTS, totalDiscounts);
             }
-            if (!BrazeUtils.isNullOrEmpty(discounts)) {
-                wirePayload.put(BrazeConstants.Ecommerce.DISCOUNTS, discounts);
+            JSONArray discountsJson = BrazeUtils.getDiscountsAsWireJson(discounts);
+            if (discountsJson.length() > 0) {
+                wirePayload.put(BrazeConstants.Ecommerce.DISCOUNTS, discountsJson);
             }
             if (properties != null) {
-                wirePayload.put(BrazeConstants.WireOutputKeys.METADATA, properties);
+                wirePayload.put(BrazeConstants.Ecommerce.METADATA, properties);
             }
         } catch (JSONException jex) {
             Log.w(TAG, "Failed to build ecommerce.order_refunded payload", jex);

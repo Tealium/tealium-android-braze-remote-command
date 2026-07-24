@@ -4,7 +4,6 @@ import android.app.Application;
 import android.util.Log;
 
 import com.braze.configuration.BrazeConfig;
-import com.braze.models.recommended.ecommerce.CartUpdatedAction;
 import com.tealium.remotecommands.RemoteCommand;
 
 import org.json.JSONArray;
@@ -190,57 +189,66 @@ public class BrazeRemoteCommand extends RemoteCommand {
      * "property_name_5" : <date>, // format "E MMM dd HH:mm:ss z yyyy"
      * }],
      * <p>
-     * // Ecommerce Events (Braze SDK 42.3.0+)
-     * // Commands: logproductviewed, logcartupdatedadd, logcartupdatedremove, logcartupdatedreplace,
-     * //           logcheckoutstarted, logorderplaced
-     * // Shared keys:
-     * "ecommerce_currency" : "<string>", // ISO 4217, e.g. "USD"; defaults to "USD"
-     * "ecommerce_source" : "<string>",
-     * "ecommerce_total_value" : <double>, // required for logcartupdatedreplace/logcheckoutstarted/logorderplaced; optional for logcartupdatedadd/remove; missing/non-numeric skips the event when required
-     * "ecommerce_total_discounts" : <double>, // logorderplaced only, optional
-     * "ecommerce_properties" : { // optional event-level custom properties
-     * "property_name_1" : "string value"
-     * },
-     * "checkout_id" : "<string>", // logcheckoutstarted
-     * "cart_id" : "<string>", // logcartupdated* (required), logcheckoutstarted/logorderplaced (optional)
-     * "order_id" : "<string>", // logorderplaced
-     * // The cart action is selected by the command name (add/remove/replace), not a payload field.
-     * "discounts" : [{ // logorderplaced, optional
-     * "code" : "<string>", // optional
-     * "amount" : <double>, // optional
-     * "type" : "<string>" // optional
-     * }],
-     * // Products are supplied as PARALLEL TOP-LEVEL ARRAYS (zipped by index), unified with the iOS
-     * // remote command and the logPurchase path. logproductviewed reads a SINGLE product from the
-     * // same keys as top-level scalars (no arrays). product_id/product_name/variant_id/
-     * // product_unit_price/product_qty are required and must be equal length; the rest are optional
-     * // per-index arrays:
-     * "product_id" : ["<string>"],
-     * "product_name" : ["<string>"],
-     * "variant_id" : ["<string>"],
-     * "product_unit_price" : [<double>],
-     * "product_qty" : [<integer>], // fallback key: "quantity"
-     * "image_url" : ["<string>"], // optional
-     * "product_url" : ["<string>"], // optional
-     * "product_metadata" : [{ "property_name_1" : "string value" }] // optional per-product custom properties
-     * }
+     * // Ecommerce Events (Braze SDK 42.3.0+), keys match the Braze recommended-event schema 1:1.
+     * // Commands: logproductviewed, logcartupdated, logcheckoutstarted, logorderplaced,
+     * //           logordercancelled, logorderrefunded
+     * // logproductviewed (single product, scalar fields, no products object):
+     * "product_id" : "<string>", "product_name" : "<string>", "variant_id" : "<string>",
+     * "price" : <double>, "currency" : "<string>", "source" : "<string>",
+     * "image_url" : "<string>", // optional
+     * "product_url" : "<string>", // optional
+     * "type" : ["<string>"], // optional, e.g. "price_drop"/"back_in_stock"
+     * "metadata" : { "property_name_1" : "string value" } // optional
      * <p>
-     * // Ecommerce Custom Events (no typed Braze SDK class; logged via logCustomEvent)
-     * // Commands: logordercancelled, logorderrefunded
-     * {
-     * "order_id" : "<string>", // required
-     * "ecommerce_total_value" : <double>, // required; missing/non-numeric skips the event
-     * "ecommerce_currency" : "<string>", // ISO 4217, e.g. "USD"; defaults to "USD"
-     * "ecommerce_total_discounts" : <double>, // optional
-     * "discounts" : [{...}], // optional, see above
-     * "cancel_reason" : "<string>", // logordercancelled only, required
-     * // products as parallel top-level arrays, see above ("product_metadata" is remapped to the
-     * // wire schema's "metadata" key; product_unit_price/product_qty become price/quantity):
+     * // "products" (cart/checkout/order): a nested object holding PARALLEL ARRAYS, zipped by
+     * // index into line items -- unifying the shape with tealium-android-firebase-remote-command's
+     * // items_params. product_id/product_name/variant_id/price/quantity are required and must be
+     * // equal length; image_url/product_url/metadata are optional per-index arrays:
+     * "products" : {
      * "product_id" : ["<string>"], "product_name" : ["<string>"], "variant_id" : ["<string>"],
-     * "product_unit_price" : [<double>], "product_qty" : [<integer>], // required
-     * "ecommerce_source" : "<string>", // required
-     * "ecommerce_properties" : {...} // optional, sent as the wire schema's "metadata" key
-     * }
+     * "price" : [<double>], "quantity" : [<integer>],
+     * "image_url" : ["<string>"], "product_url" : ["<string>"], // optional
+     * "metadata" : [{ "property_name_1" : "string value" }] // optional, per product
+     * },
+     * // "discounts" (order_placed/cancelled/refunded): same nested-parallel-arrays shape, all
+     * // arrays optional:
+     * "discounts" : { "code" : ["<string>"], "amount" : [<double>], "type" : ["<string>"] },
+     * <p>
+     * // logcartupdated:
+     * "cart_id" : "<string>", // required
+     * "action" : "<string>", // "add" / "remove" / "replace"; omitted or unrecognized defaults to replace
+     * "total_value" : <double>, // required when action is omitted/replace; optional for add/remove
+     * "subtotal_value" : <double>, // optional
+     * "tax" : <double>, // optional
+     * "shipping" : <double>, // optional
+     * "currency" : "<string>", "source" : "<string>",
+     * "products" : {...}, // required, see above
+     * "metadata" : {...} // optional, event-level
+     * <p>
+     * // logcheckoutstarted:
+     * "checkout_id" : "<string>", // required
+     * "cart_id" : "<string>", // optional
+     * "total_value" : <double>, "currency" : "<string>", "source" : "<string>",
+     * "subtotal_value" : <double>, "tax" : <double>, "shipping" : <double>, // all optional
+     * "products" : {...}, // required, see above
+     * "metadata" : {...} // optional, event-level
+     * <p>
+     * // logorderplaced:
+     * "order_id" : "<string>", // required
+     * "cart_id" : "<string>", // optional
+     * "total_value" : <double>, "currency" : "<string>", "source" : "<string>",
+     * "total_discounts" : <double>, // optional
+     * "discounts" : {...}, // optional, see above
+     * "products" : {...}, // required, see above
+     * "metadata" : {...} // optional, event-level
+     * <p>
+     * // logordercancelled / logorderrefunded (no typed Braze SDK class; logged via logCustomEvent):
+     * "order_id" : "<string>", // required
+     * "total_value" : <double>, "currency" : "<string>", "source" : "<string>",
+     * "cancel_reason" : "<string>", // logordercancelled only, required
+     * "total_discounts" : <double>, "discounts" : {...}, // optional, see above
+     * "products" : {...}, // required, see above
+     * "metadata" : {...} // optional, event-level
      *
      * @param response
      * @throws Exception
@@ -414,20 +422,22 @@ public class BrazeRemoteCommand extends RemoteCommand {
                                 payload.optString(Ecommerce.SOURCE),
                                 BrazeUtils.optionalScalarString(payload, Ecommerce.IMAGE_URL),
                                 BrazeUtils.optionalScalarString(payload, Ecommerce.PRODUCT_URL),
-                                payload.optJSONObject(Ecommerce.PROPERTIES)
+                                payload.optJSONObject(Ecommerce.METADATA)
                         );
                         break;
-                    case Commands.LOG_CART_UPDATED_ADD:
-                        // Add/Remove are incremental; total_value is optional (optDouble -> NaN -> null).
-                        logCartUpdated(payload, CartUpdatedAction.ADD, payload.optDouble(Ecommerce.TOTAL_VALUE));
-                        break;
-                    case Commands.LOG_CART_UPDATED_REMOVE:
-                        logCartUpdated(payload, CartUpdatedAction.REMOVE, payload.optDouble(Ecommerce.TOTAL_VALUE));
-                        break;
-                    case Commands.LOG_CART_UPDATED_REPLACE:
-                        // Replace is a full-cart snapshot; total_value is required. getDouble throws
-                        // (caught below, skipping the whole event) rather than logging a fabricated $0.
-                        logCartUpdated(payload, CartUpdatedAction.REPLACE, payload.getDouble(Ecommerce.TOTAL_VALUE));
+                    case Commands.LOG_CART_UPDATED:
+                        // total_value is optional for add/remove, required for replace; the SDK-side
+                        // validation (once implemented) is responsible for enforcing that distinction.
+                        double cartTotalValue = payload.optDouble(Ecommerce.TOTAL_VALUE);
+                        mBraze.logCartUpdated(
+                                payload.optString(Ecommerce.CART_ID),
+                                payload.optString(Ecommerce.CURRENCY),
+                                payload.optString(Ecommerce.SOURCE),
+                                Double.isNaN(cartTotalValue) ? null : cartTotalValue,
+                                Ecommerce.Action.from(BrazeUtils.optionalScalarString(payload, Ecommerce.ACTION)),
+                                payload.optJSONObject(Ecommerce.PRODUCTS),
+                                payload.optJSONObject(Ecommerce.METADATA)
+                        );
                         break;
                     case Commands.LOG_CHECKOUT_STARTED:
                         mBraze.logCheckoutStarted(
@@ -437,9 +447,9 @@ public class BrazeRemoteCommand extends RemoteCommand {
                                 // total_value is required; getDouble throws (caught below, skipping
                                 // the whole event) rather than silently logging a fabricated $0 event.
                                 payload.getDouble(Ecommerce.TOTAL_VALUE),
-                                BrazeUtils.normalizeProductArrays(payload),
+                                payload.optJSONObject(Ecommerce.PRODUCTS),
                                 BrazeUtils.keyHasValue(payload, Ecommerce.CART_ID) ? payload.optString(Ecommerce.CART_ID) : null,
-                                payload.optJSONObject(Ecommerce.PROPERTIES)
+                                payload.optJSONObject(Ecommerce.METADATA)
                         );
                         break;
                     case Commands.LOG_ORDER_PLACED:
@@ -451,11 +461,11 @@ public class BrazeRemoteCommand extends RemoteCommand {
                                 // total_value is required; getDouble throws (caught below, skipping
                                 // the whole event) rather than silently logging a fabricated $0 event.
                                 payload.getDouble(Ecommerce.TOTAL_VALUE),
-                                BrazeUtils.normalizeProductArrays(payload),
+                                payload.optJSONObject(Ecommerce.PRODUCTS),
                                 BrazeUtils.keyHasValue(payload, Ecommerce.CART_ID) ? payload.optString(Ecommerce.CART_ID) : null,
                                 Double.isNaN(orderPlacedDiscounts) ? null : orderPlacedDiscounts,
-                                payload.optJSONArray(Ecommerce.DISCOUNTS),
-                                payload.optJSONObject(Ecommerce.PROPERTIES)
+                                payload.optJSONObject(Ecommerce.DISCOUNTS),
+                                payload.optJSONObject(Ecommerce.METADATA)
                         );
                         break;
                     case Commands.LOG_ORDER_CANCELLED:
@@ -473,14 +483,11 @@ public class BrazeRemoteCommand extends RemoteCommand {
                                 Double.isNaN(orderCancelledSubtotal) ? null : orderCancelledSubtotal,
                                 Double.isNaN(orderCancelledTax) ? null : orderCancelledTax,
                                 Double.isNaN(orderCancelledShipping) ? null : orderCancelledShipping,
-                                // products is required; normalizeProductArrays throws (caught below,
-                                // skipping the whole event) when the required product arrays are
-                                // missing or mismatched, rather than logging an empty products list.
-                                BrazeUtils.normalizeProductArrays(payload),
+                                payload.optJSONObject(Ecommerce.PRODUCTS),
                                 payload.getString(Ecommerce.CANCEL_REASON),
                                 Double.isNaN(orderCancelledDiscounts) ? null : orderCancelledDiscounts,
-                                payload.optJSONArray(Ecommerce.DISCOUNTS),
-                                payload.optJSONObject(Ecommerce.PROPERTIES)
+                                payload.optJSONObject(Ecommerce.DISCOUNTS),
+                                payload.optJSONObject(Ecommerce.METADATA)
                         );
                         break;
                     case Commands.LOG_ORDER_REFUNDED:
@@ -492,13 +499,10 @@ public class BrazeRemoteCommand extends RemoteCommand {
                                 // total_value is required; getDouble throws (caught below, skipping
                                 // the whole event) rather than silently logging a fabricated $0 event.
                                 payload.getDouble(Ecommerce.TOTAL_VALUE),
-                                // products is required; normalizeProductArrays throws (caught below,
-                                // skipping the whole event) when the required product arrays are
-                                // missing or mismatched, rather than logging an empty products list.
-                                BrazeUtils.normalizeProductArrays(payload),
+                                payload.optJSONObject(Ecommerce.PRODUCTS),
                                 Double.isNaN(orderRefundedDiscounts) ? null : orderRefundedDiscounts,
-                                payload.optJSONArray(Ecommerce.DISCOUNTS),
-                                payload.optJSONObject(Ecommerce.PROPERTIES)
+                                payload.optJSONObject(Ecommerce.DISCOUNTS),
+                                payload.optJSONObject(Ecommerce.METADATA)
                         );
                         break;
                     case Commands.EMAIL_NOTIFICATION:
@@ -553,28 +557,6 @@ public class BrazeRemoteCommand extends RemoteCommand {
                 Log.d(TAG, "Error processing command: " + command + " - " + ex.getMessage());
             }
         }
-    }
-
-    /**
-     * Shared dispatch for the three cart-updated commands (logcartupdatedadd / -remove / -replace).
-     * The action is implied by the command name; total_value is resolved by the caller (optional for
-     * add/remove, required for replace).
-     *
-     * @param payload    the command payload
-     * @param action     the cart action implied by the command name
-     * @param totalValue the resolved total value (may be NaN when absent for add/remove)
-     * @throws JSONException when the required product arrays are missing or mismatched (skips event)
-     */
-    private void logCartUpdated(JSONObject payload, CartUpdatedAction action, double totalValue) throws org.json.JSONException {
-        mBraze.logCartUpdated(
-                payload.optString(Ecommerce.CART_ID),
-                payload.optString(Ecommerce.CURRENCY),
-                payload.optString(Ecommerce.SOURCE),
-                Double.isNaN(totalValue) ? null : totalValue,
-                BrazeUtils.normalizeProductArrays(payload),
-                action,
-                payload.optJSONObject(Ecommerce.PROPERTIES)
-        );
     }
 
     /**

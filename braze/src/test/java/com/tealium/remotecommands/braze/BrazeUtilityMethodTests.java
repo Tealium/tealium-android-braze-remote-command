@@ -201,16 +201,16 @@ public class BrazeUtilityMethodTests {
 
         assertEquals(1, result.length());
         JSONObject wireProduct = result.getJSONObject(0);
-        assertEquals("sku123", wireProduct.getString(BrazeConstants.WireOutputKeys.PRODUCT_ID));
-        assertEquals("Widget", wireProduct.getString(BrazeConstants.WireOutputKeys.PRODUCT_NAME));
-        assertEquals("widget_blue", wireProduct.getString(BrazeConstants.WireOutputKeys.VARIANT_ID));
-        assertEquals(49.99, wireProduct.getDouble(BrazeConstants.WireOutputKeys.PRICE), 0.0001);
-        assertEquals(2, wireProduct.getInt(BrazeConstants.WireOutputKeys.QUANTITY));
-        assertEquals("https://example.com/img.jpg", wireProduct.getString(BrazeConstants.WireOutputKeys.IMAGE_URL));
-        assertEquals("https://example.com/p", wireProduct.getString(BrazeConstants.WireOutputKeys.PRODUCT_URL));
+        assertEquals("sku123", wireProduct.getString(BrazeConstants.Ecommerce.PRODUCT_ID));
+        assertEquals("Widget", wireProduct.getString(BrazeConstants.Ecommerce.PRODUCT_NAME));
+        assertEquals("widget_blue", wireProduct.getString(BrazeConstants.Ecommerce.VARIANT_ID));
+        assertEquals(49.99, wireProduct.getDouble(BrazeConstants.Ecommerce.PRICE), 0.0001);
+        assertEquals(2, wireProduct.getInt(BrazeConstants.Ecommerce.QUANTITY));
+        assertEquals("https://example.com/img.jpg", wireProduct.getString(BrazeConstants.Ecommerce.IMAGE_URL));
+        assertEquals("https://example.com/p", wireProduct.getString(BrazeConstants.Ecommerce.PRODUCT_URL));
         assertFalse(wireProduct.has(BrazeConstants.Ecommerce.PRODUCT_PROPERTIES));
-        assertTrue(wireProduct.has(BrazeConstants.WireOutputKeys.METADATA));
-        assertEquals(true, wireProduct.getJSONObject(BrazeConstants.WireOutputKeys.METADATA).getBoolean("rewards_member"));
+        assertTrue(wireProduct.has(BrazeConstants.Ecommerce.METADATA));
+        assertEquals(true, wireProduct.getJSONObject(BrazeConstants.Ecommerce.METADATA).getBoolean("rewards_member"));
     }
 
     @Test
