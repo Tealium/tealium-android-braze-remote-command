@@ -7,6 +7,7 @@ import com.braze.configuration.BrazeConfig;
 import com.tealium.remotecommands.RemoteCommand;
 
 import org.json.JSONArray;
+import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.math.BigDecimal;
@@ -408,8 +409,8 @@ public class BrazeRemoteCommand extends RemoteCommand {
                                 BrazeUtils.requireScalarString(payload, Ecommerce.PRODUCT_NAME),
                                 BrazeUtils.requireScalarString(payload, Ecommerce.VARIANT_ID),
                                 payload.getDouble(Ecommerce.PRICE),
-                                payload.optString(Ecommerce.CURRENCY),
-                                payload.optString(Ecommerce.SOURCE),
+                                BrazeUtils.requireScalarString(payload, Ecommerce.CURRENCY),
+                                BrazeUtils.requireScalarString(payload, Ecommerce.SOURCE),
                                 BrazeUtils.optionalScalarString(payload, Ecommerce.IMAGE_URL),
                                 BrazeUtils.optionalScalarString(payload, Ecommerce.PRODUCT_URL),
                                 payload.optJSONObject(Ecommerce.METADATA)
@@ -417,21 +418,28 @@ public class BrazeRemoteCommand extends RemoteCommand {
                         break;
                     case Commands.LOG_CART_UPDATED:
                         double cartTotalValue = payload.optDouble(Ecommerce.TOTAL_VALUE);
+                        Ecommerce.Action cartAction = Ecommerce.Action.from(BrazeUtils.optionalScalarString(payload, Ecommerce.ACTION));
+                        // total_value is required for a full-cart snapshot (action replace or omitted);
+                        // catch it here so the event is skipped client-side rather than dropped at
+                        // Braze ingestion. It stays optional for add/remove incremental updates.
+                        if (Double.isNaN(cartTotalValue) && cartAction == Ecommerce.Action.REPLACE) {
+                            throw new JSONException("total_value is required for cart_updated when action is replace or omitted");
+                        }
                         mBraze.logCartUpdated(
                                 payload.optString(Ecommerce.CART_ID),
-                                payload.optString(Ecommerce.CURRENCY),
-                                payload.optString(Ecommerce.SOURCE),
+                                BrazeUtils.requireScalarString(payload, Ecommerce.CURRENCY),
+                                BrazeUtils.requireScalarString(payload, Ecommerce.SOURCE),
                                 Double.isNaN(cartTotalValue) ? null : cartTotalValue,
-                                Ecommerce.Action.from(BrazeUtils.optionalScalarString(payload, Ecommerce.ACTION)),
+                                cartAction,
                                 payload.getJSONObject(Ecommerce.PRODUCTS),
                                 payload.optJSONObject(Ecommerce.METADATA)
                         );
                         break;
                     case Commands.LOG_CHECKOUT_STARTED:
                         mBraze.logCheckoutStarted(
-                                payload.optString(Ecommerce.CHECKOUT_ID),
-                                payload.optString(Ecommerce.CURRENCY),
-                                payload.optString(Ecommerce.SOURCE),
+                                BrazeUtils.requireScalarString(payload, Ecommerce.CHECKOUT_ID),
+                                BrazeUtils.requireScalarString(payload, Ecommerce.CURRENCY),
+                                BrazeUtils.requireScalarString(payload, Ecommerce.SOURCE),
                                 payload.getDouble(Ecommerce.TOTAL_VALUE),
                                 payload.getJSONObject(Ecommerce.PRODUCTS),
                                 BrazeUtils.keyHasValue(payload, Ecommerce.CART_ID) ? payload.optString(Ecommerce.CART_ID) : null,
@@ -441,9 +449,9 @@ public class BrazeRemoteCommand extends RemoteCommand {
                     case Commands.LOG_ORDER_PLACED:
                         double orderPlacedDiscounts = payload.optDouble(Ecommerce.TOTAL_DISCOUNTS);
                         mBraze.logOrderPlaced(
-                                payload.optString(Ecommerce.ORDER_ID),
-                                payload.optString(Ecommerce.CURRENCY),
-                                payload.optString(Ecommerce.SOURCE),
+                                BrazeUtils.requireScalarString(payload, Ecommerce.ORDER_ID),
+                                BrazeUtils.requireScalarString(payload, Ecommerce.CURRENCY),
+                                BrazeUtils.requireScalarString(payload, Ecommerce.SOURCE),
                                 payload.getDouble(Ecommerce.TOTAL_VALUE),
                                 payload.getJSONObject(Ecommerce.PRODUCTS),
                                 BrazeUtils.keyHasValue(payload, Ecommerce.CART_ID) ? payload.optString(Ecommerce.CART_ID) : null,
@@ -459,7 +467,7 @@ public class BrazeRemoteCommand extends RemoteCommand {
                         double orderCancelledShipping = payload.optDouble(Ecommerce.SHIPPING);
                         mBraze.logOrderCancelled(
                                 payload.getString(Ecommerce.ORDER_ID),
-                                payload.optString(Ecommerce.CURRENCY),
+                                BrazeUtils.requireScalarString(payload, Ecommerce.CURRENCY),
                                 payload.getString(Ecommerce.SOURCE),
                                 payload.getDouble(Ecommerce.TOTAL_VALUE),
                                 Double.isNaN(orderCancelledSubtotal) ? null : orderCancelledSubtotal,
@@ -476,7 +484,7 @@ public class BrazeRemoteCommand extends RemoteCommand {
                         double orderRefundedDiscounts = payload.optDouble(Ecommerce.TOTAL_DISCOUNTS);
                         mBraze.logOrderRefunded(
                                 payload.getString(Ecommerce.ORDER_ID),
-                                payload.optString(Ecommerce.CURRENCY),
+                                BrazeUtils.requireScalarString(payload, Ecommerce.CURRENCY),
                                 payload.getString(Ecommerce.SOURCE),
                                 payload.getDouble(Ecommerce.TOTAL_VALUE),
                                 payload.getJSONObject(Ecommerce.PRODUCTS),

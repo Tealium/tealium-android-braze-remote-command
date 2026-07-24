@@ -263,14 +263,17 @@ class BrazeUtils {
      * index -- mirroring the tealium-android-firebase-remote-command items_params convention.
      * A product missing its required price is skipped rather than fabricating a $0 line item.
      *
-     * @param products                the nested Ecommerce.PRODUCTS object (may be null)
+     * @param products                the nested Ecommerce.PRODUCTS object (must not be null -- callers read it via
+     *                                 the required {@code payload.getJSONObject(Ecommerce.PRODUCTS)})
      * @param strictPropertiesEnabled whether per-product metadata values should be passed on unchanged
-     * @return a list of EcommerceProduct, empty if the nested object or required arrays are absent/mismatched
+     * @return a list of EcommerceProduct
+     * @throws JSONException when a required nested array (product_id/product_name/variant_id/price/quantity)
+     *                        is missing or their lengths don't match, so the caller skips the whole event
+     *                        rather than dispatching with an empty products list
      */
-    static List<EcommerceProduct> getProductsFromNestedArrays(@Nullable JSONObject products, boolean strictPropertiesEnabled) {
-        List<EcommerceProduct> result = new ArrayList<>();
+    static List<EcommerceProduct> getProductsFromNestedArrays(@Nullable JSONObject products, boolean strictPropertiesEnabled) throws JSONException {
         if (products == null) {
-            return result;
+            throw new JSONException("Missing required ecommerce products object");
         }
 
         JSONArray productIds = products.optJSONArray(BrazeConstants.Ecommerce.PRODUCT_ID);
@@ -279,15 +282,16 @@ class BrazeUtils {
         JSONArray prices = products.optJSONArray(BrazeConstants.Ecommerce.PRICE);
         JSONArray quantities = products.optJSONArray(BrazeConstants.Ecommerce.QUANTITY);
         if (productIds == null || productNames == null || variantIds == null || prices == null || quantities == null) {
-            return result;
+            throw new JSONException("Missing required ecommerce product arrays");
         }
 
         int count = productIds.length();
         if (productNames.length() != count || variantIds.length() != count
                 || prices.length() != count || quantities.length() != count) {
-            Log.w(BrazeConstants.TAG, "Skipping ecommerce products: mismatched product array lengths");
-            return result;
+            throw new JSONException("Mismatched ecommerce product array lengths");
         }
+
+        List<EcommerceProduct> result = new ArrayList<>();
 
         JSONArray imageUrls = optionalMatchedArray(products, BrazeConstants.Ecommerce.IMAGE_URL, count);
         JSONArray productUrls = optionalMatchedArray(products, BrazeConstants.Ecommerce.PRODUCT_URL, count);
@@ -376,13 +380,16 @@ class BrazeUtils {
      * {@link #getProductsFromNestedArrays}; the wire schema uses the same key names (price,
      * quantity, metadata) as the input, so no key remapping is needed.
      *
-     * @param products the nested Ecommerce.PRODUCTS object (may be null)
-     * @return a JSONArray of plain JSONObjects, empty if the nested object or required arrays are absent/mismatched
+     * @param products the nested Ecommerce.PRODUCTS object (must not be null -- callers read it via
+     *                 the required {@code payload.getJSONObject(Ecommerce.PRODUCTS)})
+     * @return a JSONArray of plain JSONObjects
+     * @throws JSONException when a required nested array (product_id/product_name/variant_id/price/quantity)
+     *                        is missing or their lengths don't match, so the caller skips the whole event
+     *                        rather than dispatching with an empty products list
      */
-    static JSONArray getProductsAsWireJson(@Nullable JSONObject products) {
-        JSONArray result = new JSONArray();
+    static JSONArray getProductsAsWireJson(@Nullable JSONObject products) throws JSONException {
         if (products == null) {
-            return result;
+            throw new JSONException("Missing required ecommerce products object");
         }
 
         JSONArray productIds = products.optJSONArray(BrazeConstants.Ecommerce.PRODUCT_ID);
@@ -391,15 +398,16 @@ class BrazeUtils {
         JSONArray prices = products.optJSONArray(BrazeConstants.Ecommerce.PRICE);
         JSONArray quantities = products.optJSONArray(BrazeConstants.Ecommerce.QUANTITY);
         if (productIds == null || productNames == null || variantIds == null || prices == null || quantities == null) {
-            return result;
+            throw new JSONException("Missing required ecommerce product arrays");
         }
 
         int count = productIds.length();
         if (productNames.length() != count || variantIds.length() != count
                 || prices.length() != count || quantities.length() != count) {
-            Log.w(BrazeConstants.TAG, "Skipping ecommerce products: mismatched product array lengths");
-            return result;
+            throw new JSONException("Mismatched ecommerce product array lengths");
         }
+
+        JSONArray result = new JSONArray();
 
         JSONArray imageUrls = optionalMatchedArray(products, BrazeConstants.Ecommerce.IMAGE_URL, count);
         JSONArray productUrls = optionalMatchedArray(products, BrazeConstants.Ecommerce.PRODUCT_URL, count);

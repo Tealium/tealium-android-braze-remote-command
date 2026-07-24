@@ -147,12 +147,15 @@ class EventsActivity : AppCompatActivity() {
 
     private fun logProductViewed() {
         // logProductViewed describes a single product, so its fields are plain scalars (no arrays).
+        // Uses its own product_viewed_* data layer variables -- distinct from the ec_product_*
+        // variables below, which map into the nested `products` object's parallel arrays and would
+        // otherwise collide with these scalar fields.
         trackEvent(
             "log_product_viewed", mapOf(
-                "ec_product_id" to "sku123",
-                "ec_product_name" to "Widget",
-                "ec_variant_id" to "widget_blue_lg",
-                "ec_price" to 49.99,
+                "product_viewed_id" to "sku123",
+                "product_viewed_name" to "Widget",
+                "product_viewed_variant_id" to "widget_blue_lg",
+                "product_viewed_price" to 49.99,
                 "ec_currency" to "USD",
                 "ec_source" to "android-example"
             )
@@ -160,16 +163,16 @@ class EventsActivity : AppCompatActivity() {
     }
 
     private fun logCartUpdatedAdd() {
-        trackEvent("log_cart_updated_add", cartData())
+        trackEvent("log_cart_updated", cartData() + mapOf("ec_action" to "add"))
     }
 
     private fun logCartUpdatedRemove() {
-        trackEvent("log_cart_updated_remove", cartData())
+        trackEvent("log_cart_updated", cartData() + mapOf("ec_action" to "remove"))
     }
 
     private fun logCartUpdatedReplace() {
         // Replace is a full snapshot and requires total_value.
-        trackEvent("log_cart_updated_replace", cartData() + mapOf("ec_total_value" to 109.96))
+        trackEvent("log_cart_updated", cartData() + mapOf("ec_action" to "replace", "ec_total_value" to 109.96))
     }
 
     private fun logCheckoutStarted() {
@@ -186,9 +189,8 @@ class EventsActivity : AppCompatActivity() {
             "log_order_placed", cartData() + mapOf(
                 "ec_order_id" to "order-789",
                 "ec_total_value" to 109.96,
-                "ec_total_discounts" to 5.0,
-                "ec_discounts" to listOf(exampleDiscount())
-            )
+                "ec_total_discounts" to 5.0
+            ) + discountData()
         )
     }
 
@@ -198,9 +200,8 @@ class EventsActivity : AppCompatActivity() {
                 "ec_order_id" to "order-789",
                 "ec_total_value" to 109.96,
                 "ec_total_discounts" to 5.0,
-                "ec_discounts" to listOf(exampleDiscount()),
                 "ec_cancel_reason" to "customer_request"
-            )
+            ) + discountData()
         )
     }
 
@@ -209,14 +210,14 @@ class EventsActivity : AppCompatActivity() {
             "log_order_refunded", cartData() + mapOf(
                 "ec_order_id" to "order-789",
                 "ec_total_value" to 109.96,
-                "ec_total_discounts" to 5.0,
-                "ec_discounts" to listOf(exampleDiscount())
-            )
+                "ec_total_discounts" to 5.0
+            ) + discountData()
         )
     }
 
     // Sample multi-product cart payload shared by the cart / checkout / order demo events. Products
-    // are supplied as PARALLEL TOP-LEVEL ARRAYS (one array per field, zipped by index).
+    // are supplied as a nested object holding PARALLEL ARRAYS (one array per field, zipped by
+    // index) -- mapped via the ec_product_*/ec_price/ec_quantity dot-notation keys below.
     private fun cartData(): Map<String, Any> = mapOf(
         "ec_cart_id" to "cart-456",
         "ec_currency" to "USD",
@@ -228,12 +229,12 @@ class EventsActivity : AppCompatActivity() {
         "ec_quantity" to listOf(1, 3)
     )
 
-    // Builds a single discount entry using the wrapper's raw discount keys. Values nested inside an
-    // array like this are passed straight through without friendly-name remapping.
-    private fun exampleDiscount(): Map<String, Any> = mapOf(
-        "code" to "SUMMER10",
-        "amount" to 5.0,
-        "type" to "percentage"
+    // Sample discount payload: also a nested object holding parallel arrays (one per discount
+    // field, zipped by index), same convention as cartData()'s products.
+    private fun discountData(): Map<String, Any> = mapOf(
+        "ec_discount_code" to listOf("SUMMER10"),
+        "ec_discount_amount" to listOf(5.0),
+        "ec_discount_type" to listOf("percentage")
     )
 
     companion object {

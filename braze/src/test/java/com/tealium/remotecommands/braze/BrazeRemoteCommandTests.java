@@ -426,6 +426,50 @@ public class BrazeRemoteCommandTests {
     }
 
     @Test
+    public void testCartUpdatedEvent_NotDispatched_WhenReplaceMissingTotalValue() throws Exception {
+        // total_value is required for a full-cart snapshot (action replace/omitted); the event must
+        // be skipped client-side rather than dispatched with a null total that Braze would drop.
+        JSONObject products = productsObject(singleProduct());
+        RemoteCommand.Response response = ResponseBuilder.create()
+                .addCommand(Commands.LOG_CART_UPDATED)
+                .populatePayload((json) -> {
+                    json.put(Ecommerce.CART_ID, "cart-1");
+                    json.put(Ecommerce.CURRENCY, "USD");
+                    json.put(Ecommerce.SOURCE, "test-source");
+                    json.put(Ecommerce.ACTION, "replace");
+                    json.put(Ecommerce.PRODUCTS, products);
+                    // total_value intentionally omitted.
+                })
+                .build();
+
+        brazeRemoteCommand.onInvoke(response);
+
+        verify(mockBrazeInstance, never()).logCartUpdated(any(), any(), any(), any(), any(), any(), any());
+    }
+
+    @Test
+    public void testCartUpdatedEvent_NotDispatched_WhenSourceIsArray() throws Exception {
+        // An array-valued source would coerce to its literal string form via optString; requiring a
+        // scalar String skips the event instead of dispatching corrupted data (matching iOS).
+        JSONObject products = productsObject(singleProduct());
+        RemoteCommand.Response response = ResponseBuilder.create()
+                .addCommand(Commands.LOG_CART_UPDATED)
+                .populatePayload((json) -> {
+                    json.put(Ecommerce.CART_ID, "cart-1");
+                    json.put(Ecommerce.CURRENCY, "USD");
+                    json.put(Ecommerce.SOURCE, new JSONArray().put("test-source"));
+                    json.put(Ecommerce.TOTAL_VALUE, 49.99);
+                    json.put(Ecommerce.ACTION, "add");
+                    json.put(Ecommerce.PRODUCTS, products);
+                })
+                .build();
+
+        brazeRemoteCommand.onInvoke(response);
+
+        verify(mockBrazeInstance, never()).logCartUpdated(any(), any(), any(), any(), any(), any(), any());
+    }
+
+    @Test
     public void testCheckoutStartedEvent() throws Exception {
         JSONObject products = productsObject(singleProduct());
         RemoteCommand.Response response = ResponseBuilder.create()

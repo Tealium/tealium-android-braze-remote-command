@@ -143,9 +143,21 @@ public class BrazeUtilityMethodTests {
     }
 
     @Test
-    public void productsFromNestedArraysTest_EmptyForNullOrMissingArrays() {
-        assertTrue(BrazeUtils.getProductsFromNestedArrays(null, false).isEmpty());
-        assertTrue(BrazeUtils.getProductsFromNestedArrays(new JSONObject(), false).isEmpty());
+    public void productsFromNestedArraysTest_ThrowsForNullOrMissingArrays() {
+        // A missing products object or missing required arrays throws, so the caller skips the whole
+        // event rather than dispatching an ecommerce event with no line items.
+        try {
+            BrazeUtils.getProductsFromNestedArrays(null, false);
+            fail("Expected JSONException for null products object");
+        } catch (JSONException expected) {
+            // expected
+        }
+        try {
+            BrazeUtils.getProductsFromNestedArrays(new JSONObject(), false);
+            fail("Expected JSONException for missing product arrays");
+        } catch (JSONException expected) {
+            // expected
+        }
     }
 
     @Test
@@ -262,9 +274,21 @@ public class BrazeUtilityMethodTests {
     }
 
     @Test
-    public void productsAsWireJsonTest_EmptyForNullOrMissingArrays() {
-        assertEquals(0, BrazeUtils.getProductsAsWireJson(null).length());
-        assertEquals(0, BrazeUtils.getProductsAsWireJson(new JSONObject()).length());
+    public void productsAsWireJsonTest_ThrowsForNullOrMissingArrays() {
+        // Same throw-and-skip contract as getProductsFromNestedArrays, for the order_cancelled /
+        // order_refunded wire payloads.
+        try {
+            BrazeUtils.getProductsAsWireJson(null);
+            fail("Expected JSONException for null products object");
+        } catch (JSONException expected) {
+            // expected
+        }
+        try {
+            BrazeUtils.getProductsAsWireJson(new JSONObject());
+            fail("Expected JSONException for missing product arrays");
+        } catch (JSONException expected) {
+            // expected
+        }
     }
 
     @Test
