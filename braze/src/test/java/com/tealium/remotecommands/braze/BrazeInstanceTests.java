@@ -171,29 +171,6 @@ public class BrazeInstanceTests {
     }
 
     @Test
-    public void initialize_SetsStrictPropertiesEnabled_When_Configured() throws JSONException {
-        JSONObject options = new JSONObject();
-
-        // enabled
-        options.put(BrazeConstants.Config.STRICT_PROPERTIES_ENABLED, true);
-        brazeInstance.initialize(null, options, null);
-        assertTrue(brazeInstance.mStrictPropertiesEnabled);
-
-        // disabled
-        options.put(BrazeConstants.Config.STRICT_PROPERTIES_ENABLED, false);
-        brazeInstance.initialize(null, options, null);
-        assertFalse(brazeInstance.mStrictPropertiesEnabled);
-    }
-
-    @Test
-    public void initialize_SetsStrictPropertiesEnabled_False_When_NotConfigured() throws JSONException {
-        JSONObject options = new JSONObject(); // not configured
-
-        brazeInstance.initialize(null, options, null);
-        assertFalse(brazeInstance.mStrictPropertiesEnabled);
-    }
-
-    @Test
     public void enableSdk_EnablesSdk() {
         brazeInstance.enableSdk();
 
@@ -427,7 +404,7 @@ public class BrazeInstanceTests {
 
     @Test
     public void logCustomEvent_LogsEvent_WithoutProperties() throws Exception {
-        brazeInstance.logCustomEvent("event", null);
+        brazeInstance.logCustomEvent("event", null, false);
 
         verify(mockBraze).logCustomEvent("event", null);
     }
@@ -446,7 +423,7 @@ public class BrazeInstanceTests {
         );
         JSONObject properties = new JSONObject(data);
 
-        brazeInstance.logCustomEvent("event", properties);
+        brazeInstance.logCustomEvent("event", properties, false);
 
         verify(mockBraze).logCustomEvent(eq("event"), brazeProps.capture());
         assertEquals("value", brazeProps.getValue().get("string-prop"));
@@ -460,7 +437,6 @@ public class BrazeInstanceTests {
 
     @Test
     public void logCustomEvent_LogsEvent_WithStrictProperties() throws JSONException {
-        brazeInstance.mStrictPropertiesEnabled = true;
         ArgumentCaptor<BrazeProperties> brazeProps = ArgumentCaptor.forClass(BrazeProperties.class);
         Map<String, Object> data = Map.of(
                 "string-prop", "value",
@@ -473,7 +449,7 @@ public class BrazeInstanceTests {
         );
         JSONObject properties = new JSONObject(data);
 
-        brazeInstance.logCustomEvent("event", properties);
+        brazeInstance.logCustomEvent("event", properties, true);
 
         verify(mockBraze).logCustomEvent(eq("event"), brazeProps.capture());
         assertEquals("value", brazeProps.getValue().get("string-prop"));
@@ -487,7 +463,6 @@ public class BrazeInstanceTests {
 
     @Test
     public void logCustomEvent_LogsEvent_WithParsedValues_WhenStrictPropertiesDisabled() throws JSONException {
-        brazeInstance.mStrictPropertiesEnabled = false;
         ArgumentCaptor<BrazeProperties> brazeProps = ArgumentCaptor.forClass(BrazeProperties.class);
         Map<String, Object> data = Map.of(
                 "string-prop", "value",
@@ -499,7 +474,7 @@ public class BrazeInstanceTests {
         );
         JSONObject properties = new JSONObject(data);
 
-        brazeInstance.logCustomEvent("event", properties);
+        brazeInstance.logCustomEvent("event", properties, false);
 
         verify(mockBraze).logCustomEvent(eq("event"), brazeProps.capture());
         assertEquals("value", brazeProps.getValue().get("string-prop"));
@@ -512,7 +487,6 @@ public class BrazeInstanceTests {
 
     @Test
     public void logCustomEvent_LogsEvent_WithStringValues_WhenStrictPropertiesEnabled() throws JSONException {
-        brazeInstance.mStrictPropertiesEnabled = true;
         ArgumentCaptor<BrazeProperties> brazeProps = ArgumentCaptor.forClass(BrazeProperties.class);
         Map<String, Object> data = Map.of(
                 "string-prop", "value",
@@ -524,7 +498,7 @@ public class BrazeInstanceTests {
         );
         JSONObject properties = new JSONObject(data);
 
-        brazeInstance.logCustomEvent("event", properties);
+        brazeInstance.logCustomEvent("event", properties, true);
 
         verify(mockBraze).logCustomEvent(eq("event"), brazeProps.capture());
         assertEquals("value", brazeProps.getValue().get("string-prop"));
@@ -539,11 +513,11 @@ public class BrazeInstanceTests {
     public void logPurchase_LogsPurchase_WithoutProperties() throws Exception {
         ArgumentCaptor<BrazeProperties> brazeProps = ArgumentCaptor.forClass(BrazeProperties.class);
 
-        brazeInstance.logPurchase("product1", "GBP", BigDecimal.ONE, 1, null);
+        brazeInstance.logPurchase("product1", "GBP", BigDecimal.ONE, 1, null, false);
         verify(mockBraze).logPurchase(eq("product1"), eq("GBP"), eq(BigDecimal.ONE), eq(1), brazeProps.capture());
         assertEquals(0, brazeProps.getValue().getSize());
 
-        brazeInstance.logPurchase("product1", null, BigDecimal.TEN, 10, null);
+        brazeInstance.logPurchase("product1", null, BigDecimal.TEN, 10, null, false);
         verify(mockBraze).logPurchase(eq("product1"), eq("USD"), eq(BigDecimal.TEN), eq(10), brazeProps.capture());
         assertEquals(0, brazeProps.getValue().getSize());
     }
@@ -554,7 +528,7 @@ public class BrazeInstanceTests {
         JSONObject properties = new JSONObject();
         properties.put("string-prop", "value");
 
-        brazeInstance.logPurchase("product1", "GBP", BigDecimal.ONE, 1, properties);
+        brazeInstance.logPurchase("product1", "GBP", BigDecimal.ONE, 1, properties, false);
 
         verify(mockBraze).logPurchase(eq("product1"), eq("GBP"), eq(BigDecimal.ONE), eq(1), brazeProps.capture());
         assertEquals("value", brazeProps.getValue().get("string-prop"));
@@ -571,7 +545,9 @@ public class BrazeInstanceTests {
                 new String[]{"GBP", null},
                 new BigDecimal[]{BigDecimal.ONE, BigDecimal.TEN},
                 new Integer[]{10},
-                new JSONObject[]{properties});
+                new JSONObject[]{properties},
+                false
+        );
 
         verify(mockBraze).logPurchase(eq("product1"), eq("GBP"), eq(BigDecimal.ONE), eq(10), brazeProps.capture());
         assertEquals("value", brazeProps.getValue().get("string-prop"));

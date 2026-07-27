@@ -41,7 +41,7 @@ dependencies {
     releaseImplementation "com.tealium.remotecommands:braze:$tealium_braze_version"
     debugImplementation project(path: ':braze')
 
-    implementation 'com.braze:android-sdk-ui:34.0.0'
+    implementation 'com.braze:android-sdk-ui:41.1.1'
 
     implementation 'androidx.appcompat:appcompat:1.4.1'
     implementation 'androidx.constraintlayout:constraintlayout:2.1.3'

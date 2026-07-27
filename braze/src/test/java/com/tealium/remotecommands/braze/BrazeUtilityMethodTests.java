@@ -113,6 +113,8 @@ public class BrazeUtilityMethodTests {
         Object integerStringValue = "10";
         Object doubleStringValue = "10.10";
         Object booleanStringValue = "true";
+        JSONArray jsonArrayValue = new JSONArray();
+        jsonArrayValue.put("string").put(1).put(true);
         // Object dateValue = ""; //TODO: get an example of the data in simple date format.
 
         BrazeProperties props = new BrazeProperties();
@@ -123,6 +125,7 @@ public class BrazeUtilityMethodTests {
         props = BrazeUtils.addCustomProperty("integerStringValue", integerStringValue, props);
         props = BrazeUtils.addCustomProperty("doubleStringValue", doubleStringValue, props);
         props = BrazeUtils.addCustomProperty("booleanStringValue", booleanStringValue, props);
+        props = BrazeUtils.addCustomProperty("jsonArrayValue", jsonArrayValue, props);
 
         JSONObject brazePropsJson = props.forJsonPut();
         try {
@@ -134,6 +137,8 @@ public class BrazeUtilityMethodTests {
             assertTrue(brazePropsJson.get("doubleValue") instanceof Double);
             assertEquals(booleanValue, brazePropsJson.getBoolean("booleanValue"));
             assertTrue(brazePropsJson.get("booleanValue") instanceof Boolean);
+            assertTrue(brazePropsJson.get("jsonArrayValue") instanceof JSONArray);
+            assertEquals(jsonArrayValue, brazePropsJson.get("jsonArrayValue"));
 
             /*
              * At the time of writing, the Android SDK will stringify values in a HashMap such that

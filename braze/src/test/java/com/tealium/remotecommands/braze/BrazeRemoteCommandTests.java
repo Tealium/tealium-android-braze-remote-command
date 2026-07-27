@@ -1,5 +1,7 @@
 package com.tealium.remotecommands.braze;
 
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -16,6 +18,7 @@ import androidx.test.core.app.ApplicationProvider;
 import com.tealium.remotecommands.RemoteCommand;
 import com.tealium.remotecommands.braze.BrazeConstants.Commands;
 import com.tealium.remotecommands.braze.BrazeConstants.Config;
+import com.tealium.remotecommands.braze.BrazeConstants.Event;
 import com.tealium.remotecommands.braze.BrazeConstants.Location;
 import com.tealium.remotecommands.braze.BrazeConstants.Purchase;
 import com.tealium.remotecommands.braze.BrazeConstants.User;
@@ -87,20 +90,20 @@ public class BrazeRemoteCommandTests {
                 .addCommand(Commands.INITIALIZE)
                 .populatePayload((json) -> {
                     json.put(Config.API_KEY, "api_key");
-                    json.put(BrazeConstants.Config.FIREBASE_ENABLED, true);
-                    json.put(BrazeConstants.Config.FIREBASE_SENDER_ID, "test-id");
-                    json.put(BrazeConstants.Config.ADM_ENABLED, true);
-                    json.put(BrazeConstants.Config.AUTO_PUSH_DEEP_LINKS, true);
-                    json.put(BrazeConstants.Config.BAD_NETWORK_INTERVAL, 30);
-                    json.put(BrazeConstants.Config.GOOD_NETWORK_INTERVAL, 30);
-                    json.put(BrazeConstants.Config.GREAT_NETWORK_INTERVAL, 30);
-                    json.put(BrazeConstants.Config.CUSTOM_ENDPOINT, "custom-endpoint");
-                    json.put(BrazeConstants.Config.DEFAULT_NOTIFICATION_COLOR, 0xFF00FF);
-                    json.put(BrazeConstants.Config.ENABLE_AUTOMATIC_LOCATION, true);
-                    json.put(BrazeConstants.Config.LARGE_NOTIFICATION_ICON, "large-notification-icon");
-                    json.put(BrazeConstants.Config.SMALL_NOTIFICATION_ICON, "small-notification-icon");
-                    json.put(BrazeConstants.Config.SESSION_TIMEOUT, 10);
-                    json.put(BrazeConstants.Config.TRIGGER_INTERVAL_SECONDS, 10);
+                    json.put(Config.FIREBASE_ENABLED, true);
+                    json.put(Config.FIREBASE_SENDER_ID, "test-id");
+                    json.put(Config.ADM_ENABLED, true);
+                    json.put(Config.AUTO_PUSH_DEEP_LINKS, true);
+                    json.put(Config.BAD_NETWORK_INTERVAL, 30);
+                    json.put(Config.GOOD_NETWORK_INTERVAL, 30);
+                    json.put(Config.GREAT_NETWORK_INTERVAL, 30);
+                    json.put(Config.CUSTOM_ENDPOINT, "custom-endpoint");
+                    json.put(Config.DEFAULT_NOTIFICATION_COLOR, 0xFF00FF);
+                    json.put(Config.ENABLE_AUTOMATIC_LOCATION, true);
+                    json.put(Config.LARGE_NOTIFICATION_ICON, "large-notification-icon");
+                    json.put(Config.SMALL_NOTIFICATION_ICON, "small-notification-icon");
+                    json.put(Config.SESSION_TIMEOUT, 10);
+                    json.put(Config.TRIGGER_INTERVAL_SECONDS, 10);
                 })
                 .build();
 
@@ -110,17 +113,54 @@ public class BrazeRemoteCommandTests {
     }
 
     @Test
+    public void testInitializeSetsStrictPropertiesEnabledWhenConfigured() throws Exception {
+        // enabled
+        RemoteCommand.Response response = ResponseBuilder.create()
+                .addCommand(Commands.INITIALIZE)
+                .populatePayload((json) -> {
+                    json.put(Config.API_KEY, "api_key")
+                        .put(Config.STRICT_PROPERTIES_ENABLED, true);
+                })
+                .build();
+        brazeRemoteCommand.onInvoke(response);
+        assertTrue(brazeRemoteCommand.mStrictPropertiesEnabled);
+
+        // disabled
+        response = ResponseBuilder.create()
+                .addCommand(Commands.INITIALIZE)
+                .populatePayload((json) -> {
+                    json.put(Config.API_KEY, "api_key")
+                            .put(Config.STRICT_PROPERTIES_ENABLED, false);
+                })
+                .build();
+        brazeRemoteCommand.onInvoke(response);
+        assertFalse(brazeRemoteCommand.mStrictPropertiesEnabled);
+    }
+
+    @Test
+    public void testInitializeLeavesStrictPropertiesEnabledFalseWhenNotConfigured() throws Exception {
+        RemoteCommand.Response response = ResponseBuilder.create()
+                .addCommand(Commands.INITIALIZE)
+                .populatePayload((json) -> {
+                    json.put(Config.API_KEY, "api_key");
+                })
+                .build();
+        brazeRemoteCommand.onInvoke(response);
+        assertFalse(brazeRemoteCommand.mStrictPropertiesEnabled);
+    }
+
+    @Test
     public void testCustomEventWithNullProperties() throws Exception {
         RemoteCommand.Response response = ResponseBuilder.create()
                 .addCommand(Commands.LOG_CUSTOM_EVENT)
                 .populatePayload((json) -> {
-                    json.put(BrazeConstants.Event.EVENT_NAME, "event");
+                    json.put(Event.EVENT_NAME, "event");
                 })
                 .build();
 
         brazeRemoteCommand.onInvoke(response);
 
-        verify(mockBrazeInstance).logCustomEvent(eq("event"), eq(null));
+        verify(mockBrazeInstance).logCustomEvent(eq("event"), eq(null), eq(false));
     }
 
     @Test
@@ -129,14 +169,14 @@ public class BrazeRemoteCommandTests {
         RemoteCommand.Response response = ResponseBuilder.create()
                 .addCommand(Commands.LOG_CUSTOM_EVENT)
                 .populatePayload((json) -> {
-                    json.put(BrazeConstants.Event.EVENT_NAME, "event");
-                    json.put(BrazeConstants.Event.EVENT_PROPERTIES, eventProps);
+                    json.put(Event.EVENT_NAME, "event");
+                    json.put(Event.EVENT_PROPERTIES, eventProps);
                 })
                 .build();
 
         brazeRemoteCommand.onInvoke(response);
 
-        verify(mockBrazeInstance).logCustomEvent(eq("event"), eq(eventProps));
+        verify(mockBrazeInstance).logCustomEvent(eq("event"), eq(eventProps), eq(false));
     }
 
     @Test
@@ -145,14 +185,49 @@ public class BrazeRemoteCommandTests {
         RemoteCommand.Response response = ResponseBuilder.create()
                 .addCommand(Commands.LOG_CUSTOM_EVENT)
                 .populatePayload((json) -> {
-                    json.put(BrazeConstants.Event.EVENT_NAME, "event");
-                    json.put(BrazeConstants.Event.EVENT_PROPERTIES_SHORTHAND, eventProps);
+                    json.put(Event.EVENT_NAME, "event");
+                    json.put(Event.EVENT_PROPERTIES_SHORTHAND, eventProps);
                 })
                 .build();
 
         brazeRemoteCommand.onInvoke(response);
 
-        verify(mockBrazeInstance).logCustomEvent(eq("event"), eq(eventProps));
+        verify(mockBrazeInstance).logCustomEvent(eq("event"), eq(eventProps), eq(false));
+    }
+
+    @Test
+    public void testCustomEventPrefersEventStrictPropertiesEnabledWhenPresent() throws Exception {
+        brazeRemoteCommand.mStrictPropertiesEnabled = false;
+        JSONObject eventProps = new JSONObject();
+        ResponseBuilder response = ResponseBuilder.create()
+                .addCommand(Commands.LOG_CUSTOM_EVENT)
+                .populatePayload((json) -> {
+                    json.put(Event.EVENT_NAME, "event");
+                    json.put(Event.EVENT_PROPERTIES_SHORTHAND, eventProps);
+                    json.put(Config.STRICT_PROPERTIES_ENABLED, true);
+                });
+
+        brazeRemoteCommand.onInvoke(response.build());
+        verify(mockBrazeInstance).logCustomEvent(any(), any(), eq(true));
+    }
+
+    @Test
+    public void testCustomEventUsesDefaultStrictPropertiesEnabledWhenNotPresent() throws Exception {
+        brazeRemoteCommand.mStrictPropertiesEnabled = true;
+        JSONObject eventProps = new JSONObject();
+        ResponseBuilder response = ResponseBuilder.create()
+                .addCommand(Commands.LOG_CUSTOM_EVENT)
+                .populatePayload((json) -> {
+                    json.put(Event.EVENT_NAME, "event");
+                    json.put(Event.EVENT_PROPERTIES_SHORTHAND, eventProps);
+                });
+
+        brazeRemoteCommand.onInvoke(response.build());
+        verify(mockBrazeInstance).logCustomEvent(any(), any(), eq(true));
+
+        brazeRemoteCommand.mStrictPropertiesEnabled = false;
+        brazeRemoteCommand.onInvoke(response.build());
+        verify(mockBrazeInstance).logCustomEvent(any(), any(), eq(false));
     }
 
     @Test
@@ -169,7 +244,7 @@ public class BrazeRemoteCommandTests {
 
         brazeRemoteCommand.onInvoke(response);
 
-        verify(mockBrazeInstance).logPurchase("product_id", "GBP",  BigDecimal.valueOf(10.10), 10, null);
+        verify(mockBrazeInstance).logPurchase("product_id", "GBP",  BigDecimal.valueOf(10.10), 10, null, false);
     }
 
     @Test
@@ -188,7 +263,48 @@ public class BrazeRemoteCommandTests {
 
         brazeRemoteCommand.onInvoke(response);
 
-        verify(mockBrazeInstance).logPurchase("product_id", "GBP",  BigDecimal.valueOf(10.10), 10, purchaseProps);
+        verify(mockBrazeInstance).logPurchase("product_id", "GBP",  BigDecimal.valueOf(10.10), 10, purchaseProps, false);
+    }
+
+    @Test
+    public void testPurchaseEventUsesEventStrictPropertiesEnabledWhenPresent() throws Exception {
+        brazeRemoteCommand.mStrictPropertiesEnabled = false;
+        JSONObject purchaseProps = new JSONObject();
+        RemoteCommand.Response response = ResponseBuilder.create()
+                .addCommand(Commands.LOG_PURCHASE_EVENT)
+                .populatePayload((json) -> {
+                    json.put(Purchase.PRODUCT_ID, "product_id");
+                    json.put(Purchase.PRODUCT_QTY, 10);
+                    json.put(Purchase.PRODUCT_PRICE, 10.10);
+                    json.put(Purchase.PRODUCT_CURRENCY, "GBP");
+                    json.put(Purchase.PURCHASE_PROPERTIES, purchaseProps);
+                    json.put(Config.STRICT_PROPERTIES_ENABLED, true);
+                })
+                .build();
+
+        brazeRemoteCommand.onInvoke(response);
+
+        verify(mockBrazeInstance).logPurchase("product_id", "GBP",  BigDecimal.valueOf(10.10), 10, purchaseProps, true);
+    }
+
+    @Test
+    public void testPurchaseEventUsesDefaultStrictPropertiesEnabledWhenNotPresent() throws Exception {
+        brazeRemoteCommand.mStrictPropertiesEnabled = true;
+        JSONObject purchaseProps = new JSONObject();
+        RemoteCommand.Response response = ResponseBuilder.create()
+                .addCommand(Commands.LOG_PURCHASE_EVENT)
+                .populatePayload((json) -> {
+                    json.put(Purchase.PRODUCT_ID, "product_id");
+                    json.put(Purchase.PRODUCT_QTY, 10);
+                    json.put(Purchase.PRODUCT_PRICE, 10.10);
+                    json.put(Purchase.PRODUCT_CURRENCY, "GBP");
+                    json.put(Purchase.PURCHASE_PROPERTIES, purchaseProps);
+                })
+                .build();
+
+        brazeRemoteCommand.onInvoke(response);
+
+        verify(mockBrazeInstance).logPurchase("product_id", "GBP",  BigDecimal.valueOf(10.10), 10, purchaseProps, true);
     }
 
     @Test
@@ -207,7 +323,7 @@ public class BrazeRemoteCommandTests {
 
         brazeRemoteCommand.onInvoke(response);
 
-        verify(mockBrazeInstance).logPurchase("product_id", "GBP",  BigDecimal.valueOf(10.10), 10, purchaseProps);
+        verify(mockBrazeInstance).logPurchase("product_id", "GBP",  BigDecimal.valueOf(10.10), 10, purchaseProps, false);
     }
 
     @Test

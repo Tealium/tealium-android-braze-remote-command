@@ -102,11 +102,12 @@ class BrazeUtils {
                 properties.addProperty(key, (String) data);
             }
 
-        } else if (data instanceof Integer || data instanceof Long || data instanceof Double || data instanceof Boolean || data instanceof Date) {
-            properties.addProperty(key, data);
         } else if (data instanceof Float) {
             // addProperty seems to drop Float values.
             properties.addProperty(key, ((Float) data).doubleValue());
+        } else {
+            // fallback for all other types; addProperty logs invalid types
+            properties.addProperty(key, data);
         }
 
         return properties;
