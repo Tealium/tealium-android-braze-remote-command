@@ -1,8 +1,12 @@
 package com.tealium.remotecommands.braze;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.anyDouble;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -16,6 +20,7 @@ import androidx.test.core.app.ApplicationProvider;
 import com.tealium.remotecommands.RemoteCommand;
 import com.tealium.remotecommands.braze.BrazeConstants.Commands;
 import com.tealium.remotecommands.braze.BrazeConstants.Config;
+import com.tealium.remotecommands.braze.BrazeConstants.Ecommerce;
 import com.tealium.remotecommands.braze.BrazeConstants.Location;
 import com.tealium.remotecommands.braze.BrazeConstants.Purchase;
 import com.tealium.remotecommands.braze.BrazeConstants.User;
@@ -27,6 +32,7 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.ArgumentCaptor;
 import org.robolectric.RobolectricTestRunner;
 
 import java.math.BigDecimal;
@@ -208,6 +214,1044 @@ public class BrazeRemoteCommandTests {
         brazeRemoteCommand.onInvoke(response);
 
         verify(mockBrazeInstance).logPurchase("product_id", "GBP",  BigDecimal.valueOf(10.10), 10, purchaseProps);
+    }
+
+    /**
+     * Builds the nested Ecommerce.PRODUCTS object -- parallel arrays zipped by index -- from a
+     * list of flat product field maps, matching what BrazeRemoteCommand reads from a real payload.
+     */
+    private JSONObject productsObject(JSONObject... products) throws JSONException {
+        JSONArray ids = new JSONArray();
+        JSONArray names = new JSONArray();
+        JSONArray variants = new JSONArray();
+        JSONArray prices = new JSONArray();
+        JSONArray quantities = new JSONArray();
+        for (JSONObject product : products) {
+            ids.put(product.get(Ecommerce.PRODUCT_ID));
+            names.put(product.get(Ecommerce.PRODUCT_NAME));
+            variants.put(product.get(Ecommerce.VARIANT_ID));
+            prices.put(product.get(Ecommerce.PRICE));
+            quantities.put(product.get(Ecommerce.QUANTITY));
+        }
+        JSONObject result = new JSONObject();
+        result.put(Ecommerce.PRODUCT_ID, ids);
+        result.put(Ecommerce.PRODUCT_NAME, names);
+        result.put(Ecommerce.VARIANT_ID, variants);
+        result.put(Ecommerce.PRICE, prices);
+        result.put(Ecommerce.QUANTITY, quantities);
+        return result;
+    }
+
+    private JSONObject singleProduct() throws JSONException {
+        JSONObject product = new JSONObject();
+        product.put(Ecommerce.PRODUCT_ID, "sku123");
+        product.put(Ecommerce.PRODUCT_NAME, "Widget");
+        product.put(Ecommerce.VARIANT_ID, "widget_blue");
+        product.put(Ecommerce.PRICE, 49.99);
+        product.put(Ecommerce.QUANTITY, 1);
+        return product;
+    }
+
+    /**
+     * Matches the nested products JSONObject by content rather than reference: the dispatch layer
+     * reads the payload's own nested object directly (no rebuilding), so this mainly guards against
+     * accidental mutation. Compares each parallel array's contents by string form.
+     */
+    private JSONObject sameProducts(JSONObject expected) {
+        return argThat(actual -> {
+            if (actual == null) {
+                return false;
+            }
+            for (String key : new String[]{Ecommerce.PRODUCT_ID, Ecommerce.PRODUCT_NAME,
+                    Ecommerce.VARIANT_ID, Ecommerce.PRICE, Ecommerce.QUANTITY}) {
+                if (!expected.optJSONArray(key).toString().equals(String.valueOf(actual.optJSONArray(key)))) {
+                    return false;
+                }
+            }
+            return true;
+        });
+    }
+
+    @Test
+    public void testProductViewedEvent() throws Exception {
+        RemoteCommand.Response response = ResponseBuilder.create()
+                .addCommand(Commands.LOG_PRODUCT_VIEWED)
+                .populatePayload((json) -> {
+                    json.put(Ecommerce.PRODUCT_ID, "sku123");
+                    json.put(Ecommerce.PRODUCT_NAME, "Widget");
+                    json.put(Ecommerce.VARIANT_ID, "widget_blue");
+                    json.put(Ecommerce.PRICE, 49.99);
+                    json.put(Ecommerce.CURRENCY, "USD");
+                    json.put(Ecommerce.SOURCE, "test-source");
+                })
+                .build();
+
+        brazeRemoteCommand.onInvoke(response);
+
+        verify(mockBrazeInstance).logProductViewed(eq("sku123"), eq("Widget"), eq("widget_blue"), eq(49.99), eq("USD"), eq("test-source"), eq(null), eq(null), eq(null));
+    }
+
+    @Test
+    public void testProductViewedEvent_NotDispatched_WhenPayloadIsSingleElementArray() throws Exception {
+        // Scalar-only: logProductViewed carries no products array, so an array value for a product
+        // field (even a single-element one) is a caller mistake and fails validation rather than
+        // being coerced to a scalar.
+        RemoteCommand.Response response = ResponseBuilder.create()
+                .addCommand(Commands.LOG_PRODUCT_VIEWED)
+                .populatePayload((json) -> {
+                    json.put(Ecommerce.PRODUCT_ID, new JSONArray(new String[]{"sku123"}));
+                    json.put(Ecommerce.PRODUCT_NAME, new JSONArray(new String[]{"Widget"}));
+                    json.put(Ecommerce.VARIANT_ID, new JSONArray(new String[]{"widget_blue"}));
+                    json.put(Ecommerce.PRICE, new JSONArray(new double[]{49.99}));
+                    json.put(Ecommerce.CURRENCY, "USD");
+                    json.put(Ecommerce.SOURCE, "test-source");
+                })
+                .build();
+
+        brazeRemoteCommand.onInvoke(response);
+
+        verify(mockBrazeInstance, never()).logProductViewed(any(), any(), any(), anyDouble(), any(), any(), any(), any(), any());
+    }
+
+    @Test
+    public void testProductViewedEvent_NotDispatched_WhenStringFieldIsArray_ButPriceIsScalar() throws Exception {
+        // Regression guard: Android's org.json coerces a JSONArray to its literal string form via
+        // getString/optString (unlike getDouble), so an array-shaped string field paired with a
+        // scalar price would otherwise slip past the price check and log a corrupted product_id
+        // (e.g. "[\"sku123\"]"). requireScalarString must reject it, matching iOS.
+        RemoteCommand.Response response = ResponseBuilder.create()
+                .addCommand(Commands.LOG_PRODUCT_VIEWED)
+                .populatePayload((json) -> {
+                    json.put(Ecommerce.PRODUCT_ID, new JSONArray(new String[]{"sku123"}));
+                    json.put(Ecommerce.PRODUCT_NAME, "Widget");
+                    json.put(Ecommerce.VARIANT_ID, "widget_blue");
+                    json.put(Ecommerce.PRICE, 49.99);
+                    json.put(Ecommerce.CURRENCY, "USD");
+                    json.put(Ecommerce.SOURCE, "test-source");
+                })
+                .build();
+
+        brazeRemoteCommand.onInvoke(response);
+
+        verify(mockBrazeInstance, never()).logProductViewed(any(), any(), any(), anyDouble(), any(), any(), any(), any(), any());
+    }
+
+    @Test
+    public void testProductViewedEvent_NotDispatched_WhenPayloadIsMultiElementArray() throws Exception {
+        // A multi-element array is likewise rejected, never fanned out into multiple events.
+        RemoteCommand.Response response = ResponseBuilder.create()
+                .addCommand(Commands.LOG_PRODUCT_VIEWED)
+                .populatePayload((json) -> {
+                    json.put(Ecommerce.PRODUCT_ID, new JSONArray(new String[]{"sku123", "sku456"}));
+                    json.put(Ecommerce.PRODUCT_NAME, new JSONArray(new String[]{"Widget", "Gadget"}));
+                    json.put(Ecommerce.VARIANT_ID, new JSONArray(new String[]{"widget_blue", "gadget_red"}));
+                    json.put(Ecommerce.PRICE, new JSONArray(new double[]{49.99, 19.99}));
+                    json.put(Ecommerce.CURRENCY, "USD");
+                    json.put(Ecommerce.SOURCE, "test-source");
+                })
+                .build();
+
+        brazeRemoteCommand.onInvoke(response);
+
+        verify(mockBrazeInstance, never()).logProductViewed(any(), any(), any(), anyDouble(), any(), any(), any(), any(), any());
+    }
+
+    private JSONObject secondProduct() throws JSONException {
+        JSONObject product = new JSONObject();
+        product.put(Ecommerce.PRODUCT_ID, "sku456");
+        product.put(Ecommerce.PRODUCT_NAME, "Gadget");
+        product.put(Ecommerce.VARIANT_ID, "gadget_red");
+        product.put(Ecommerce.PRICE, 19.99);
+        product.put(Ecommerce.QUANTITY, 3);
+        return product;
+    }
+
+    @Test
+    public void testCartUpdatedEvent() throws Exception {
+        JSONObject products = productsObject(singleProduct());
+        RemoteCommand.Response response = ResponseBuilder.create()
+                .addCommand(Commands.LOG_CART_UPDATED)
+                .populatePayload((json) -> {
+                    json.put(Ecommerce.CART_ID, "cart-1");
+                    json.put(Ecommerce.CURRENCY, "USD");
+                    json.put(Ecommerce.SOURCE, "test-source");
+                    json.put(Ecommerce.TOTAL_VALUE, 49.99);
+                    json.put(Ecommerce.ACTION, "add");
+                    json.put(Ecommerce.PRODUCTS, products);
+                })
+                .build();
+
+        brazeRemoteCommand.onInvoke(response);
+
+        verify(mockBrazeInstance).logCartUpdated(eq("cart-1"), eq("USD"), eq("test-source"), eq(49.99), eq(BrazeConstants.Ecommerce.Action.ADD), sameProducts(products), eq(null));
+    }
+
+    @Test
+    public void testCartUpdatedEvent_NullTotalValue_WhenMissing() throws Exception {
+        JSONObject products = productsObject(singleProduct());
+        RemoteCommand.Response response = ResponseBuilder.create()
+                .addCommand(Commands.LOG_CART_UPDATED)
+                .populatePayload((json) -> {
+                    json.put(Ecommerce.CART_ID, "cart-1");
+                    json.put(Ecommerce.CURRENCY, "USD");
+                    json.put(Ecommerce.SOURCE, "test-source");
+                    json.put(Ecommerce.ACTION, "remove");
+                    json.put(Ecommerce.PRODUCTS, products);
+                })
+                .build();
+
+        brazeRemoteCommand.onInvoke(response);
+
+        verify(mockBrazeInstance).logCartUpdated(eq("cart-1"), eq("USD"), eq("test-source"), eq((Double) null), eq(BrazeConstants.Ecommerce.Action.REMOVE), sameProducts(products), eq(null));
+    }
+
+    @Test
+    public void testCartUpdatedEvent_DefaultsToReplace_WhenActionMissing() throws Exception {
+        JSONObject products = productsObject(singleProduct());
+        RemoteCommand.Response response = ResponseBuilder.create()
+                .addCommand(Commands.LOG_CART_UPDATED)
+                .populatePayload((json) -> {
+                    json.put(Ecommerce.CART_ID, "cart-1");
+                    json.put(Ecommerce.CURRENCY, "USD");
+                    json.put(Ecommerce.SOURCE, "test-source");
+                    json.put(Ecommerce.TOTAL_VALUE, 49.99);
+                    json.put(Ecommerce.PRODUCTS, products);
+                    // action intentionally omitted; defaults to REPLACE.
+                })
+                .build();
+
+        brazeRemoteCommand.onInvoke(response);
+
+        verify(mockBrazeInstance).logCartUpdated(eq("cart-1"), eq("USD"), eq("test-source"), eq(49.99), eq(BrazeConstants.Ecommerce.Action.REPLACE), sameProducts(products), eq(null));
+    }
+
+    @Test
+    public void testCartUpdatedEvent_NotDispatched_WhenReplaceMissingTotalValue() throws Exception {
+        // total_value is required for a full-cart snapshot (action replace/omitted); the event must
+        // be skipped client-side rather than dispatched with a null total that Braze would drop.
+        JSONObject products = productsObject(singleProduct());
+        RemoteCommand.Response response = ResponseBuilder.create()
+                .addCommand(Commands.LOG_CART_UPDATED)
+                .populatePayload((json) -> {
+                    json.put(Ecommerce.CART_ID, "cart-1");
+                    json.put(Ecommerce.CURRENCY, "USD");
+                    json.put(Ecommerce.SOURCE, "test-source");
+                    json.put(Ecommerce.ACTION, "replace");
+                    json.put(Ecommerce.PRODUCTS, products);
+                    // total_value intentionally omitted.
+                })
+                .build();
+
+        brazeRemoteCommand.onInvoke(response);
+
+        verify(mockBrazeInstance, never()).logCartUpdated(any(), any(), any(), any(), any(), any(), any());
+    }
+
+    @Test
+    public void testCartUpdatedEvent_NotDispatched_WhenSourceIsArray() throws Exception {
+        // An array-valued source would coerce to its literal string form via optString; requiring a
+        // scalar String skips the event instead of dispatching corrupted data (matching iOS).
+        JSONObject products = productsObject(singleProduct());
+        RemoteCommand.Response response = ResponseBuilder.create()
+                .addCommand(Commands.LOG_CART_UPDATED)
+                .populatePayload((json) -> {
+                    json.put(Ecommerce.CART_ID, "cart-1");
+                    json.put(Ecommerce.CURRENCY, "USD");
+                    json.put(Ecommerce.SOURCE, new JSONArray().put("test-source"));
+                    json.put(Ecommerce.TOTAL_VALUE, 49.99);
+                    json.put(Ecommerce.ACTION, "add");
+                    json.put(Ecommerce.PRODUCTS, products);
+                })
+                .build();
+
+        brazeRemoteCommand.onInvoke(response);
+
+        verify(mockBrazeInstance, never()).logCartUpdated(any(), any(), any(), any(), any(), any(), any());
+    }
+
+    @Test
+    public void testCheckoutStartedEvent() throws Exception {
+        JSONObject products = productsObject(singleProduct());
+        RemoteCommand.Response response = ResponseBuilder.create()
+                .addCommand(Commands.LOG_CHECKOUT_STARTED)
+                .populatePayload((json) -> {
+                    json.put(Ecommerce.CHECKOUT_ID, "checkout-1");
+                    json.put(Ecommerce.CURRENCY, "USD");
+                    json.put(Ecommerce.SOURCE, "test-source");
+                    json.put(Ecommerce.TOTAL_VALUE, 49.99);
+                    json.put(Ecommerce.CART_ID, "cart-1");
+                    json.put(Ecommerce.PRODUCTS, products);
+                })
+                .build();
+
+        brazeRemoteCommand.onInvoke(response);
+
+        verify(mockBrazeInstance).logCheckoutStarted(eq("checkout-1"), eq("USD"), eq("test-source"), eq(49.99), sameProducts(products), eq("cart-1"), eq(null));
+    }
+
+    @Test
+    public void testCheckoutStartedEvent_WithProperties() throws Exception {
+        JSONObject products = productsObject(singleProduct());
+        JSONObject eventProperties = new JSONObject();
+        eventProperties.put("promo_code", "SUMMER10");
+        RemoteCommand.Response response = ResponseBuilder.create()
+                .addCommand(Commands.LOG_CHECKOUT_STARTED)
+                .populatePayload((json) -> {
+                    json.put(Ecommerce.CHECKOUT_ID, "checkout-1");
+                    json.put(Ecommerce.CURRENCY, "USD");
+                    json.put(Ecommerce.SOURCE, "test-source");
+                    json.put(Ecommerce.TOTAL_VALUE, 49.99);
+                    json.put(Ecommerce.CART_ID, "cart-1");
+                    json.put(Ecommerce.PRODUCTS, products);
+                    json.put(Ecommerce.METADATA, eventProperties);
+                })
+                .build();
+
+        brazeRemoteCommand.onInvoke(response);
+
+        verify(mockBrazeInstance).logCheckoutStarted(eq("checkout-1"), eq("USD"), eq("test-source"), eq(49.99), sameProducts(products), eq("cart-1"), eq(eventProperties));
+    }
+
+    @Test
+    public void testOrderPlacedEvent() throws Exception {
+        JSONObject products = productsObject(singleProduct());
+        RemoteCommand.Response response = ResponseBuilder.create()
+                .addCommand(Commands.LOG_ORDER_PLACED)
+                .populatePayload((json) -> {
+                    json.put(Ecommerce.ORDER_ID, "order-1");
+                    json.put(Ecommerce.CURRENCY, "USD");
+                    json.put(Ecommerce.SOURCE, "test-source");
+                    json.put(Ecommerce.TOTAL_VALUE, 49.99);
+                    json.put(Ecommerce.CART_ID, "cart-1");
+                    json.put(Ecommerce.TOTAL_DISCOUNTS, 5.0);
+                    json.put(Ecommerce.PRODUCTS, products);
+                })
+                .build();
+
+        brazeRemoteCommand.onInvoke(response);
+
+        verify(mockBrazeInstance).logOrderPlaced(eq("order-1"), eq("USD"), eq("test-source"), eq(49.99), sameProducts(products), eq("cart-1"), eq(5.0), eq(null), eq(null));
+    }
+
+    @Test
+    public void testOrderPlacedEvent_WithDiscounts() throws Exception {
+        JSONObject products = productsObject(singleProduct());
+        JSONObject discounts = new JSONObject();
+        discounts.put(Ecommerce.DISCOUNT_CODE, new JSONArray(new String[]{"SUMMER10"}));
+        discounts.put(Ecommerce.DISCOUNT_AMOUNT, new JSONArray(new double[]{5.0}));
+
+        RemoteCommand.Response response = ResponseBuilder.create()
+                .addCommand(Commands.LOG_ORDER_PLACED)
+                .populatePayload((json) -> {
+                    json.put(Ecommerce.ORDER_ID, "order-1");
+                    json.put(Ecommerce.CURRENCY, "USD");
+                    json.put(Ecommerce.SOURCE, "test-source");
+                    json.put(Ecommerce.TOTAL_VALUE, 49.99);
+                    json.put(Ecommerce.PRODUCTS, products);
+                    json.put(Ecommerce.DISCOUNTS, discounts);
+                })
+                .build();
+
+        brazeRemoteCommand.onInvoke(response);
+
+        ArgumentCaptor<JSONObject> discountsCaptor = ArgumentCaptor.forClass(JSONObject.class);
+        verify(mockBrazeInstance).logOrderPlaced(eq("order-1"), eq("USD"), eq("test-source"), eq(49.99), sameProducts(products), eq(null), eq(null), discountsCaptor.capture(), eq(null));
+        assertNotNull(discountsCaptor.getValue());
+        assertEquals(discounts.toString(), discountsCaptor.getValue().toString());
+    }
+
+    @Test
+    public void testCheckoutStartedEvent_NotDispatched_WhenTotalValueMissing() throws Exception {
+        JSONObject products = productsObject(singleProduct());
+        RemoteCommand.Response response = ResponseBuilder.create()
+                .addCommand(Commands.LOG_CHECKOUT_STARTED)
+                .populatePayload((json) -> {
+                    json.put(Ecommerce.CHECKOUT_ID, "checkout-1");
+                    json.put(Ecommerce.CURRENCY, "USD");
+                    json.put(Ecommerce.SOURCE, "test-source");
+                    json.put(Ecommerce.PRODUCTS, products);
+                    // total_value intentionally omitted.
+                })
+                .build();
+
+        brazeRemoteCommand.onInvoke(response);
+
+        verify(mockBrazeInstance, never()).logCheckoutStarted(any(), any(), any(), anyDouble(), any(), any(), any());
+    }
+
+    @Test
+    public void testCartUpdatedEvent_NotDispatched_WhenProductsMissing() throws Exception {
+        RemoteCommand.Response response = ResponseBuilder.create()
+                .addCommand(Commands.LOG_CART_UPDATED)
+                .populatePayload((json) -> {
+                    json.put(Ecommerce.CART_ID, "cart-1");
+                    json.put(Ecommerce.CURRENCY, "USD");
+                    json.put(Ecommerce.SOURCE, "test-source");
+                    json.put(Ecommerce.TOTAL_VALUE, 49.99);
+                    json.put(Ecommerce.ACTION, "add");
+                    // products intentionally omitted; required per the wire schema.
+                })
+                .build();
+
+        brazeRemoteCommand.onInvoke(response);
+
+        verify(mockBrazeInstance, never()).logCartUpdated(any(), any(), any(), any(), any(), any(), any());
+    }
+
+    @Test
+    public void testCheckoutStartedEvent_NotDispatched_WhenProductsMissing() throws Exception {
+        RemoteCommand.Response response = ResponseBuilder.create()
+                .addCommand(Commands.LOG_CHECKOUT_STARTED)
+                .populatePayload((json) -> {
+                    json.put(Ecommerce.CHECKOUT_ID, "checkout-1");
+                    json.put(Ecommerce.CURRENCY, "USD");
+                    json.put(Ecommerce.SOURCE, "test-source");
+                    json.put(Ecommerce.TOTAL_VALUE, 49.99);
+                    // products intentionally omitted; required per the wire schema.
+                })
+                .build();
+
+        brazeRemoteCommand.onInvoke(response);
+
+        verify(mockBrazeInstance, never()).logCheckoutStarted(any(), any(), any(), anyDouble(), any(), any(), any());
+    }
+
+    @Test
+    public void testOrderPlacedEvent_NotDispatched_WhenProductsMissing() throws Exception {
+        RemoteCommand.Response response = ResponseBuilder.create()
+                .addCommand(Commands.LOG_ORDER_PLACED)
+                .populatePayload((json) -> {
+                    json.put(Ecommerce.ORDER_ID, "order-1");
+                    json.put(Ecommerce.CURRENCY, "USD");
+                    json.put(Ecommerce.SOURCE, "test-source");
+                    json.put(Ecommerce.TOTAL_VALUE, 49.99);
+                    // products intentionally omitted; required per the wire schema.
+                })
+                .build();
+
+        brazeRemoteCommand.onInvoke(response);
+
+        verify(mockBrazeInstance, never()).logOrderPlaced(anyString(), anyString(), anyString(), anyDouble(), any(), any(), any(), any(), any());
+    }
+
+    @Test
+    public void testEcommerceEvent_DoesNotDispatch_OnInvalidPayload() throws Exception {
+        // Missing every ecommerce field, including the now-required total_value; dispatch must not
+        // propagate an exception, but must also not fabricate a $0 order.
+        RemoteCommand.Response response = ResponseBuilder.create()
+                .addCommand(Commands.LOG_ORDER_PLACED)
+                .build();
+
+        brazeRemoteCommand.onInvoke(response);
+
+        // Reached here without throwing, but the missing required total_value means the event was
+        // never dispatched to the instance.
+        verify(mockBrazeInstance, never()).logOrderPlaced(anyString(), anyString(), anyString(), anyDouble(), any(), any(), any(), any(), any());
+    }
+
+    @Test
+    public void testOrderCancelledEvent() throws Exception {
+        JSONObject products = productsObject(singleProduct());
+        RemoteCommand.Response response = ResponseBuilder.create()
+                .addCommand(Commands.LOG_ORDER_CANCELLED)
+                .populatePayload((json) -> {
+                    json.put(Ecommerce.ORDER_ID, "order-1");
+                    json.put(Ecommerce.CURRENCY, "USD");
+                    json.put(Ecommerce.SOURCE, "test-source");
+                    json.put(Ecommerce.TOTAL_VALUE, 49.99);
+                    json.put(Ecommerce.CANCEL_REASON, "customer_request");
+                    json.put(Ecommerce.PRODUCTS, products);
+                })
+                .build();
+
+        brazeRemoteCommand.onInvoke(response);
+
+        verify(mockBrazeInstance).logOrderCancelled(eq("order-1"), eq("USD"), eq("test-source"), eq(49.99), eq(null), eq(null), eq(null), sameProducts(products), eq("customer_request"), eq(null), eq(null), eq(null));
+    }
+
+    @Test
+    public void testOrderCancelledEvent_NotDispatched_WhenTotalValueMissing() throws Exception {
+        JSONObject products = productsObject(singleProduct());
+        RemoteCommand.Response response = ResponseBuilder.create()
+                .addCommand(Commands.LOG_ORDER_CANCELLED)
+                .populatePayload((json) -> {
+                    json.put(Ecommerce.ORDER_ID, "order-1");
+                    json.put(Ecommerce.CURRENCY, "USD");
+                    json.put(Ecommerce.SOURCE, "test-source");
+                    json.put(Ecommerce.CANCEL_REASON, "customer_request");
+                    json.put(Ecommerce.PRODUCTS, products);
+                    // total_value intentionally omitted.
+                })
+                .build();
+
+        brazeRemoteCommand.onInvoke(response);
+
+        verify(mockBrazeInstance, never()).logOrderCancelled(any(), any(), any(), anyDouble(), any(), any(), any(), any(), any(), any(), any(), any());
+    }
+
+    @Test
+    public void testOrderCancelledEvent_NotDispatched_WhenCancelReasonMissing() throws Exception {
+        JSONObject products = productsObject(singleProduct());
+        RemoteCommand.Response response = ResponseBuilder.create()
+                .addCommand(Commands.LOG_ORDER_CANCELLED)
+                .populatePayload((json) -> {
+                    json.put(Ecommerce.ORDER_ID, "order-1");
+                    json.put(Ecommerce.CURRENCY, "USD");
+                    json.put(Ecommerce.SOURCE, "test-source");
+                    json.put(Ecommerce.TOTAL_VALUE, 49.99);
+                    json.put(Ecommerce.PRODUCTS, products);
+                    // cancel_reason intentionally omitted; required per the wire schema.
+                })
+                .build();
+
+        brazeRemoteCommand.onInvoke(response);
+
+        verify(mockBrazeInstance, never()).logOrderCancelled(any(), any(), any(), anyDouble(), any(), any(), any(), any(), any(), any(), any(), any());
+    }
+
+    @Test
+    public void testOrderCancelledEvent_ForwardsSubtotalTaxShipping() throws Exception {
+        JSONObject products = productsObject(singleProduct());
+        RemoteCommand.Response response = ResponseBuilder.create()
+                .addCommand(Commands.LOG_ORDER_CANCELLED)
+                .populatePayload((json) -> {
+                    json.put(Ecommerce.ORDER_ID, "order-1");
+                    json.put(Ecommerce.CURRENCY, "USD");
+                    json.put(Ecommerce.SOURCE, "test-source");
+                    json.put(Ecommerce.TOTAL_VALUE, 49.99);
+                    json.put(Ecommerce.SUBTOTAL_VALUE, 44.99);
+                    json.put(Ecommerce.TAX, 3.0);
+                    json.put(Ecommerce.SHIPPING, 2.0);
+                    json.put(Ecommerce.CANCEL_REASON, "customer_request");
+                    json.put(Ecommerce.PRODUCTS, products);
+                })
+                .build();
+
+        brazeRemoteCommand.onInvoke(response);
+
+        verify(mockBrazeInstance).logOrderCancelled(eq("order-1"), eq("USD"), eq("test-source"), eq(49.99), eq(44.99), eq(3.0), eq(2.0), sameProducts(products), eq("customer_request"), eq(null), eq(null), eq(null));
+    }
+
+    @Test
+    public void testOrderCancelledEvent_NotDispatched_WhenOrderIdMissing() throws Exception {
+        JSONObject products = productsObject(singleProduct());
+        RemoteCommand.Response response = ResponseBuilder.create()
+                .addCommand(Commands.LOG_ORDER_CANCELLED)
+                .populatePayload((json) -> {
+                    json.put(Ecommerce.CURRENCY, "USD");
+                    json.put(Ecommerce.SOURCE, "test-source");
+                    json.put(Ecommerce.TOTAL_VALUE, 49.99);
+                    json.put(Ecommerce.CANCEL_REASON, "customer_request");
+                    json.put(Ecommerce.PRODUCTS, products);
+                    // order_id intentionally omitted; required per the wire schema.
+                })
+                .build();
+
+        brazeRemoteCommand.onInvoke(response);
+
+        verify(mockBrazeInstance, never()).logOrderCancelled(any(), any(), any(), anyDouble(), any(), any(), any(), any(), any(), any(), any(), any());
+    }
+
+    @Test
+    public void testOrderCancelledEvent_NotDispatched_WhenSourceMissing() throws Exception {
+        JSONObject products = productsObject(singleProduct());
+        RemoteCommand.Response response = ResponseBuilder.create()
+                .addCommand(Commands.LOG_ORDER_CANCELLED)
+                .populatePayload((json) -> {
+                    json.put(Ecommerce.ORDER_ID, "order-1");
+                    json.put(Ecommerce.CURRENCY, "USD");
+                    json.put(Ecommerce.TOTAL_VALUE, 49.99);
+                    json.put(Ecommerce.CANCEL_REASON, "customer_request");
+                    json.put(Ecommerce.PRODUCTS, products);
+                    // source intentionally omitted; required per the wire schema.
+                })
+                .build();
+
+        brazeRemoteCommand.onInvoke(response);
+
+        verify(mockBrazeInstance, never()).logOrderCancelled(any(), any(), any(), anyDouble(), any(), any(), any(), any(), any(), any(), any(), any());
+    }
+
+    @Test
+    public void testOrderRefundedEvent() throws Exception {
+        JSONObject products = productsObject(singleProduct());
+        RemoteCommand.Response response = ResponseBuilder.create()
+                .addCommand(Commands.LOG_ORDER_REFUNDED)
+                .populatePayload((json) -> {
+                    json.put(Ecommerce.ORDER_ID, "order-1");
+                    json.put(Ecommerce.CURRENCY, "USD");
+                    json.put(Ecommerce.SOURCE, "test-source");
+                    json.put(Ecommerce.TOTAL_VALUE, 49.99);
+                    json.put(Ecommerce.PRODUCTS, products);
+                })
+                .build();
+
+        brazeRemoteCommand.onInvoke(response);
+
+        verify(mockBrazeInstance).logOrderRefunded(eq("order-1"), eq("USD"), eq("test-source"), eq(49.99), sameProducts(products), eq(null), eq(null), eq(null));
+    }
+
+    @Test
+    public void testOrderRefundedEvent_NotDispatched_WhenTotalValueMissing() throws Exception {
+        JSONObject products = productsObject(singleProduct());
+        RemoteCommand.Response response = ResponseBuilder.create()
+                .addCommand(Commands.LOG_ORDER_REFUNDED)
+                .populatePayload((json) -> {
+                    json.put(Ecommerce.ORDER_ID, "order-1");
+                    json.put(Ecommerce.CURRENCY, "USD");
+                    json.put(Ecommerce.SOURCE, "test-source");
+                    json.put(Ecommerce.PRODUCTS, products);
+                    // total_value intentionally omitted.
+                })
+                .build();
+
+        brazeRemoteCommand.onInvoke(response);
+
+        verify(mockBrazeInstance, never()).logOrderRefunded(any(), any(), any(), anyDouble(), any(), any(), any(), any());
+    }
+
+    @Test
+    public void testOrderCancelledEvent_NotDispatched_WhenProductsMissing() throws Exception {
+        RemoteCommand.Response response = ResponseBuilder.create()
+                .addCommand(Commands.LOG_ORDER_CANCELLED)
+                .populatePayload((json) -> {
+                    json.put(Ecommerce.ORDER_ID, "order-1");
+                    json.put(Ecommerce.CURRENCY, "USD");
+                    json.put(Ecommerce.SOURCE, "test-source");
+                    json.put(Ecommerce.TOTAL_VALUE, 49.99);
+                    json.put(Ecommerce.CANCEL_REASON, "customer_request");
+                    // products intentionally omitted; required per the wire schema.
+                })
+                .build();
+
+        brazeRemoteCommand.onInvoke(response);
+
+        verify(mockBrazeInstance, never()).logOrderCancelled(any(), any(), any(), anyDouble(), any(), any(), any(), any(), any(), any(), any(), any());
+    }
+
+    @Test
+    public void testOrderRefundedEvent_NotDispatched_WhenProductsMissing() throws Exception {
+        RemoteCommand.Response response = ResponseBuilder.create()
+                .addCommand(Commands.LOG_ORDER_REFUNDED)
+                .populatePayload((json) -> {
+                    json.put(Ecommerce.ORDER_ID, "order-1");
+                    json.put(Ecommerce.CURRENCY, "USD");
+                    json.put(Ecommerce.SOURCE, "test-source");
+                    json.put(Ecommerce.TOTAL_VALUE, 49.99);
+                    // products intentionally omitted; required per the wire schema.
+                })
+                .build();
+
+        brazeRemoteCommand.onInvoke(response);
+
+        verify(mockBrazeInstance, never()).logOrderRefunded(any(), any(), any(), anyDouble(), any(), any(), any(), any());
+    }
+
+    @Test
+    public void testOrderRefundedEvent_NotDispatched_WhenOrderIdMissing() throws Exception {
+        JSONObject products = productsObject(singleProduct());
+        RemoteCommand.Response response = ResponseBuilder.create()
+                .addCommand(Commands.LOG_ORDER_REFUNDED)
+                .populatePayload((json) -> {
+                    json.put(Ecommerce.CURRENCY, "USD");
+                    json.put(Ecommerce.SOURCE, "test-source");
+                    json.put(Ecommerce.TOTAL_VALUE, 49.99);
+                    json.put(Ecommerce.PRODUCTS, products);
+                    // order_id intentionally omitted; required per the wire schema.
+                })
+                .build();
+
+        brazeRemoteCommand.onInvoke(response);
+
+        verify(mockBrazeInstance, never()).logOrderRefunded(any(), any(), any(), anyDouble(), any(), any(), any(), any());
+    }
+
+    @Test
+    public void testOrderRefundedEvent_NotDispatched_WhenSourceMissing() throws Exception {
+        JSONObject products = productsObject(singleProduct());
+        RemoteCommand.Response response = ResponseBuilder.create()
+                .addCommand(Commands.LOG_ORDER_REFUNDED)
+                .populatePayload((json) -> {
+                    json.put(Ecommerce.ORDER_ID, "order-1");
+                    json.put(Ecommerce.CURRENCY, "USD");
+                    json.put(Ecommerce.TOTAL_VALUE, 49.99);
+                    json.put(Ecommerce.PRODUCTS, products);
+                    // source intentionally omitted; required per the wire schema.
+                })
+                .build();
+
+        brazeRemoteCommand.onInvoke(response);
+
+        verify(mockBrazeInstance, never()).logOrderRefunded(any(), any(), any(), anyDouble(), any(), any(), any(), any());
+    }
+
+    @Test
+    public void testCartUpdatedReplace_NotDispatched_WhenTotalValueMissing_ActionOmitted() throws Exception {
+        // total_value is required for a full-cart snapshot; with action omitted (defaults to
+        // replace) an absent total_value makes the dispatch layer throw, so the event is skipped
+        // client-side rather than dispatched. (Sibling of the explicit action=replace case.)
+        JSONObject products = productsObject(singleProduct());
+        RemoteCommand.Response response = ResponseBuilder.create()
+                .addCommand(Commands.LOG_CART_UPDATED)
+                .populatePayload((json) -> {
+                    json.put(Ecommerce.CART_ID, "cart-1");
+                    json.put(Ecommerce.CURRENCY, "USD");
+                    json.put(Ecommerce.SOURCE, "test-source");
+                    json.put(Ecommerce.PRODUCTS, products);
+                    // total_value intentionally omitted; action omitted, defaults to replace.
+                })
+                .build();
+
+        brazeRemoteCommand.onInvoke(response);
+
+        verify(mockBrazeInstance, never()).logCartUpdated(any(), any(), any(), any(), any(), any(), any());
+    }
+
+    @Test
+    public void testCartUpdatedEvent_MultipleProducts() throws Exception {
+        JSONObject products = productsObject(singleProduct(), secondProduct());
+        RemoteCommand.Response response = ResponseBuilder.create()
+                .addCommand(Commands.LOG_CART_UPDATED)
+                .populatePayload((json) -> {
+                    json.put(Ecommerce.CART_ID, "cart-1");
+                    json.put(Ecommerce.CURRENCY, "USD");
+                    json.put(Ecommerce.SOURCE, "test-source");
+                    json.put(Ecommerce.TOTAL_VALUE, 109.96);
+                    json.put(Ecommerce.PRODUCTS, products);
+                })
+                .build();
+
+        brazeRemoteCommand.onInvoke(response);
+
+        verify(mockBrazeInstance).logCartUpdated(eq("cart-1"), eq("USD"), eq("test-source"), eq(109.96), eq(BrazeConstants.Ecommerce.Action.REPLACE), sameProducts(products), eq(null));
+    }
+
+    @Test
+    public void testOrderPlacedEvent_MultipleProducts() throws Exception {
+        JSONObject products = productsObject(singleProduct(), secondProduct());
+        RemoteCommand.Response response = ResponseBuilder.create()
+                .addCommand(Commands.LOG_ORDER_PLACED)
+                .populatePayload((json) -> {
+                    json.put(Ecommerce.ORDER_ID, "order-1");
+                    json.put(Ecommerce.CURRENCY, "USD");
+                    json.put(Ecommerce.SOURCE, "test-source");
+                    json.put(Ecommerce.TOTAL_VALUE, 109.96);
+                    json.put(Ecommerce.PRODUCTS, products);
+                })
+                .build();
+
+        brazeRemoteCommand.onInvoke(response);
+
+        verify(mockBrazeInstance).logOrderPlaced(eq("order-1"), eq("USD"), eq("test-source"), eq(109.96), sameProducts(products), eq(null), eq(null), eq(null), eq(null));
+    }
+
+    @Test
+    public void testOrderCancelledEvent_MultipleProducts() throws Exception {
+        JSONObject products = productsObject(singleProduct(), secondProduct());
+        RemoteCommand.Response response = ResponseBuilder.create()
+                .addCommand(Commands.LOG_ORDER_CANCELLED)
+                .populatePayload((json) -> {
+                    json.put(Ecommerce.ORDER_ID, "order-1");
+                    json.put(Ecommerce.CURRENCY, "USD");
+                    json.put(Ecommerce.SOURCE, "test-source");
+                    json.put(Ecommerce.TOTAL_VALUE, 109.96);
+                    json.put(Ecommerce.CANCEL_REASON, "customer_request");
+                    json.put(Ecommerce.PRODUCTS, products);
+                })
+                .build();
+
+        brazeRemoteCommand.onInvoke(response);
+
+        verify(mockBrazeInstance).logOrderCancelled(eq("order-1"), eq("USD"), eq("test-source"), eq(109.96), eq(null), eq(null), eq(null), sameProducts(products), eq("customer_request"), eq(null), eq(null), eq(null));
+    }
+
+    @Test
+    public void testOrderRefundedEvent_MultipleProducts() throws Exception {
+        JSONObject products = productsObject(singleProduct(), secondProduct());
+        RemoteCommand.Response response = ResponseBuilder.create()
+                .addCommand(Commands.LOG_ORDER_REFUNDED)
+                .populatePayload((json) -> {
+                    json.put(Ecommerce.ORDER_ID, "order-1");
+                    json.put(Ecommerce.CURRENCY, "USD");
+                    json.put(Ecommerce.SOURCE, "test-source");
+                    json.put(Ecommerce.TOTAL_VALUE, 109.96);
+                    json.put(Ecommerce.PRODUCTS, products);
+                })
+                .build();
+
+        brazeRemoteCommand.onInvoke(response);
+
+        verify(mockBrazeInstance).logOrderRefunded(eq("order-1"), eq("USD"), eq("test-source"), eq(109.96), sameProducts(products), eq(null), eq(null), eq(null));
+    }
+
+    @Test
+    public void testProductViewedEvent_NotDispatched_WhenPriceMissing() throws Exception {
+        RemoteCommand.Response response = ResponseBuilder.create()
+                .addCommand(Commands.LOG_PRODUCT_VIEWED)
+                .populatePayload((json) -> {
+                    json.put(Ecommerce.PRODUCT_ID, "sku123");
+                    json.put(Ecommerce.PRODUCT_NAME, "Widget");
+                    json.put(Ecommerce.VARIANT_ID, "widget_blue");
+                    json.put(Ecommerce.CURRENCY, "USD");
+                    json.put(Ecommerce.SOURCE, "test-source");
+                    // ecommerce_price intentionally omitted; required per the wire schema and must
+                    // not silently dispatch a fabricated $0 event.
+                })
+                .build();
+
+        brazeRemoteCommand.onInvoke(response);
+
+        verify(mockBrazeInstance, never()).logProductViewed(any(), any(), any(), anyDouble(), any(), any(), any(), any(), any());
+    }
+
+    @Test
+    public void testProductViewedEvent_NullImageAndProductUrl_WhenJsonNull() throws Exception {
+        RemoteCommand.Response response = ResponseBuilder.create()
+                .addCommand(Commands.LOG_PRODUCT_VIEWED)
+                .populatePayload((json) -> {
+                    json.put(Ecommerce.PRODUCT_ID, "sku123");
+                    json.put(Ecommerce.PRODUCT_NAME, "Widget");
+                    json.put(Ecommerce.VARIANT_ID, "widget_blue");
+                    json.put(Ecommerce.PRICE, 49.99);
+                    json.put(Ecommerce.CURRENCY, "USD");
+                    json.put(Ecommerce.SOURCE, "test-source");
+                    json.put(Ecommerce.IMAGE_URL, JSONObject.NULL);
+                    json.put(Ecommerce.PRODUCT_URL, JSONObject.NULL);
+                })
+                .build();
+
+        brazeRemoteCommand.onInvoke(response);
+
+        verify(mockBrazeInstance).logProductViewed(eq("sku123"), eq("Widget"), eq("widget_blue"), eq(49.99), eq("USD"), eq("test-source"), eq(null), eq(null), eq(null));
+    }
+
+    @Test
+    public void testCartUpdatedEvent_NotDispatched_WhenCartIdMissing() throws Exception {
+        // cart_id is required for cart_updated; reading it via requireScalarString means an absent
+        // cart_id skips the event client-side rather than passing "" that the SDK would reject.
+        JSONObject products = productsObject(singleProduct());
+        RemoteCommand.Response response = ResponseBuilder.create()
+                .addCommand(Commands.LOG_CART_UPDATED)
+                .populatePayload((json) -> {
+                    json.put(Ecommerce.CURRENCY, "USD");
+                    json.put(Ecommerce.SOURCE, "test-source");
+                    json.put(Ecommerce.TOTAL_VALUE, 49.99);
+                    json.put(Ecommerce.ACTION, "add");
+                    json.put(Ecommerce.PRODUCTS, products);
+                    // cart_id intentionally omitted; required per the wire schema.
+                })
+                .build();
+
+        brazeRemoteCommand.onInvoke(response);
+
+        verify(mockBrazeInstance, never()).logCartUpdated(any(), any(), any(), any(), any(), any(), any());
+    }
+
+    @Test
+    public void testOrderPlacedEvent_CurrencyLowercaseUppercased() throws Exception {
+        // Braze validates ISO-4217 canonical uppercase; a lowercase "usd" is normalized to "USD"
+        // so the event is not dropped at ingestion.
+        JSONObject products = productsObject(singleProduct());
+        RemoteCommand.Response response = ResponseBuilder.create()
+                .addCommand(Commands.LOG_ORDER_PLACED)
+                .populatePayload((json) -> {
+                    json.put(Ecommerce.ORDER_ID, "order-1");
+                    json.put(Ecommerce.CURRENCY, "usd");
+                    json.put(Ecommerce.SOURCE, "test-source");
+                    json.put(Ecommerce.TOTAL_VALUE, 49.99);
+                    json.put(Ecommerce.PRODUCTS, products);
+                })
+                .build();
+
+        brazeRemoteCommand.onInvoke(response);
+
+        verify(mockBrazeInstance).logOrderPlaced(eq("order-1"), eq("USD"), eq("test-source"), eq(49.99), sameProducts(products), eq(null), eq(null), eq(null), eq(null));
+    }
+
+    @Test
+    public void testProductViewedEvent_NotDispatched_WhenCurrencyMissing() throws Exception {
+        // Currency is required for all six recommended ecommerce events; when absent the event is
+        // skipped client-side (the Braze SDK base EcommerceEvent constructor rejects a null currency).
+        RemoteCommand.Response response = ResponseBuilder.create()
+                .addCommand(Commands.LOG_PRODUCT_VIEWED)
+                .populatePayload((json) -> {
+                    json.put(Ecommerce.PRODUCT_ID, "sku123");
+                    json.put(Ecommerce.PRODUCT_NAME, "Widget");
+                    json.put(Ecommerce.VARIANT_ID, "widget_blue");
+                    json.put(Ecommerce.PRICE, 49.99);
+                    json.put(Ecommerce.SOURCE, "test-source");
+                    // currency intentionally omitted.
+                })
+                .build();
+
+        brazeRemoteCommand.onInvoke(response);
+
+        verify(mockBrazeInstance, never()).logProductViewed(any(), any(), any(), anyDouble(), any(), any(), any(), any(), any());
+    }
+
+    @Test
+    public void testCartUpdatedEvent_NotDispatched_WhenCurrencyMissing() throws Exception {
+        JSONObject products = productsObject(singleProduct());
+        RemoteCommand.Response response = ResponseBuilder.create()
+                .addCommand(Commands.LOG_CART_UPDATED)
+                .populatePayload((json) -> {
+                    json.put(Ecommerce.CART_ID, "cart-1");
+                    json.put(Ecommerce.SOURCE, "test-source");
+                    json.put(Ecommerce.TOTAL_VALUE, 49.99);
+                    json.put(Ecommerce.ACTION, "add");
+                    json.put(Ecommerce.PRODUCTS, products);
+                    // currency intentionally omitted.
+                })
+                .build();
+
+        brazeRemoteCommand.onInvoke(response);
+
+        verify(mockBrazeInstance, never()).logCartUpdated(any(), any(), any(), any(), any(), any(), any());
+    }
+
+    @Test
+    public void testCheckoutStartedEvent_NotDispatched_WhenCurrencyMissing() throws Exception {
+        JSONObject products = productsObject(singleProduct());
+        RemoteCommand.Response response = ResponseBuilder.create()
+                .addCommand(Commands.LOG_CHECKOUT_STARTED)
+                .populatePayload((json) -> {
+                    json.put(Ecommerce.CHECKOUT_ID, "checkout-1");
+                    json.put(Ecommerce.SOURCE, "test-source");
+                    json.put(Ecommerce.TOTAL_VALUE, 49.99);
+                    json.put(Ecommerce.PRODUCTS, products);
+                    // currency intentionally omitted.
+                })
+                .build();
+
+        brazeRemoteCommand.onInvoke(response);
+
+        verify(mockBrazeInstance, never()).logCheckoutStarted(any(), any(), any(), anyDouble(), any(), any(), any());
+    }
+
+    @Test
+    public void testOrderPlacedEvent_NotDispatched_WhenCurrencyMissing() throws Exception {
+        JSONObject products = productsObject(singleProduct());
+        RemoteCommand.Response response = ResponseBuilder.create()
+                .addCommand(Commands.LOG_ORDER_PLACED)
+                .populatePayload((json) -> {
+                    json.put(Ecommerce.ORDER_ID, "order-1");
+                    json.put(Ecommerce.SOURCE, "test-source");
+                    json.put(Ecommerce.TOTAL_VALUE, 49.99);
+                    json.put(Ecommerce.PRODUCTS, products);
+                    // currency intentionally omitted.
+                })
+                .build();
+
+        brazeRemoteCommand.onInvoke(response);
+
+        verify(mockBrazeInstance, never()).logOrderPlaced(anyString(), anyString(), anyString(), anyDouble(), any(), any(), any(), any(), any());
+    }
+
+    @Test
+    public void testOrderCancelledEvent_NotDispatched_WhenCurrencyMissing() throws Exception {
+        // Regression: order_cancelled previously sent a currency-less payload; it must now skip the
+        // event (logCustomEvent not called) when currency is absent.
+        JSONObject products = productsObject(singleProduct());
+        RemoteCommand.Response response = ResponseBuilder.create()
+                .addCommand(Commands.LOG_ORDER_CANCELLED)
+                .populatePayload((json) -> {
+                    json.put(Ecommerce.ORDER_ID, "order-1");
+                    json.put(Ecommerce.SOURCE, "test-source");
+                    json.put(Ecommerce.TOTAL_VALUE, 49.99);
+                    json.put(Ecommerce.CANCEL_REASON, "customer_request");
+                    json.put(Ecommerce.PRODUCTS, products);
+                    // currency intentionally omitted.
+                })
+                .build();
+
+        brazeRemoteCommand.onInvoke(response);
+
+        verify(mockBrazeInstance, never()).logOrderCancelled(any(), any(), any(), anyDouble(), any(), any(), any(), any(), any(), any(), any(), any());
+    }
+
+    @Test
+    public void testOrderRefundedEvent_NotDispatched_WhenCurrencyMissing() throws Exception {
+        // Regression: order_refunded previously sent a currency-less payload; it must now skip the
+        // event (logCustomEvent not called) when currency is absent.
+        JSONObject products = productsObject(singleProduct());
+        RemoteCommand.Response response = ResponseBuilder.create()
+                .addCommand(Commands.LOG_ORDER_REFUNDED)
+                .populatePayload((json) -> {
+                    json.put(Ecommerce.ORDER_ID, "order-1");
+                    json.put(Ecommerce.SOURCE, "test-source");
+                    json.put(Ecommerce.TOTAL_VALUE, 49.99);
+                    json.put(Ecommerce.PRODUCTS, products);
+                    // currency intentionally omitted.
+                })
+                .build();
+
+        brazeRemoteCommand.onInvoke(response);
+
+        verify(mockBrazeInstance, never()).logOrderRefunded(any(), any(), any(), anyDouble(), any(), any(), any(), any());
+    }
+
+    @Test
+    public void testCheckoutStartedEvent_ArrayCartId_ForwardedAsNull() throws Exception {
+        // A3: an array-shaped cart_id is rejected (null) rather than coerced to a literal string.
+        JSONObject products = productsObject(singleProduct());
+        RemoteCommand.Response response = ResponseBuilder.create()
+                .addCommand(Commands.LOG_CHECKOUT_STARTED)
+                .populatePayload((json) -> {
+                    json.put(Ecommerce.CHECKOUT_ID, "checkout-1");
+                    json.put(Ecommerce.CURRENCY, "USD");
+                    json.put(Ecommerce.SOURCE, "test-source");
+                    json.put(Ecommerce.TOTAL_VALUE, 49.99);
+                    json.put(Ecommerce.CART_ID, new JSONArray(new String[]{"cart-1"}));
+                    json.put(Ecommerce.PRODUCTS, products);
+                })
+                .build();
+
+        brazeRemoteCommand.onInvoke(response);
+
+        verify(mockBrazeInstance).logCheckoutStarted(eq("checkout-1"), eq("USD"), eq("test-source"), eq(49.99), sameProducts(products), eq(null), eq(null));
+    }
+
+    @Test
+    public void testOrderPlacedEvent_ArrayCartId_ForwardedAsNull() throws Exception {
+        // A3: an array-shaped cart_id is rejected (null) rather than coerced to a literal string.
+        JSONObject products = productsObject(singleProduct());
+        RemoteCommand.Response response = ResponseBuilder.create()
+                .addCommand(Commands.LOG_ORDER_PLACED)
+                .populatePayload((json) -> {
+                    json.put(Ecommerce.ORDER_ID, "order-1");
+                    json.put(Ecommerce.CURRENCY, "USD");
+                    json.put(Ecommerce.SOURCE, "test-source");
+                    json.put(Ecommerce.TOTAL_VALUE, 49.99);
+                    json.put(Ecommerce.CART_ID, new JSONArray(new String[]{"cart-1"}));
+                    json.put(Ecommerce.PRODUCTS, products);
+                })
+                .build();
+
+        brazeRemoteCommand.onInvoke(response);
+
+        verify(mockBrazeInstance).logOrderPlaced(eq("order-1"), eq("USD"), eq("test-source"), eq(49.99), sameProducts(products), eq(null), eq(null), eq(null), eq(null));
+    }
+
+    @Test
+    public void testOrderCancelledEvent_NotDispatched_WhenSourceIsArray() throws Exception {
+        // Regression: cancelled/refunded now use requireScalarString for source (previously raw
+        // getString), so an array-valued source is rejected instead of coerced to "[...]".
+        JSONObject products = productsObject(singleProduct());
+        RemoteCommand.Response response = ResponseBuilder.create()
+                .addCommand(Commands.LOG_ORDER_CANCELLED)
+                .populatePayload((json) -> {
+                    json.put(Ecommerce.ORDER_ID, "order-1");
+                    json.put(Ecommerce.CURRENCY, "USD");
+                    json.put(Ecommerce.SOURCE, new JSONArray().put("test-source"));
+                    json.put(Ecommerce.TOTAL_VALUE, 49.99);
+                    json.put(Ecommerce.CANCEL_REASON, "customer_request");
+                    json.put(Ecommerce.PRODUCTS, products);
+                })
+                .build();
+
+        brazeRemoteCommand.onInvoke(response);
+
+        verify(mockBrazeInstance, never()).logOrderCancelled(any(), any(), any(), anyDouble(), any(), any(), any(), any(), any(), any(), any(), any());
     }
 
     @Test

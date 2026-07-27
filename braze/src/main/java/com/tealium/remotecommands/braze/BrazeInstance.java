@@ -18,8 +18,14 @@ import com.braze.BrazeActivityLifecycleCallbackListener;
 import com.braze.BrazeUser;
 import com.braze.configuration.BrazeConfig;
 import com.braze.models.outgoing.BrazeProperties;
+import com.braze.models.recommended.ecommerce.CartUpdatedEvent;
+import com.braze.models.recommended.ecommerce.CheckoutStartedEvent;
+import com.braze.models.recommended.ecommerce.EcommerceProduct;
+import com.braze.models.recommended.ecommerce.OrderPlacedEvent;
+import com.braze.models.recommended.ecommerce.ProductViewedEvent;
 
 import org.json.JSONArray;
+import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.math.BigDecimal;
@@ -557,6 +563,134 @@ class BrazeInstance implements BrazeCommand, ActivityLifecycleCallbacks {
                     purchaseProperties != null && purchaseProperties.length > i ? purchaseProperties[i] : null
             );
         }
+    }
+
+    @Override
+    public void logProductViewed(@NonNull String productId, @NonNull String productName, @NonNull String variantId, double price, @NonNull String currency, @NonNull String source, @Nullable String imageUrl, @Nullable String productUrl, @Nullable JSONObject properties) {
+        getBrazeInstance().logEcommerceEvent(new ProductViewedEvent(
+                productId,
+                productName,
+                variantId,
+                price,
+                currency,
+                source,
+                imageUrl,
+                productUrl,
+                BrazeUtils.extractCustomProperties(properties, mStrictPropertiesEnabled)
+        ));
+    }
+
+    @Override
+    public void logCartUpdated(@NonNull String cartId, @NonNull String currency, @NonNull String source, @Nullable Double totalValue, @NonNull BrazeConstants.Ecommerce.Action action, @Nullable JSONObject products, @Nullable JSONObject properties) throws JSONException {
+        getBrazeInstance().logEcommerceEvent(new CartUpdatedEvent(
+                cartId,
+                currency,
+                source,
+                totalValue,
+                BrazeUtils.getProductsFromNestedArrays(products, mStrictPropertiesEnabled),
+                BrazeUtils.extractCustomProperties(properties, mStrictPropertiesEnabled),
+                action.brazeAction
+        ));
+    }
+
+    @Override
+    public void logCheckoutStarted(@NonNull String checkoutId, @NonNull String currency, @NonNull String source, double totalValue, @Nullable JSONObject products, @Nullable String cartId, @Nullable JSONObject properties) throws JSONException {
+        getBrazeInstance().logEcommerceEvent(new CheckoutStartedEvent(
+                checkoutId,
+                currency,
+                source,
+                totalValue,
+                BrazeUtils.getProductsFromNestedArrays(products, mStrictPropertiesEnabled),
+                cartId,
+                BrazeUtils.extractCustomProperties(properties, mStrictPropertiesEnabled)
+        ));
+    }
+
+    @Override
+    public void logOrderPlaced(@NonNull String orderId, @NonNull String currency, @NonNull String source, double totalValue, @Nullable JSONObject products, @Nullable String cartId, @Nullable Double totalDiscounts, @Nullable JSONObject discounts, @Nullable JSONObject properties) throws JSONException {
+        getBrazeInstance().logEcommerceEvent(new OrderPlacedEvent(
+                orderId,
+                currency,
+                source,
+                totalValue,
+                BrazeUtils.getProductsFromNestedArrays(products, mStrictPropertiesEnabled),
+                cartId,
+                totalDiscounts,
+                BrazeUtils.getDiscountsFromNestedArrays(discounts),
+                BrazeUtils.extractCustomProperties(properties, mStrictPropertiesEnabled)
+        ));
+    }
+
+    @Override
+    public void logOrderCancelled(@NonNull String orderId, @NonNull String currency, @NonNull String source, double totalValue, @Nullable Double subtotalValue, @Nullable Double tax, @Nullable Double shipping, @Nullable JSONObject products, @NonNull String cancelReason, @Nullable Double totalDiscounts, @Nullable JSONObject discounts, @Nullable JSONObject properties) throws JSONException {
+        JSONObject wirePayload = new JSONObject();
+        try {
+            wirePayload.put(BrazeConstants.Ecommerce.ORDER_ID, orderId);
+            wirePayload.put(BrazeConstants.Ecommerce.TOTAL_VALUE, totalValue);
+            if (subtotalValue != null) {
+                wirePayload.put(BrazeConstants.Ecommerce.SUBTOTAL_VALUE, subtotalValue);
+            }
+            if (tax != null) {
+                wirePayload.put(BrazeConstants.Ecommerce.TAX, tax);
+            }
+            if (shipping != null) {
+                wirePayload.put(BrazeConstants.Ecommerce.SHIPPING, shipping);
+            }
+            wirePayload.put(BrazeConstants.Ecommerce.CURRENCY, currency);
+            wirePayload.put(BrazeConstants.Ecommerce.CANCEL_REASON, cancelReason);
+            wirePayload.put(BrazeConstants.Ecommerce.PRODUCTS, BrazeUtils.getProductsAsWireJson(products));
+            wirePayload.put(BrazeConstants.Ecommerce.SOURCE, source);
+            if (totalDiscounts != null) {
+                wirePayload.put(BrazeConstants.Ecommerce.TOTAL_DISCOUNTS, totalDiscounts);
+            }
+            JSONArray discountsJson = BrazeUtils.getDiscountsAsWireJson(discounts);
+            if (discountsJson.length() > 0) {
+                wirePayload.put(BrazeConstants.Ecommerce.DISCOUNTS, discountsJson);
+            }
+            if (properties != null) {
+                // Route event-level metadata through extractCustomProperties for the same string
+                // coercion + mStrictPropertiesEnabled handling every other ecommerce path applies,
+                // rather than putting the raw payload JSON on the wire.
+                wirePayload.put(BrazeConstants.Ecommerce.METADATA,
+                        BrazeUtils.extractCustomProperties(properties, mStrictPropertiesEnabled).forJsonPut());
+            }
+        } catch (JSONException jex) {
+            Log.w(TAG, "Failed to build ecommerce.order_cancelled payload", jex);
+            return;
+        }
+
+        getBrazeInstance().logCustomEvent(BrazeConstants.Ecommerce.EVENT_ORDER_CANCELLED, new BrazeProperties(wirePayload));
+    }
+
+    @Override
+    public void logOrderRefunded(@NonNull String orderId, @NonNull String currency, @NonNull String source, double totalValue, @Nullable JSONObject products, @Nullable Double totalDiscounts, @Nullable JSONObject discounts, @Nullable JSONObject properties) throws JSONException {
+        JSONObject wirePayload = new JSONObject();
+        try {
+            wirePayload.put(BrazeConstants.Ecommerce.ORDER_ID, orderId);
+            wirePayload.put(BrazeConstants.Ecommerce.TOTAL_VALUE, totalValue);
+            wirePayload.put(BrazeConstants.Ecommerce.CURRENCY, currency);
+            wirePayload.put(BrazeConstants.Ecommerce.PRODUCTS, BrazeUtils.getProductsAsWireJson(products));
+            wirePayload.put(BrazeConstants.Ecommerce.SOURCE, source);
+            if (totalDiscounts != null) {
+                wirePayload.put(BrazeConstants.Ecommerce.TOTAL_DISCOUNTS, totalDiscounts);
+            }
+            JSONArray discountsJson = BrazeUtils.getDiscountsAsWireJson(discounts);
+            if (discountsJson.length() > 0) {
+                wirePayload.put(BrazeConstants.Ecommerce.DISCOUNTS, discountsJson);
+            }
+            if (properties != null) {
+                // Route event-level metadata through extractCustomProperties for the same string
+                // coercion + mStrictPropertiesEnabled handling every other ecommerce path applies,
+                // rather than putting the raw payload JSON on the wire.
+                wirePayload.put(BrazeConstants.Ecommerce.METADATA,
+                        BrazeUtils.extractCustomProperties(properties, mStrictPropertiesEnabled).forJsonPut());
+            }
+        } catch (JSONException jex) {
+            Log.w(TAG, "Failed to build ecommerce.order_refunded payload", jex);
+            return;
+        }
+
+        getBrazeInstance().logCustomEvent(BrazeConstants.Ecommerce.EVENT_ORDER_REFUNDED, new BrazeProperties(wirePayload));
     }
 
     @Override

@@ -7,6 +7,7 @@ import com.braze.configuration.BrazeConfig;
 import com.tealium.remotecommands.RemoteCommand;
 
 import org.json.JSONArray;
+import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.math.BigDecimal;
@@ -20,6 +21,7 @@ import static com.tealium.remotecommands.braze.BrazeConstants.Config;
 import static com.tealium.remotecommands.braze.BrazeConstants.User;
 import static com.tealium.remotecommands.braze.BrazeConstants.Event;
 import static com.tealium.remotecommands.braze.BrazeConstants.Purchase;
+import static com.tealium.remotecommands.braze.BrazeConstants.Ecommerce;
 import static com.tealium.remotecommands.braze.BrazeConstants.Location;
 
 /**
@@ -186,8 +188,69 @@ public class BrazeRemoteCommand extends RemoteCommand {
      * "property_name_3" : <integer>, // 10
      * "property_name_4" : <double>, // 10.15
      * "property_name_5" : <date>, // format "E MMM dd HH:mm:ss z yyyy"
-     * }]
-     * }
+     * }],
+     * <p>
+     * // Ecommerce Events (Braze SDK 42.3.0+), keys match the Braze recommended-event schema 1:1.
+     * // Commands: logproductviewed, logcartupdated, logcheckoutstarted, logorderplaced,
+     * //           logordercancelled, logorderrefunded
+     * // logproductviewed (single product, scalar fields, no products object):
+     * "product_id" : "<string>", "product_name" : "<string>", "variant_id" : "<string>",
+     * "price" : <double>, "currency" : "<string>", "source" : "<string>",
+     * "image_url" : "<string>", // optional
+     * "product_url" : "<string>", // optional
+     * // NOTE: "type" (typeIdentifiers) is NOT forwarded on Android -- the Braze ProductViewedEvent
+     * // constructor has no such parameter (SDK limitation). Supported on iOS only.
+     * "metadata" : { "property_name_1" : "string value" } // optional
+     * <p>
+     * // "products" (cart/checkout/order): a nested object holding PARALLEL ARRAYS, zipped by
+     * // index into line items -- unifying the shape with tealium-android-firebase-remote-command's
+     * // items_params. product_id/product_name/variant_id/price/quantity are required and must be
+     * // equal length; image_url/product_url/metadata are optional per-index arrays:
+     * "products" : {
+     * "product_id" : ["<string>"], "product_name" : ["<string>"], "variant_id" : ["<string>"],
+     * "price" : [<double>], "quantity" : [<integer>],
+     * "image_url" : ["<string>"], "product_url" : ["<string>"], // optional
+     * "metadata" : [{ "property_name_1" : "string value" }] // optional, per product
+     * },
+     * // "discounts" (order_placed/cancelled/refunded): same nested-parallel-arrays shape, all
+     * // arrays optional:
+     * "discounts" : { "code" : ["<string>"], "amount" : [<double>], "type" : ["<string>"] },
+     * <p>
+     * // logcartupdated:
+     * "cart_id" : "<string>", // required
+     * "action" : "<string>", // "add" / "remove" / "replace"; omitted or unrecognized defaults to replace
+     * "total_value" : <double>, // required when action is omitted/replace; optional for add/remove
+     * // NOTE: subtotal_value/tax/shipping are NOT forwarded on Android -- the Braze CartUpdatedEvent
+     * // constructor has no such parameters (SDK limitation). Supported on iOS only.
+     * "currency" : "<string>", "source" : "<string>",
+     * "products" : {...}, // required, see above
+     * "metadata" : {...} // optional, event-level
+     * <p>
+     * // logcheckoutstarted:
+     * "checkout_id" : "<string>", // required
+     * "cart_id" : "<string>", // optional
+     * "total_value" : <double>, "currency" : "<string>", "source" : "<string>",
+     * // NOTE: subtotal_value/tax/shipping are NOT forwarded on Android -- the Braze
+     * // CheckoutStartedEvent constructor has no such parameters (SDK limitation). iOS only.
+     * "products" : {...}, // required, see above
+     * "metadata" : {...} // optional, event-level
+     * <p>
+     * // logorderplaced:
+     * "order_id" : "<string>", // required
+     * "cart_id" : "<string>", // optional
+     * "total_value" : <double>, "currency" : "<string>", "source" : "<string>",
+     * "total_discounts" : <double>, // optional
+     * "discounts" : {...}, // optional, see above
+     * "products" : {...}, // required, see above
+     * "metadata" : {...} // optional, event-level
+     * <p>
+     * // logordercancelled / logorderrefunded (no typed Braze SDK class; logged via logCustomEvent):
+     * "order_id" : "<string>", // required
+     * "total_value" : <double>, "currency" : "<string>", "source" : "<string>",
+     * "cancel_reason" : "<string>", // logordercancelled only, required
+     * "total_discounts" : <double>, "discounts" : {...}, // optional, see above
+     * "products" : {...}, // required, see above
+     * "metadata" : {...} // optional, event-level
      *
      * @param response
      * @throws Exception
@@ -340,6 +403,96 @@ public class BrazeRemoteCommand extends RemoteCommand {
                                     purchaseProps
                             );
                         }
+                        break;
+                    case Commands.LOG_PRODUCT_VIEWED:
+                        mBraze.logProductViewed(
+                                BrazeUtils.requireScalarString(payload, Ecommerce.PRODUCT_ID),
+                                BrazeUtils.requireScalarString(payload, Ecommerce.PRODUCT_NAME),
+                                BrazeUtils.requireScalarString(payload, Ecommerce.VARIANT_ID),
+                                payload.getDouble(Ecommerce.PRICE),
+                                BrazeUtils.requireCurrency(payload, Ecommerce.CURRENCY),
+                                BrazeUtils.requireScalarString(payload, Ecommerce.SOURCE),
+                                BrazeUtils.optionalScalarString(payload, Ecommerce.IMAGE_URL),
+                                BrazeUtils.optionalScalarString(payload, Ecommerce.PRODUCT_URL),
+                                payload.optJSONObject(Ecommerce.METADATA)
+                        );
+                        break;
+                    case Commands.LOG_CART_UPDATED:
+                        double cartTotalValue = payload.optDouble(Ecommerce.TOTAL_VALUE);
+                        Ecommerce.Action cartAction = Ecommerce.Action.from(BrazeUtils.optionalScalarString(payload, Ecommerce.ACTION));
+                        // total_value is required for a full-cart snapshot (action replace or omitted);
+                        // catch it here so the event is skipped client-side rather than dropped at
+                        // Braze ingestion. It stays optional for add/remove incremental updates.
+                        if (Double.isNaN(cartTotalValue) && cartAction == Ecommerce.Action.REPLACE) {
+                            throw new JSONException("total_value is required for cart_updated when action is replace or omitted");
+                        }
+                        mBraze.logCartUpdated(
+                                BrazeUtils.requireScalarString(payload, Ecommerce.CART_ID),
+                                BrazeUtils.requireCurrency(payload, Ecommerce.CURRENCY),
+                                BrazeUtils.requireScalarString(payload, Ecommerce.SOURCE),
+                                Double.isNaN(cartTotalValue) ? null : cartTotalValue,
+                                cartAction,
+                                payload.getJSONObject(Ecommerce.PRODUCTS),
+                                payload.optJSONObject(Ecommerce.METADATA)
+                        );
+                        break;
+                    case Commands.LOG_CHECKOUT_STARTED:
+                        mBraze.logCheckoutStarted(
+                                BrazeUtils.requireScalarString(payload, Ecommerce.CHECKOUT_ID),
+                                BrazeUtils.requireCurrency(payload, Ecommerce.CURRENCY),
+                                BrazeUtils.requireScalarString(payload, Ecommerce.SOURCE),
+                                payload.getDouble(Ecommerce.TOTAL_VALUE),
+                                payload.getJSONObject(Ecommerce.PRODUCTS),
+                                BrazeUtils.optionalScalarString(payload, Ecommerce.CART_ID),
+                                payload.optJSONObject(Ecommerce.METADATA)
+                        );
+                        break;
+                    case Commands.LOG_ORDER_PLACED:
+                        double orderPlacedDiscounts = payload.optDouble(Ecommerce.TOTAL_DISCOUNTS);
+                        mBraze.logOrderPlaced(
+                                BrazeUtils.requireScalarString(payload, Ecommerce.ORDER_ID),
+                                BrazeUtils.requireCurrency(payload, Ecommerce.CURRENCY),
+                                BrazeUtils.requireScalarString(payload, Ecommerce.SOURCE),
+                                payload.getDouble(Ecommerce.TOTAL_VALUE),
+                                payload.getJSONObject(Ecommerce.PRODUCTS),
+                                BrazeUtils.optionalScalarString(payload, Ecommerce.CART_ID),
+                                Double.isNaN(orderPlacedDiscounts) ? null : orderPlacedDiscounts,
+                                payload.optJSONObject(Ecommerce.DISCOUNTS),
+                                payload.optJSONObject(Ecommerce.METADATA)
+                        );
+                        break;
+                    case Commands.LOG_ORDER_CANCELLED:
+                        double orderCancelledDiscounts = payload.optDouble(Ecommerce.TOTAL_DISCOUNTS);
+                        double orderCancelledSubtotal = payload.optDouble(Ecommerce.SUBTOTAL_VALUE);
+                        double orderCancelledTax = payload.optDouble(Ecommerce.TAX);
+                        double orderCancelledShipping = payload.optDouble(Ecommerce.SHIPPING);
+                        mBraze.logOrderCancelled(
+                                BrazeUtils.requireScalarString(payload, Ecommerce.ORDER_ID),
+                                BrazeUtils.requireCurrency(payload, Ecommerce.CURRENCY),
+                                BrazeUtils.requireScalarString(payload, Ecommerce.SOURCE),
+                                payload.getDouble(Ecommerce.TOTAL_VALUE),
+                                Double.isNaN(orderCancelledSubtotal) ? null : orderCancelledSubtotal,
+                                Double.isNaN(orderCancelledTax) ? null : orderCancelledTax,
+                                Double.isNaN(orderCancelledShipping) ? null : orderCancelledShipping,
+                                payload.getJSONObject(Ecommerce.PRODUCTS),
+                                BrazeUtils.requireScalarString(payload, Ecommerce.CANCEL_REASON),
+                                Double.isNaN(orderCancelledDiscounts) ? null : orderCancelledDiscounts,
+                                payload.optJSONObject(Ecommerce.DISCOUNTS),
+                                payload.optJSONObject(Ecommerce.METADATA)
+                        );
+                        break;
+                    case Commands.LOG_ORDER_REFUNDED:
+                        double orderRefundedDiscounts = payload.optDouble(Ecommerce.TOTAL_DISCOUNTS);
+                        mBraze.logOrderRefunded(
+                                BrazeUtils.requireScalarString(payload, Ecommerce.ORDER_ID),
+                                BrazeUtils.requireCurrency(payload, Ecommerce.CURRENCY),
+                                BrazeUtils.requireScalarString(payload, Ecommerce.SOURCE),
+                                payload.getDouble(Ecommerce.TOTAL_VALUE),
+                                payload.getJSONObject(Ecommerce.PRODUCTS),
+                                Double.isNaN(orderRefundedDiscounts) ? null : orderRefundedDiscounts,
+                                payload.optJSONObject(Ecommerce.DISCOUNTS),
+                                payload.optJSONObject(Ecommerce.METADATA)
+                        );
                         break;
                     case Commands.EMAIL_NOTIFICATION:
                         mBraze.setEmailSubscriptionType(

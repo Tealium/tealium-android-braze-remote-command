@@ -41,6 +41,14 @@
 
     <string name="btn_log_purchase">Log Purchase</string>
     <string name="btn_log_multiple_purchase">Log Multiple Purchase</string>
+    <string name="btn_log_product_viewed">Log Product Viewed</string>
+    <string name="btn_log_cart_updated_add">Log Cart Updated (Add)</string>
+    <string name="btn_log_cart_updated_remove">Log Cart Updated (Remove)</string>
+    <string name="btn_log_cart_updated_replace">Log Cart Updated (Replace)</string>
+    <string name="btn_log_checkout_started">Log Checkout Started</string>
+    <string name="btn_log_order_placed">Log Order Placed</string>
+    <string name="btn_log_order_cancelled">Log Order Cancelled</string>
+    <string name="btn_log_order_refunded">Log Order Refunded</string>
 
     <string name="btn_edit_user_engagements">Edit user engagements</string>
 </resources>

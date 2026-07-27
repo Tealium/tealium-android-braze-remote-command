@@ -10,6 +10,7 @@ import static org.junit.Assert.fail;
 import com.braze.enums.Gender;
 import com.braze.enums.Month;
 import com.braze.models.outgoing.BrazeProperties;
+import com.braze.models.recommended.ecommerce.EcommerceProduct;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -20,6 +21,8 @@ import org.robolectric.RobolectricTestRunner;
 
 import java.math.BigDecimal;
 import java.util.Date;
+import java.util.List;
+import java.util.Map;
 import java.util.TimeZone;
 
 @RunWith(RobolectricTestRunner.class)
@@ -72,6 +75,412 @@ public class BrazeUtilityMethodTests {
 
         assertNull(BrazeUtils.getMonthEnumFromInt(-1));
         assertNull(BrazeUtils.getMonthEnumFromInt(12));
+    }
+
+    /**
+     * Builds the nested Ecommerce.PRODUCTS object -- parallel arrays zipped by index -- from a
+     * list of flat product field maps. Mirrors the shape BrazeRemoteCommand reads from a real
+     * payload (product_id/product_name/variant_id/price/quantity required; image_url/product_url/
+     * metadata optional per-index).
+     */
+    private JSONObject productsObject(JSONObject... products) throws JSONException {
+        JSONArray ids = new JSONArray();
+        JSONArray names = new JSONArray();
+        JSONArray variants = new JSONArray();
+        JSONArray prices = new JSONArray();
+        JSONArray quantities = new JSONArray();
+        JSONArray imageUrls = new JSONArray();
+        JSONArray productUrls = new JSONArray();
+        JSONArray metadatas = new JSONArray();
+        for (JSONObject product : products) {
+            ids.put(product.opt(BrazeConstants.Ecommerce.PRODUCT_ID));
+            names.put(product.opt(BrazeConstants.Ecommerce.PRODUCT_NAME));
+            variants.put(product.opt(BrazeConstants.Ecommerce.VARIANT_ID));
+            prices.put(product.opt(BrazeConstants.Ecommerce.PRICE));
+            quantities.put(product.opt(BrazeConstants.Ecommerce.QUANTITY));
+            imageUrls.put(product.has(BrazeConstants.Ecommerce.IMAGE_URL) ? product.opt(BrazeConstants.Ecommerce.IMAGE_URL) : JSONObject.NULL);
+            productUrls.put(product.has(BrazeConstants.Ecommerce.PRODUCT_URL) ? product.opt(BrazeConstants.Ecommerce.PRODUCT_URL) : JSONObject.NULL);
+            metadatas.put(product.has(BrazeConstants.Ecommerce.METADATA) ? product.opt(BrazeConstants.Ecommerce.METADATA) : JSONObject.NULL);
+        }
+        JSONObject result = new JSONObject();
+        result.put(BrazeConstants.Ecommerce.PRODUCT_ID, ids);
+        result.put(BrazeConstants.Ecommerce.PRODUCT_NAME, names);
+        result.put(BrazeConstants.Ecommerce.VARIANT_ID, variants);
+        result.put(BrazeConstants.Ecommerce.PRICE, prices);
+        result.put(BrazeConstants.Ecommerce.QUANTITY, quantities);
+        result.put(BrazeConstants.Ecommerce.IMAGE_URL, imageUrls);
+        result.put(BrazeConstants.Ecommerce.PRODUCT_URL, productUrls);
+        result.put(BrazeConstants.Ecommerce.METADATA, metadatas);
+        return result;
+    }
+
+    @Test
+    public void productsFromNestedArraysTest() throws JSONException {
+        JSONObject product = new JSONObject();
+        product.put(BrazeConstants.Ecommerce.PRODUCT_ID, "sku123");
+        product.put(BrazeConstants.Ecommerce.PRODUCT_NAME, "Widget");
+        product.put(BrazeConstants.Ecommerce.VARIANT_ID, "widget_blue");
+        product.put(BrazeConstants.Ecommerce.PRICE, 49.99);
+        product.put(BrazeConstants.Ecommerce.QUANTITY, 2);
+        product.put(BrazeConstants.Ecommerce.IMAGE_URL, "https://example.com/img.jpg");
+        product.put(BrazeConstants.Ecommerce.PRODUCT_URL, "https://example.com/p");
+        JSONObject props = new JSONObject();
+        props.put("string-prop", "value");
+        product.put(BrazeConstants.Ecommerce.METADATA, props);
+
+        List<EcommerceProduct> result = BrazeUtils.getProductsFromNestedArrays(productsObject(product), false);
+
+        assertEquals(1, result.size());
+        EcommerceProduct parsed = result.get(0);
+        assertEquals("sku123", parsed.getProductId());
+        assertEquals("Widget", parsed.getProductName());
+        assertEquals("widget_blue", parsed.getVariantId());
+        assertEquals(49.99, parsed.getPrice(), 0.0001);
+        assertEquals(2L, parsed.getQuantity());
+        assertEquals("https://example.com/img.jpg", parsed.getImageUrl());
+        assertEquals("https://example.com/p", parsed.getProductUrl());
+        assertEquals("value", parsed.getMetadata().get("string-prop"));
+    }
+
+    @Test
+    public void productsFromNestedArraysTest_ThrowsForNullOrMissingArrays() {
+        // A missing products object or missing required arrays throws, so the caller skips the whole
+        // event rather than dispatching an ecommerce event with no line items.
+        try {
+            BrazeUtils.getProductsFromNestedArrays(null, false);
+            fail("Expected JSONException for null products object");
+        } catch (JSONException expected) {
+            // expected
+        }
+        try {
+            BrazeUtils.getProductsFromNestedArrays(new JSONObject(), false);
+            fail("Expected JSONException for missing product arrays");
+        } catch (JSONException expected) {
+            // expected
+        }
+    }
+
+    @Test
+    public void productsFromNestedArraysTest_SkipsProductMissingRequiredPrice() throws JSONException {
+        JSONObject missingPrice = new JSONObject();
+        missingPrice.put(BrazeConstants.Ecommerce.PRODUCT_ID, "sku-missing-price");
+        missingPrice.put(BrazeConstants.Ecommerce.PRODUCT_NAME, "No Price");
+        missingPrice.put(BrazeConstants.Ecommerce.VARIANT_ID, "variant");
+        // price intentionally omitted; required per the wire schema, and must not silently
+        // default to $0.
+        missingPrice.put(BrazeConstants.Ecommerce.PRICE, "not-a-number");
+        missingPrice.put(BrazeConstants.Ecommerce.QUANTITY, 1);
+
+        JSONObject validProduct = new JSONObject();
+        validProduct.put(BrazeConstants.Ecommerce.PRODUCT_ID, "sku123");
+        validProduct.put(BrazeConstants.Ecommerce.PRODUCT_NAME, "Widget");
+        validProduct.put(BrazeConstants.Ecommerce.VARIANT_ID, "widget_blue");
+        validProduct.put(BrazeConstants.Ecommerce.PRICE, 49.99);
+        validProduct.put(BrazeConstants.Ecommerce.QUANTITY, 1);
+
+        List<EcommerceProduct> result = BrazeUtils.getProductsFromNestedArrays(productsObject(missingPrice, validProduct), false);
+
+        assertEquals(1, result.size());
+        assertEquals("sku123", result.get(0).getProductId());
+    }
+
+    /**
+     * Builds the nested Ecommerce.DISCOUNTS object -- parallel arrays zipped by index -- from
+     * separate code/amount/type arrays, so tests can exercise per-array-absent behavior.
+     */
+    private JSONObject discountsObject(JSONArray codes, JSONArray amounts, JSONArray types) throws JSONException {
+        JSONObject result = new JSONObject();
+        if (codes != null) result.put(BrazeConstants.Ecommerce.DISCOUNT_CODE, codes);
+        if (amounts != null) result.put(BrazeConstants.Ecommerce.DISCOUNT_AMOUNT, amounts);
+        if (types != null) result.put(BrazeConstants.Ecommerce.DISCOUNT_TYPE, types);
+        return result;
+    }
+
+    @Test
+    public void discountsFromNestedArraysTest() throws JSONException {
+        JSONObject discounts = discountsObject(
+                new JSONArray(new String[]{"SUMMER10"}),
+                new JSONArray(new double[]{5.0}),
+                new JSONArray(new String[]{"percentage"}));
+
+        List<Map<String, Object>> result = BrazeUtils.getDiscountsFromNestedArrays(discounts);
+
+        assertEquals(1, result.size());
+        assertEquals("SUMMER10", result.get(0).get("code"));
+        assertEquals(5.0, (Double) result.get(0).get("amount"), 0.0001);
+        assertEquals("percentage", result.get(0).get("type"));
+    }
+
+    @Test
+    public void discountsFromNestedArraysTest_SkipsAbsentArraysPerEntry() throws JSONException {
+        JSONObject discounts = discountsObject(new JSONArray(new String[]{"SUMMER10"}), null, null);
+
+        List<Map<String, Object>> result = BrazeUtils.getDiscountsFromNestedArrays(discounts);
+
+        assertEquals(1, result.size());
+        assertEquals("SUMMER10", result.get(0).get("code"));
+        assertFalse(result.get(0).containsKey("amount"));
+        assertFalse(result.get(0).containsKey("type"));
+    }
+
+    @Test
+    public void discountsFromNestedArraysTest_EmptyForNullOrEmpty() {
+        assertTrue(BrazeUtils.getDiscountsFromNestedArrays(null).isEmpty());
+        assertTrue(BrazeUtils.getDiscountsFromNestedArrays(new JSONObject()).isEmpty());
+    }
+
+    @Test
+    public void productsAsWireJsonTest_RenamesMetadataOnEachProduct() throws JSONException {
+        JSONObject product = new JSONObject();
+        product.put(BrazeConstants.Ecommerce.PRODUCT_ID, "sku123");
+        product.put(BrazeConstants.Ecommerce.PRODUCT_NAME, "Widget");
+        product.put(BrazeConstants.Ecommerce.VARIANT_ID, "widget_blue");
+        product.put(BrazeConstants.Ecommerce.PRICE, 49.99);
+        product.put(BrazeConstants.Ecommerce.QUANTITY, 2);
+        product.put(BrazeConstants.Ecommerce.IMAGE_URL, "https://example.com/img.jpg");
+        product.put(BrazeConstants.Ecommerce.PRODUCT_URL, "https://example.com/p");
+        JSONObject props = new JSONObject();
+        props.put("rewards_member", true);
+        product.put(BrazeConstants.Ecommerce.METADATA, props);
+
+        JSONArray result = BrazeUtils.getProductsAsWireJson(productsObject(product));
+
+        assertEquals(1, result.length());
+        JSONObject wireProduct = result.getJSONObject(0);
+        assertEquals("sku123", wireProduct.getString(BrazeConstants.Ecommerce.PRODUCT_ID));
+        assertEquals("Widget", wireProduct.getString(BrazeConstants.Ecommerce.PRODUCT_NAME));
+        assertEquals("widget_blue", wireProduct.getString(BrazeConstants.Ecommerce.VARIANT_ID));
+        assertEquals(49.99, wireProduct.getDouble(BrazeConstants.Ecommerce.PRICE), 0.0001);
+        assertEquals(2, wireProduct.getInt(BrazeConstants.Ecommerce.QUANTITY));
+        assertEquals("https://example.com/img.jpg", wireProduct.getString(BrazeConstants.Ecommerce.IMAGE_URL));
+        assertEquals("https://example.com/p", wireProduct.getString(BrazeConstants.Ecommerce.PRODUCT_URL));
+        assertTrue(wireProduct.has(BrazeConstants.Ecommerce.METADATA));
+        assertEquals(true, wireProduct.getJSONObject(BrazeConstants.Ecommerce.METADATA).getBoolean("rewards_member"));
+    }
+
+    @Test
+    public void productsAsWireJsonTest_OmitsMetadataWhenAbsent() throws JSONException {
+        JSONObject product = new JSONObject();
+        product.put(BrazeConstants.Ecommerce.PRODUCT_ID, "sku123");
+        product.put(BrazeConstants.Ecommerce.PRODUCT_NAME, "Widget");
+        product.put(BrazeConstants.Ecommerce.VARIANT_ID, "widget_blue");
+        product.put(BrazeConstants.Ecommerce.PRICE, 49.99);
+        product.put(BrazeConstants.Ecommerce.QUANTITY, 1);
+
+        JSONArray result = BrazeUtils.getProductsAsWireJson(productsObject(product));
+
+        assertEquals(1, result.length());
+        assertFalse(result.getJSONObject(0).has("metadata"));
+    }
+
+    @Test
+    public void productsAsWireJsonTest_ThrowsForNullOrMissingArrays() {
+        // Same throw-and-skip contract as getProductsFromNestedArrays, for the order_cancelled /
+        // order_refunded wire payloads.
+        try {
+            BrazeUtils.getProductsAsWireJson(null);
+            fail("Expected JSONException for null products object");
+        } catch (JSONException expected) {
+            // expected
+        }
+        try {
+            BrazeUtils.getProductsAsWireJson(new JSONObject());
+            fail("Expected JSONException for missing product arrays");
+        } catch (JSONException expected) {
+            // expected
+        }
+    }
+
+    @Test
+    public void productsAsWireJsonTest_SkipsProductMissingRequiredPrice() throws JSONException {
+        JSONObject missingPrice = new JSONObject();
+        missingPrice.put(BrazeConstants.Ecommerce.PRODUCT_ID, "sku-missing-price");
+        missingPrice.put(BrazeConstants.Ecommerce.PRODUCT_NAME, "No Price");
+        missingPrice.put(BrazeConstants.Ecommerce.VARIANT_ID, "variant");
+        missingPrice.put(BrazeConstants.Ecommerce.PRICE, "not-a-number");
+        missingPrice.put(BrazeConstants.Ecommerce.QUANTITY, 1);
+
+        JSONObject validProduct = new JSONObject();
+        validProduct.put(BrazeConstants.Ecommerce.PRODUCT_ID, "sku123");
+        validProduct.put(BrazeConstants.Ecommerce.PRODUCT_NAME, "Widget");
+        validProduct.put(BrazeConstants.Ecommerce.VARIANT_ID, "widget_blue");
+        validProduct.put(BrazeConstants.Ecommerce.PRICE, 49.99);
+        validProduct.put(BrazeConstants.Ecommerce.QUANTITY, 1);
+
+        JSONArray result = BrazeUtils.getProductsAsWireJson(productsObject(missingPrice, validProduct));
+
+        assertEquals(1, result.length());
+        assertEquals("sku123", result.getJSONObject(0).getString(BrazeConstants.Ecommerce.PRODUCT_ID));
+    }
+
+    @Test
+    public void productsFromNestedArraysTest_SkipsInvalidProductButKeepsEvent() throws JSONException {
+        // A product the Braze EcommerceProduct constructor rejects (negative price) throws
+        // IllegalArgumentException; it must skip only that line item, not drop the whole event.
+        JSONObject negativePrice = new JSONObject();
+        negativePrice.put(BrazeConstants.Ecommerce.PRODUCT_ID, "sku-bad");
+        negativePrice.put(BrazeConstants.Ecommerce.PRODUCT_NAME, "Bad");
+        negativePrice.put(BrazeConstants.Ecommerce.VARIANT_ID, "variant");
+        negativePrice.put(BrazeConstants.Ecommerce.PRICE, -5.0);
+        negativePrice.put(BrazeConstants.Ecommerce.QUANTITY, 1);
+
+        JSONObject validProduct = new JSONObject();
+        validProduct.put(BrazeConstants.Ecommerce.PRODUCT_ID, "sku123");
+        validProduct.put(BrazeConstants.Ecommerce.PRODUCT_NAME, "Widget");
+        validProduct.put(BrazeConstants.Ecommerce.VARIANT_ID, "widget_blue");
+        validProduct.put(BrazeConstants.Ecommerce.PRICE, 49.99);
+        validProduct.put(BrazeConstants.Ecommerce.QUANTITY, 1);
+
+        List<EcommerceProduct> result = BrazeUtils.getProductsFromNestedArrays(productsObject(negativePrice, validProduct), false);
+
+        assertEquals(1, result.size());
+        assertEquals("sku123", result.get(0).getProductId());
+    }
+
+    @Test
+    public void productsFromNestedArraysTest_SkipsProductMissingRequiredQuantity() throws JSONException {
+        // quantity is required and must not silently default to 1 (matches iOS strict behaviour); a
+        // non-numeric quantity skips that product.
+        JSONObject missingQuantity = new JSONObject();
+        missingQuantity.put(BrazeConstants.Ecommerce.PRODUCT_ID, "sku-no-qty");
+        missingQuantity.put(BrazeConstants.Ecommerce.PRODUCT_NAME, "No Qty");
+        missingQuantity.put(BrazeConstants.Ecommerce.VARIANT_ID, "variant");
+        missingQuantity.put(BrazeConstants.Ecommerce.PRICE, 9.99);
+        missingQuantity.put(BrazeConstants.Ecommerce.QUANTITY, "not-a-number");
+
+        JSONObject validProduct = new JSONObject();
+        validProduct.put(BrazeConstants.Ecommerce.PRODUCT_ID, "sku123");
+        validProduct.put(BrazeConstants.Ecommerce.PRODUCT_NAME, "Widget");
+        validProduct.put(BrazeConstants.Ecommerce.VARIANT_ID, "widget_blue");
+        validProduct.put(BrazeConstants.Ecommerce.PRICE, 49.99);
+        validProduct.put(BrazeConstants.Ecommerce.QUANTITY, 1);
+
+        List<EcommerceProduct> result = BrazeUtils.getProductsFromNestedArrays(productsObject(missingQuantity, validProduct), false);
+
+        assertEquals(1, result.size());
+        assertEquals("sku123", result.get(0).getProductId());
+    }
+
+    @Test
+    public void productsFromNestedArraysTest_ThrowsForMismatchedRequiredArrayLengths() throws JSONException {
+        // Mismatched required-array lengths must throw so the caller skips the whole event (parity
+        // with iOS, which covers this case).
+        JSONObject products = new JSONObject();
+        products.put(BrazeConstants.Ecommerce.PRODUCT_ID, new JSONArray(new String[]{"sku1", "sku2"}));
+        products.put(BrazeConstants.Ecommerce.PRODUCT_NAME, new JSONArray(new String[]{"Widget"})); // short
+        products.put(BrazeConstants.Ecommerce.VARIANT_ID, new JSONArray(new String[]{"v1", "v2"}));
+        products.put(BrazeConstants.Ecommerce.PRICE, new JSONArray(new double[]{1.0, 2.0}));
+        products.put(BrazeConstants.Ecommerce.QUANTITY, new JSONArray(new int[]{1, 1}));
+        try {
+            BrazeUtils.getProductsFromNestedArrays(products, false);
+            fail("Expected JSONException for mismatched required array lengths");
+        } catch (JSONException expected) {
+            // expected
+        }
+    }
+
+    @Test
+    public void discountsAsWireJsonTest_Content() throws JSONException {
+        JSONObject discounts = discountsObject(
+                new JSONArray(new String[]{"SUMMER10", "VIP5"}),
+                new JSONArray(new double[]{10.0, 5.0}),
+                new JSONArray(new String[]{"percentage", "fixed"}));
+
+        JSONArray result = BrazeUtils.getDiscountsAsWireJson(discounts);
+
+        assertEquals(2, result.length());
+        assertEquals("SUMMER10", result.getJSONObject(0).getString(BrazeConstants.Ecommerce.DISCOUNT_CODE));
+        assertEquals(10.0, result.getJSONObject(0).getDouble(BrazeConstants.Ecommerce.DISCOUNT_AMOUNT), 0.0001);
+        assertEquals("percentage", result.getJSONObject(0).getString(BrazeConstants.Ecommerce.DISCOUNT_TYPE));
+        assertEquals("VIP5", result.getJSONObject(1).getString(BrazeConstants.Ecommerce.DISCOUNT_CODE));
+        assertEquals("fixed", result.getJSONObject(1).getString(BrazeConstants.Ecommerce.DISCOUNT_TYPE));
+    }
+
+    @Test
+    public void requireCurrencyTest_UppercasesScalar() throws JSONException {
+        JSONObject json = new JSONObject();
+        json.put(BrazeConstants.Ecommerce.CURRENCY, "usd");
+        assertEquals("USD", BrazeUtils.requireCurrency(json, BrazeConstants.Ecommerce.CURRENCY));
+    }
+
+    @Test
+    public void requireCurrencyTest_ThrowsWhenAbsent() {
+        // Currency is required for all six recommended ecommerce events; an absent key throws so the
+        // per-command catch skips the event.
+        try {
+            BrazeUtils.requireCurrency(new JSONObject(), BrazeConstants.Ecommerce.CURRENCY);
+            fail("Expected JSONException for absent currency");
+        } catch (JSONException expected) {
+            // expected
+        }
+    }
+
+    @Test
+    public void requireCurrencyTest_ThrowsForArrayValue() throws JSONException {
+        // An array value is rejected (throws) rather than coerced to its literal string.
+        JSONObject arrayCurrency = new JSONObject();
+        arrayCurrency.put(BrazeConstants.Ecommerce.CURRENCY, new JSONArray(new String[]{"usd"}));
+        try {
+            BrazeUtils.requireCurrency(arrayCurrency, BrazeConstants.Ecommerce.CURRENCY);
+            fail("Expected JSONException for array-shaped currency");
+        } catch (JSONException expected) {
+            // expected
+        }
+    }
+
+    @Test
+    public void discountsFromNestedArraysTest_SkipsNonNumericAmount() throws JSONException {
+        // A non-numeric amount coerces to NaN via optDouble; the discount entry must be present but
+        // carry no amount key rather than boxing NaN.
+        JSONObject discounts = discountsObject(
+                new JSONArray(new String[]{"SUMMER10"}),
+                new JSONArray(new String[]{"abc"}),
+                new JSONArray(new String[]{"percentage"}));
+
+        List<Map<String, Object>> result = BrazeUtils.getDiscountsFromNestedArrays(discounts);
+
+        assertEquals(1, result.size());
+        assertEquals("SUMMER10", result.get(0).get("code"));
+        assertFalse(result.get(0).containsKey("amount"));
+        assertEquals("percentage", result.get(0).get("type"));
+    }
+
+    @Test
+    public void productsFromNestedArraysTest_ThrowsWhenAllProductsInvalid() throws JSONException {
+        // Every product is invalid (negative price the constructor rejects); with no valid line item
+        // left, the method throws so the caller skips the whole event (parity with iOS).
+        JSONObject negativePrice = new JSONObject();
+        negativePrice.put(BrazeConstants.Ecommerce.PRODUCT_ID, "sku-bad");
+        negativePrice.put(BrazeConstants.Ecommerce.PRODUCT_NAME, "Bad");
+        negativePrice.put(BrazeConstants.Ecommerce.VARIANT_ID, "variant");
+        negativePrice.put(BrazeConstants.Ecommerce.PRICE, -5.0);
+        negativePrice.put(BrazeConstants.Ecommerce.QUANTITY, 1);
+
+        try {
+            BrazeUtils.getProductsFromNestedArrays(productsObject(negativePrice), false);
+            fail("Expected JSONException when all products are invalid");
+        } catch (JSONException expected) {
+            // expected
+        }
+    }
+
+    @Test
+    public void productsAsWireJsonTest_ThrowsWhenAllProductsInvalid() throws JSONException {
+        // Same throw-and-skip contract as the typed path, for the order_cancelled/order_refunded
+        // wire payloads.
+        JSONObject invalidPrice = new JSONObject();
+        invalidPrice.put(BrazeConstants.Ecommerce.PRODUCT_ID, "sku-bad");
+        invalidPrice.put(BrazeConstants.Ecommerce.PRODUCT_NAME, "Bad");
+        invalidPrice.put(BrazeConstants.Ecommerce.VARIANT_ID, "variant");
+        invalidPrice.put(BrazeConstants.Ecommerce.PRICE, "not-a-number");
+        invalidPrice.put(BrazeConstants.Ecommerce.QUANTITY, 1);
+
+        try {
+            BrazeUtils.getProductsAsWireJson(productsObject(invalidPrice));
+            fail("Expected JSONException when all wire-schema products are invalid");
+        } catch (JSONException expected) {
+            // expected
+        }
     }
 
     @Test
