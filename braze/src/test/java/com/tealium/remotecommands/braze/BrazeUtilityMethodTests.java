@@ -397,18 +397,90 @@ public class BrazeUtilityMethodTests {
     }
 
     @Test
-    public void optionalCurrencyTest_UppercasesAndTolerates() throws JSONException {
+    public void requireCurrencyTest_UppercasesScalar() throws JSONException {
         JSONObject json = new JSONObject();
         json.put(BrazeConstants.Ecommerce.CURRENCY, "usd");
-        assertEquals("USD", BrazeUtils.optionalCurrency(json, BrazeConstants.Ecommerce.CURRENCY));
+        assertEquals("USD", BrazeUtils.requireCurrency(json, BrazeConstants.Ecommerce.CURRENCY));
+    }
 
-        // Absent key -> null (the typed events accept a null currency).
-        assertNull(BrazeUtils.optionalCurrency(new JSONObject(), BrazeConstants.Ecommerce.CURRENCY));
+    @Test
+    public void requireCurrencyTest_ThrowsWhenAbsent() {
+        // Currency is required for all six recommended ecommerce events; an absent key throws so the
+        // per-command catch skips the event.
+        try {
+            BrazeUtils.requireCurrency(new JSONObject(), BrazeConstants.Ecommerce.CURRENCY);
+            fail("Expected JSONException for absent currency");
+        } catch (JSONException expected) {
+            // expected
+        }
+    }
 
-        // Array value is rejected (returns null) rather than coerced to its literal string.
+    @Test
+    public void requireCurrencyTest_ThrowsForArrayValue() throws JSONException {
+        // An array value is rejected (throws) rather than coerced to its literal string.
         JSONObject arrayCurrency = new JSONObject();
         arrayCurrency.put(BrazeConstants.Ecommerce.CURRENCY, new JSONArray(new String[]{"usd"}));
-        assertNull(BrazeUtils.optionalCurrency(arrayCurrency, BrazeConstants.Ecommerce.CURRENCY));
+        try {
+            BrazeUtils.requireCurrency(arrayCurrency, BrazeConstants.Ecommerce.CURRENCY);
+            fail("Expected JSONException for array-shaped currency");
+        } catch (JSONException expected) {
+            // expected
+        }
+    }
+
+    @Test
+    public void discountsFromNestedArraysTest_SkipsNonNumericAmount() throws JSONException {
+        // A non-numeric amount coerces to NaN via optDouble; the discount entry must be present but
+        // carry no amount key rather than boxing NaN.
+        JSONObject discounts = discountsObject(
+                new JSONArray(new String[]{"SUMMER10"}),
+                new JSONArray(new String[]{"abc"}),
+                new JSONArray(new String[]{"percentage"}));
+
+        List<Map<String, Object>> result = BrazeUtils.getDiscountsFromNestedArrays(discounts);
+
+        assertEquals(1, result.size());
+        assertEquals("SUMMER10", result.get(0).get("code"));
+        assertFalse(result.get(0).containsKey("amount"));
+        assertEquals("percentage", result.get(0).get("type"));
+    }
+
+    @Test
+    public void productsFromNestedArraysTest_ThrowsWhenAllProductsInvalid() throws JSONException {
+        // Every product is invalid (negative price the constructor rejects); with no valid line item
+        // left, the method throws so the caller skips the whole event (parity with iOS).
+        JSONObject negativePrice = new JSONObject();
+        negativePrice.put(BrazeConstants.Ecommerce.PRODUCT_ID, "sku-bad");
+        negativePrice.put(BrazeConstants.Ecommerce.PRODUCT_NAME, "Bad");
+        negativePrice.put(BrazeConstants.Ecommerce.VARIANT_ID, "variant");
+        negativePrice.put(BrazeConstants.Ecommerce.PRICE, -5.0);
+        negativePrice.put(BrazeConstants.Ecommerce.QUANTITY, 1);
+
+        try {
+            BrazeUtils.getProductsFromNestedArrays(productsObject(negativePrice), false);
+            fail("Expected JSONException when all products are invalid");
+        } catch (JSONException expected) {
+            // expected
+        }
+    }
+
+    @Test
+    public void productsAsWireJsonTest_ThrowsWhenAllProductsInvalid() throws JSONException {
+        // Same throw-and-skip contract as the typed path, for the order_cancelled/order_refunded
+        // wire payloads.
+        JSONObject invalidPrice = new JSONObject();
+        invalidPrice.put(BrazeConstants.Ecommerce.PRODUCT_ID, "sku-bad");
+        invalidPrice.put(BrazeConstants.Ecommerce.PRODUCT_NAME, "Bad");
+        invalidPrice.put(BrazeConstants.Ecommerce.VARIANT_ID, "variant");
+        invalidPrice.put(BrazeConstants.Ecommerce.PRICE, "not-a-number");
+        invalidPrice.put(BrazeConstants.Ecommerce.QUANTITY, 1);
+
+        try {
+            BrazeUtils.getProductsAsWireJson(productsObject(invalidPrice));
+            fail("Expected JSONException when all wire-schema products are invalid");
+        } catch (JSONException expected) {
+            // expected
+        }
     }
 
     @Test

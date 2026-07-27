@@ -566,7 +566,7 @@ class BrazeInstance implements BrazeCommand, ActivityLifecycleCallbacks {
     }
 
     @Override
-    public void logProductViewed(@NonNull String productId, @NonNull String productName, @NonNull String variantId, double price, @Nullable String currency, @NonNull String source, @Nullable String imageUrl, @Nullable String productUrl, @Nullable JSONObject properties) {
+    public void logProductViewed(@NonNull String productId, @NonNull String productName, @NonNull String variantId, double price, @NonNull String currency, @NonNull String source, @Nullable String imageUrl, @Nullable String productUrl, @Nullable JSONObject properties) {
         getBrazeInstance().logEcommerceEvent(new ProductViewedEvent(
                 productId,
                 productName,
@@ -581,7 +581,7 @@ class BrazeInstance implements BrazeCommand, ActivityLifecycleCallbacks {
     }
 
     @Override
-    public void logCartUpdated(@NonNull String cartId, @Nullable String currency, @NonNull String source, @Nullable Double totalValue, @NonNull BrazeConstants.Ecommerce.Action action, @Nullable JSONObject products, @Nullable JSONObject properties) throws JSONException {
+    public void logCartUpdated(@NonNull String cartId, @NonNull String currency, @NonNull String source, @Nullable Double totalValue, @NonNull BrazeConstants.Ecommerce.Action action, @Nullable JSONObject products, @Nullable JSONObject properties) throws JSONException {
         getBrazeInstance().logEcommerceEvent(new CartUpdatedEvent(
                 cartId,
                 currency,
@@ -594,7 +594,7 @@ class BrazeInstance implements BrazeCommand, ActivityLifecycleCallbacks {
     }
 
     @Override
-    public void logCheckoutStarted(@NonNull String checkoutId, @Nullable String currency, @NonNull String source, double totalValue, @Nullable JSONObject products, @Nullable String cartId, @Nullable JSONObject properties) throws JSONException {
+    public void logCheckoutStarted(@NonNull String checkoutId, @NonNull String currency, @NonNull String source, double totalValue, @Nullable JSONObject products, @Nullable String cartId, @Nullable JSONObject properties) throws JSONException {
         getBrazeInstance().logEcommerceEvent(new CheckoutStartedEvent(
                 checkoutId,
                 currency,
@@ -607,7 +607,7 @@ class BrazeInstance implements BrazeCommand, ActivityLifecycleCallbacks {
     }
 
     @Override
-    public void logOrderPlaced(@NonNull String orderId, @Nullable String currency, @NonNull String source, double totalValue, @Nullable JSONObject products, @Nullable String cartId, @Nullable Double totalDiscounts, @Nullable JSONObject discounts, @Nullable JSONObject properties) throws JSONException {
+    public void logOrderPlaced(@NonNull String orderId, @NonNull String currency, @NonNull String source, double totalValue, @Nullable JSONObject products, @Nullable String cartId, @Nullable Double totalDiscounts, @Nullable JSONObject discounts, @Nullable JSONObject properties) throws JSONException {
         getBrazeInstance().logEcommerceEvent(new OrderPlacedEvent(
                 orderId,
                 currency,
@@ -622,7 +622,7 @@ class BrazeInstance implements BrazeCommand, ActivityLifecycleCallbacks {
     }
 
     @Override
-    public void logOrderCancelled(@NonNull String orderId, @Nullable String currency, @NonNull String source, double totalValue, @Nullable Double subtotalValue, @Nullable Double tax, @Nullable Double shipping, @Nullable JSONObject products, @NonNull String cancelReason, @Nullable Double totalDiscounts, @Nullable JSONObject discounts, @Nullable JSONObject properties) throws JSONException {
+    public void logOrderCancelled(@NonNull String orderId, @NonNull String currency, @NonNull String source, double totalValue, @Nullable Double subtotalValue, @Nullable Double tax, @Nullable Double shipping, @Nullable JSONObject products, @NonNull String cancelReason, @Nullable Double totalDiscounts, @Nullable JSONObject discounts, @Nullable JSONObject properties) throws JSONException {
         JSONObject wirePayload = new JSONObject();
         try {
             wirePayload.put(BrazeConstants.Ecommerce.ORDER_ID, orderId);
@@ -663,7 +663,7 @@ class BrazeInstance implements BrazeCommand, ActivityLifecycleCallbacks {
     }
 
     @Override
-    public void logOrderRefunded(@NonNull String orderId, @Nullable String currency, @NonNull String source, double totalValue, @Nullable JSONObject products, @Nullable Double totalDiscounts, @Nullable JSONObject discounts, @Nullable JSONObject properties) throws JSONException {
+    public void logOrderRefunded(@NonNull String orderId, @NonNull String currency, @NonNull String source, double totalValue, @Nullable JSONObject products, @Nullable Double totalDiscounts, @Nullable JSONObject discounts, @Nullable JSONObject properties) throws JSONException {
         JSONObject wirePayload = new JSONObject();
         try {
             wirePayload.put(BrazeConstants.Ecommerce.ORDER_ID, orderId);

@@ -1069,9 +1069,67 @@ public class BrazeRemoteCommandTests {
     }
 
     @Test
-    public void testOrderPlacedEvent_NullCurrency_WhenMissing() throws Exception {
-        // currency is @Nullable on the typed ecommerce events; when absent it is passed as null
-        // rather than force-dropping the whole event via requireScalarString.
+    public void testProductViewedEvent_NotDispatched_WhenCurrencyMissing() throws Exception {
+        // Currency is required for all six recommended ecommerce events; when absent the event is
+        // skipped client-side (the Braze SDK base EcommerceEvent constructor rejects a null currency).
+        RemoteCommand.Response response = ResponseBuilder.create()
+                .addCommand(Commands.LOG_PRODUCT_VIEWED)
+                .populatePayload((json) -> {
+                    json.put(Ecommerce.PRODUCT_ID, "sku123");
+                    json.put(Ecommerce.PRODUCT_NAME, "Widget");
+                    json.put(Ecommerce.VARIANT_ID, "widget_blue");
+                    json.put(Ecommerce.PRICE, 49.99);
+                    json.put(Ecommerce.SOURCE, "test-source");
+                    // currency intentionally omitted.
+                })
+                .build();
+
+        brazeRemoteCommand.onInvoke(response);
+
+        verify(mockBrazeInstance, never()).logProductViewed(any(), any(), any(), anyDouble(), any(), any(), any(), any(), any());
+    }
+
+    @Test
+    public void testCartUpdatedEvent_NotDispatched_WhenCurrencyMissing() throws Exception {
+        JSONObject products = productsObject(singleProduct());
+        RemoteCommand.Response response = ResponseBuilder.create()
+                .addCommand(Commands.LOG_CART_UPDATED)
+                .populatePayload((json) -> {
+                    json.put(Ecommerce.CART_ID, "cart-1");
+                    json.put(Ecommerce.SOURCE, "test-source");
+                    json.put(Ecommerce.TOTAL_VALUE, 49.99);
+                    json.put(Ecommerce.ACTION, "add");
+                    json.put(Ecommerce.PRODUCTS, products);
+                    // currency intentionally omitted.
+                })
+                .build();
+
+        brazeRemoteCommand.onInvoke(response);
+
+        verify(mockBrazeInstance, never()).logCartUpdated(any(), any(), any(), any(), any(), any(), any());
+    }
+
+    @Test
+    public void testCheckoutStartedEvent_NotDispatched_WhenCurrencyMissing() throws Exception {
+        JSONObject products = productsObject(singleProduct());
+        RemoteCommand.Response response = ResponseBuilder.create()
+                .addCommand(Commands.LOG_CHECKOUT_STARTED)
+                .populatePayload((json) -> {
+                    json.put(Ecommerce.CHECKOUT_ID, "checkout-1");
+                    json.put(Ecommerce.SOURCE, "test-source");
+                    json.put(Ecommerce.TOTAL_VALUE, 49.99);
+                    json.put(Ecommerce.PRODUCTS, products);
+                    // currency intentionally omitted.
+                })
+                .build();
+
+        brazeRemoteCommand.onInvoke(response);
+
+        verify(mockBrazeInstance, never()).logCheckoutStarted(any(), any(), any(), anyDouble(), any(), any(), any());
+    }
+
+    @Test
+    public void testOrderPlacedEvent_NotDispatched_WhenCurrencyMissing() throws Exception {
         JSONObject products = productsObject(singleProduct());
         RemoteCommand.Response response = ResponseBuilder.create()
                 .addCommand(Commands.LOG_ORDER_PLACED)
@@ -1086,7 +1144,92 @@ public class BrazeRemoteCommandTests {
 
         brazeRemoteCommand.onInvoke(response);
 
-        verify(mockBrazeInstance).logOrderPlaced(eq("order-1"), eq(null), eq("test-source"), eq(49.99), sameProducts(products), eq(null), eq(null), eq(null), eq(null));
+        verify(mockBrazeInstance, never()).logOrderPlaced(anyString(), anyString(), anyString(), anyDouble(), any(), any(), any(), any(), any());
+    }
+
+    @Test
+    public void testOrderCancelledEvent_NotDispatched_WhenCurrencyMissing() throws Exception {
+        // Regression: order_cancelled previously sent a currency-less payload; it must now skip the
+        // event (logCustomEvent not called) when currency is absent.
+        JSONObject products = productsObject(singleProduct());
+        RemoteCommand.Response response = ResponseBuilder.create()
+                .addCommand(Commands.LOG_ORDER_CANCELLED)
+                .populatePayload((json) -> {
+                    json.put(Ecommerce.ORDER_ID, "order-1");
+                    json.put(Ecommerce.SOURCE, "test-source");
+                    json.put(Ecommerce.TOTAL_VALUE, 49.99);
+                    json.put(Ecommerce.CANCEL_REASON, "customer_request");
+                    json.put(Ecommerce.PRODUCTS, products);
+                    // currency intentionally omitted.
+                })
+                .build();
+
+        brazeRemoteCommand.onInvoke(response);
+
+        verify(mockBrazeInstance, never()).logOrderCancelled(any(), any(), any(), anyDouble(), any(), any(), any(), any(), any(), any(), any(), any());
+    }
+
+    @Test
+    public void testOrderRefundedEvent_NotDispatched_WhenCurrencyMissing() throws Exception {
+        // Regression: order_refunded previously sent a currency-less payload; it must now skip the
+        // event (logCustomEvent not called) when currency is absent.
+        JSONObject products = productsObject(singleProduct());
+        RemoteCommand.Response response = ResponseBuilder.create()
+                .addCommand(Commands.LOG_ORDER_REFUNDED)
+                .populatePayload((json) -> {
+                    json.put(Ecommerce.ORDER_ID, "order-1");
+                    json.put(Ecommerce.SOURCE, "test-source");
+                    json.put(Ecommerce.TOTAL_VALUE, 49.99);
+                    json.put(Ecommerce.PRODUCTS, products);
+                    // currency intentionally omitted.
+                })
+                .build();
+
+        brazeRemoteCommand.onInvoke(response);
+
+        verify(mockBrazeInstance, never()).logOrderRefunded(any(), any(), any(), anyDouble(), any(), any(), any(), any());
+    }
+
+    @Test
+    public void testCheckoutStartedEvent_ArrayCartId_ForwardedAsNull() throws Exception {
+        // A3: an array-shaped cart_id is rejected (null) rather than coerced to a literal string.
+        JSONObject products = productsObject(singleProduct());
+        RemoteCommand.Response response = ResponseBuilder.create()
+                .addCommand(Commands.LOG_CHECKOUT_STARTED)
+                .populatePayload((json) -> {
+                    json.put(Ecommerce.CHECKOUT_ID, "checkout-1");
+                    json.put(Ecommerce.CURRENCY, "USD");
+                    json.put(Ecommerce.SOURCE, "test-source");
+                    json.put(Ecommerce.TOTAL_VALUE, 49.99);
+                    json.put(Ecommerce.CART_ID, new JSONArray(new String[]{"cart-1"}));
+                    json.put(Ecommerce.PRODUCTS, products);
+                })
+                .build();
+
+        brazeRemoteCommand.onInvoke(response);
+
+        verify(mockBrazeInstance).logCheckoutStarted(eq("checkout-1"), eq("USD"), eq("test-source"), eq(49.99), sameProducts(products), eq(null), eq(null));
+    }
+
+    @Test
+    public void testOrderPlacedEvent_ArrayCartId_ForwardedAsNull() throws Exception {
+        // A3: an array-shaped cart_id is rejected (null) rather than coerced to a literal string.
+        JSONObject products = productsObject(singleProduct());
+        RemoteCommand.Response response = ResponseBuilder.create()
+                .addCommand(Commands.LOG_ORDER_PLACED)
+                .populatePayload((json) -> {
+                    json.put(Ecommerce.ORDER_ID, "order-1");
+                    json.put(Ecommerce.CURRENCY, "USD");
+                    json.put(Ecommerce.SOURCE, "test-source");
+                    json.put(Ecommerce.TOTAL_VALUE, 49.99);
+                    json.put(Ecommerce.CART_ID, new JSONArray(new String[]{"cart-1"}));
+                    json.put(Ecommerce.PRODUCTS, products);
+                })
+                .build();
+
+        brazeRemoteCommand.onInvoke(response);
+
+        verify(mockBrazeInstance).logOrderPlaced(eq("order-1"), eq("USD"), eq("test-source"), eq(49.99), sameProducts(products), eq(null), eq(null), eq(null), eq(null));
     }
 
     @Test

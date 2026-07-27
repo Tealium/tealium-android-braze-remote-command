@@ -269,9 +269,10 @@ class BrazeUtils {
      * @return a list of EcommerceProduct
      * @throws JSONException when a required nested array (product_id/product_name/variant_id/price/quantity)
      *                        is missing or their lengths don't match, so the caller skips the whole event.
-     *                        Note: individual products with an invalid price/quantity are skipped per-index,
-     *                        so an event whose products are all invalid still dispatches with an empty
-     *                        products list (which Braze then rejects) rather than throwing.
+     *                        Individual products with an invalid price/quantity are skipped per-index;
+     *                        if that leaves no valid products, this throws too so the whole event is
+     *                        skipped client-side (parity with iOS, which throws emptyProductsArray)
+     *                        rather than dispatching an empty products list.
      */
     static List<EcommerceProduct> getProductsFromNestedArrays(@Nullable JSONObject products, boolean strictPropertiesEnabled) throws JSONException {
         if (products == null) {
@@ -324,6 +325,13 @@ class BrazeUtils {
             }
         }
 
+        if (result.isEmpty()) {
+            // Every product was invalid; throw so the caller skips the whole event client-side
+            // rather than dispatching an event with an empty products list (parity with iOS, which
+            // throws emptyProductsArray).
+            throw new JSONException("No valid ecommerce products");
+        }
+
         return result;
     }
 
@@ -356,7 +364,12 @@ class BrazeUtils {
                 entry.put(BrazeConstants.Ecommerce.DISCOUNT_CODE, codes.optString(i));
             }
             if (amounts != null && keyHasValue(amounts, i)) {
-                entry.put(BrazeConstants.Ecommerce.DISCOUNT_AMOUNT, amounts.optDouble(i));
+                // A non-numeric amount coerces to NaN via optDouble; only carry the amount when it is
+                // a real number so we never box NaN into the discount map.
+                double amt = amounts.optDouble(i, Double.NaN);
+                if (!Double.isNaN(amt)) {
+                    entry.put(BrazeConstants.Ecommerce.DISCOUNT_AMOUNT, amt);
+                }
             }
             if (types != null && keyHasValue(types, i)) {
                 entry.put(BrazeConstants.Ecommerce.DISCOUNT_TYPE, types.optString(i));
@@ -389,9 +402,10 @@ class BrazeUtils {
      * @return a JSONArray of plain JSONObjects
      * @throws JSONException when a required nested array (product_id/product_name/variant_id/price/quantity)
      *                        is missing or their lengths don't match, so the caller skips the whole event.
-     *                        Note: individual products with an invalid price/quantity are skipped per-index,
-     *                        so an event whose products are all invalid still dispatches with an empty
-     *                        products list (which Braze then rejects) rather than throwing.
+     *                        Individual products with an invalid price/quantity are skipped per-index;
+     *                        if that leaves no valid products, this throws too so the whole event is
+     *                        skipped client-side (parity with iOS, which throws emptyProductsArray)
+     *                        rather than dispatching an empty products list.
      */
     static JSONArray getProductsAsWireJson(@Nullable JSONObject products) throws JSONException {
         if (products == null) {
@@ -450,6 +464,13 @@ class BrazeUtils {
             result.put(product);
         }
 
+        if (result.length() == 0) {
+            // Every product was invalid; throw so the caller skips the whole event client-side
+            // rather than dispatching an event with an empty products list (parity with iOS, which
+            // throws emptyProductsArray).
+            throw new JSONException("No valid ecommerce products");
+        }
+
         return result;
     }
 
@@ -482,7 +503,12 @@ class BrazeUtils {
                     discount.put(BrazeConstants.Ecommerce.DISCOUNT_CODE, codes.optString(i));
                 }
                 if (amounts != null && keyHasValue(amounts, i)) {
-                    discount.put(BrazeConstants.Ecommerce.DISCOUNT_AMOUNT, amounts.optDouble(i));
+                    // Only carry a real numeric amount; a non-numeric value coerces to NaN, which
+                    // JSONObject.put would reject -- skip it explicitly to parallel the typed path.
+                    double amt = amounts.optDouble(i, Double.NaN);
+                    if (!Double.isNaN(amt)) {
+                        discount.put(BrazeConstants.Ecommerce.DISCOUNT_AMOUNT, amt);
+                    }
                 }
                 if (types != null && keyHasValue(types, i)) {
                     discount.put(BrazeConstants.Ecommerce.DISCOUNT_TYPE, types.optString(i));
@@ -536,19 +562,20 @@ class BrazeUtils {
     }
 
     /**
-     * Reads an optional scalar currency and normalizes it to uppercase. Braze validates currency
-     * against ISO-4217 canonical uppercase, so a common lowercase input like "usd" would throw on
-     * event construction and silently drop the whole event; uppercasing here accepts that input.
-     * Returns null when the key is absent (currency is @Nullable on the typed ecommerce events),
-     * rejecting an array value like {@link #optionalScalarString}.
+     * Reads a required scalar currency and normalizes it to uppercase. Currency is required for all
+     * six recommended ecommerce events (the Braze SDK base EcommerceEvent constructor rejects a null
+     * currency, and Braze validates the value against ISO-4217 canonical uppercase), so this reuses
+     * {@link #requireScalarString} -- throwing when the key is absent, a JSON null, an array, or any
+     * non-String value -- then uppercases so a common lowercase input like "usd" is accepted rather
+     * than dropped at event construction. Matches the iOS remote command's requireCurrency strictness.
      *
      * @param json the payload
      * @param key  the key to read
-     * @return the uppercased currency, or null when absent/non-scalar
+     * @return the uppercased currency
+     * @throws JSONException if the value is absent or is not a scalar String
      */
-    static String optionalCurrency(JSONObject json, String key) {
-        String currency = optionalScalarString(json, key);
-        return currency != null ? currency.toUpperCase(Locale.ROOT) : null;
+    static String requireCurrency(JSONObject json, String key) throws JSONException {
+        return requireScalarString(json, key).toUpperCase(Locale.ROOT);
     }
 
     /**

@@ -751,6 +751,28 @@ public class BrazeInstanceTests {
     }
 
     @Test
+    public void logOrderPlaced_DiscountWithNonNumericAmount_OmitsAmount() throws JSONException {
+        // A2: a non-numeric discount amount coerces to NaN via optDouble; the discount entry must be
+        // present with its code/type but carry no amount key rather than boxing NaN.
+        ArgumentCaptor<OrderPlacedEvent> event = ArgumentCaptor.forClass(OrderPlacedEvent.class);
+
+        JSONObject discounts = new JSONObject();
+        discounts.put(BrazeConstants.Ecommerce.DISCOUNT_CODE, new JSONArray(new String[]{"SUMMER10"}));
+        discounts.put(BrazeConstants.Ecommerce.DISCOUNT_AMOUNT, new JSONArray(new String[]{"abc"}));
+        discounts.put(BrazeConstants.Ecommerce.DISCOUNT_TYPE, new JSONArray(new String[]{"percentage"}));
+
+        brazeInstance.logOrderPlaced("order-1", "USD", "test-source", 49.99, productsObject(singleProduct()), "cart-1", 5.0, discounts, null);
+
+        verify(mockBraze).logEcommerceEvent(event.capture());
+        List<Object> resultDiscounts = event.getValue().getDiscounts();
+        assertEquals(1, resultDiscounts.size());
+        Map<?, ?> resultDiscount = (Map<?, ?>) resultDiscounts.get(0);
+        assertEquals("SUMMER10", resultDiscount.get("code"));
+        assertEquals("percentage", resultDiscount.get("type"));
+        assertFalse(resultDiscount.containsKey("amount"));
+    }
+
+    @Test
     public void logOrderPlaced_AllowsNullDiscounts() throws JSONException {
         ArgumentCaptor<OrderPlacedEvent> event = ArgumentCaptor.forClass(OrderPlacedEvent.class);
 
@@ -850,6 +872,93 @@ public class BrazeInstanceTests {
         assertEquals(1, payload.getJSONArray("discounts").length());
         assertEquals(1, payload.getJSONArray("products").length());
         assertFalse(payload.has("cancel_reason"));
+    }
+
+    /**
+     * Builds a nested products object with a single invalid product (negative price the Braze
+     * EcommerceProduct constructor rejects), so the typed path skips it and is left with no valid
+     * products.
+     */
+    private JSONObject allInvalidProducts() throws JSONException {
+        JSONObject product = new JSONObject();
+        product.put(BrazeConstants.Ecommerce.PRODUCT_ID, "sku-bad");
+        product.put(BrazeConstants.Ecommerce.PRODUCT_NAME, "Bad");
+        product.put(BrazeConstants.Ecommerce.VARIANT_ID, "variant");
+        product.put(BrazeConstants.Ecommerce.PRICE, -5.0);
+        product.put(BrazeConstants.Ecommerce.QUANTITY, 1);
+        return productsObject(product);
+    }
+
+    /** Builds a nested products object whose required arrays are all present but empty. */
+    private JSONObject emptyProducts() throws JSONException {
+        return productsObject();
+    }
+
+    @Test
+    public void logCheckoutStarted_Skips_WhenAllProductsInvalid() throws JSONException {
+        // A4: no valid products left -> getProductsFromNestedArrays throws and the event is skipped.
+        try {
+            brazeInstance.logCheckoutStarted("checkout-1", "USD", "test-source", 49.99, allInvalidProducts(), null, null);
+        } catch (JSONException expected) {
+            // The typed path propagates; the command layer's per-command catch skips the event.
+        }
+        verify(mockBraze, never()).logEcommerceEvent(any());
+    }
+
+    @Test
+    public void logCheckoutStarted_Skips_WhenProductsEmpty() throws JSONException {
+        // A4: empty products arrays -> no line items -> event skipped.
+        try {
+            brazeInstance.logCheckoutStarted("checkout-1", "USD", "test-source", 49.99, emptyProducts(), null, null);
+        } catch (JSONException expected) {
+            // expected
+        }
+        verify(mockBraze, never()).logEcommerceEvent(any());
+    }
+
+    @Test
+    public void logOrderRefunded_Skips_WhenAllProductsInvalid() throws JSONException {
+        // A4 for a custom event: the wire path skips a product with a non-numeric price, leaving no
+        // valid products, so getProductsAsWireJson throws; the wire-payload build catches it and
+        // returns, so logCustomEvent is never called.
+        JSONObject product = new JSONObject();
+        product.put(BrazeConstants.Ecommerce.PRODUCT_ID, "sku-bad");
+        product.put(BrazeConstants.Ecommerce.PRODUCT_NAME, "Bad");
+        product.put(BrazeConstants.Ecommerce.VARIANT_ID, "variant");
+        product.put(BrazeConstants.Ecommerce.PRICE, "not-a-number");
+        product.put(BrazeConstants.Ecommerce.QUANTITY, 1);
+
+        brazeInstance.logOrderRefunded("order-1", "USD", "test-source", 49.99, productsObject(product), null, null, null);
+
+        verify(mockBraze, never()).logCustomEvent(any(), any());
+    }
+
+    @Test
+    public void logOrderCancelled_Skips_WhenProductsEmpty() throws JSONException {
+        // A4 for a custom event: empty products arrays -> wire build throws + is caught -> skipped.
+        brazeInstance.logOrderCancelled("order-1", "USD", "test-source", 49.99, null, null, null, emptyProducts(), "customer_request", null, null, null);
+
+        verify(mockBraze, never()).logCustomEvent(any(), any());
+    }
+
+    @Test
+    public void logCheckoutStarted_CoercesNumericStringPriceAndTotalValue() throws JSONException {
+        // Locks in the existing string-number tolerance: price and total_value sent as "99.99"
+        // coerce to doubles and the event still dispatches.
+        ArgumentCaptor<CheckoutStartedEvent> event = ArgumentCaptor.forClass(CheckoutStartedEvent.class);
+        JSONObject product = new JSONObject();
+        product.put(BrazeConstants.Ecommerce.PRODUCT_ID, "sku123");
+        product.put(BrazeConstants.Ecommerce.PRODUCT_NAME, "Widget");
+        product.put(BrazeConstants.Ecommerce.VARIANT_ID, "widget_blue");
+        product.put(BrazeConstants.Ecommerce.PRICE, "99.99");
+        product.put(BrazeConstants.Ecommerce.QUANTITY, "2");
+
+        brazeInstance.logCheckoutStarted("checkout-1", "USD", "test-source", 49.99, productsObject(product), null, null);
+
+        verify(mockBraze).logEcommerceEvent(event.capture());
+        assertEquals(1, event.getValue().getProducts().size());
+        assertEquals(99.99, event.getValue().getProducts().get(0).getPrice(), 0.0001);
+        assertEquals(2L, event.getValue().getProducts().get(0).getQuantity());
     }
 
     @Test
