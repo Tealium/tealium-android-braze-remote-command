@@ -198,7 +198,8 @@ public class BrazeRemoteCommand extends RemoteCommand {
      * "price" : <double>, "currency" : "<string>", "source" : "<string>",
      * "image_url" : "<string>", // optional
      * "product_url" : "<string>", // optional
-     * "type" : ["<string>"], // optional, e.g. "price_drop"/"back_in_stock"
+     * // NOTE: "type" (typeIdentifiers) is NOT forwarded on Android -- the Braze ProductViewedEvent
+     * // constructor has no such parameter (SDK limitation). Supported on iOS only.
      * "metadata" : { "property_name_1" : "string value" } // optional
      * <p>
      * // "products" (cart/checkout/order): a nested object holding PARALLEL ARRAYS, zipped by
@@ -219,9 +220,8 @@ public class BrazeRemoteCommand extends RemoteCommand {
      * "cart_id" : "<string>", // required
      * "action" : "<string>", // "add" / "remove" / "replace"; omitted or unrecognized defaults to replace
      * "total_value" : <double>, // required when action is omitted/replace; optional for add/remove
-     * "subtotal_value" : <double>, // optional
-     * "tax" : <double>, // optional
-     * "shipping" : <double>, // optional
+     * // NOTE: subtotal_value/tax/shipping are NOT forwarded on Android -- the Braze CartUpdatedEvent
+     * // constructor has no such parameters (SDK limitation). Supported on iOS only.
      * "currency" : "<string>", "source" : "<string>",
      * "products" : {...}, // required, see above
      * "metadata" : {...} // optional, event-level
@@ -230,7 +230,8 @@ public class BrazeRemoteCommand extends RemoteCommand {
      * "checkout_id" : "<string>", // required
      * "cart_id" : "<string>", // optional
      * "total_value" : <double>, "currency" : "<string>", "source" : "<string>",
-     * "subtotal_value" : <double>, "tax" : <double>, "shipping" : <double>, // all optional
+     * // NOTE: subtotal_value/tax/shipping are NOT forwarded on Android -- the Braze
+     * // CheckoutStartedEvent constructor has no such parameters (SDK limitation). iOS only.
      * "products" : {...}, // required, see above
      * "metadata" : {...} // optional, event-level
      * <p>
@@ -409,7 +410,7 @@ public class BrazeRemoteCommand extends RemoteCommand {
                                 BrazeUtils.requireScalarString(payload, Ecommerce.PRODUCT_NAME),
                                 BrazeUtils.requireScalarString(payload, Ecommerce.VARIANT_ID),
                                 payload.getDouble(Ecommerce.PRICE),
-                                BrazeUtils.requireScalarString(payload, Ecommerce.CURRENCY),
+                                BrazeUtils.optionalCurrency(payload, Ecommerce.CURRENCY),
                                 BrazeUtils.requireScalarString(payload, Ecommerce.SOURCE),
                                 BrazeUtils.optionalScalarString(payload, Ecommerce.IMAGE_URL),
                                 BrazeUtils.optionalScalarString(payload, Ecommerce.PRODUCT_URL),
@@ -426,8 +427,8 @@ public class BrazeRemoteCommand extends RemoteCommand {
                             throw new JSONException("total_value is required for cart_updated when action is replace or omitted");
                         }
                         mBraze.logCartUpdated(
-                                payload.optString(Ecommerce.CART_ID),
-                                BrazeUtils.requireScalarString(payload, Ecommerce.CURRENCY),
+                                BrazeUtils.requireScalarString(payload, Ecommerce.CART_ID),
+                                BrazeUtils.optionalCurrency(payload, Ecommerce.CURRENCY),
                                 BrazeUtils.requireScalarString(payload, Ecommerce.SOURCE),
                                 Double.isNaN(cartTotalValue) ? null : cartTotalValue,
                                 cartAction,
@@ -438,7 +439,7 @@ public class BrazeRemoteCommand extends RemoteCommand {
                     case Commands.LOG_CHECKOUT_STARTED:
                         mBraze.logCheckoutStarted(
                                 BrazeUtils.requireScalarString(payload, Ecommerce.CHECKOUT_ID),
-                                BrazeUtils.requireScalarString(payload, Ecommerce.CURRENCY),
+                                BrazeUtils.optionalCurrency(payload, Ecommerce.CURRENCY),
                                 BrazeUtils.requireScalarString(payload, Ecommerce.SOURCE),
                                 payload.getDouble(Ecommerce.TOTAL_VALUE),
                                 payload.getJSONObject(Ecommerce.PRODUCTS),
@@ -450,7 +451,7 @@ public class BrazeRemoteCommand extends RemoteCommand {
                         double orderPlacedDiscounts = payload.optDouble(Ecommerce.TOTAL_DISCOUNTS);
                         mBraze.logOrderPlaced(
                                 BrazeUtils.requireScalarString(payload, Ecommerce.ORDER_ID),
-                                BrazeUtils.requireScalarString(payload, Ecommerce.CURRENCY),
+                                BrazeUtils.optionalCurrency(payload, Ecommerce.CURRENCY),
                                 BrazeUtils.requireScalarString(payload, Ecommerce.SOURCE),
                                 payload.getDouble(Ecommerce.TOTAL_VALUE),
                                 payload.getJSONObject(Ecommerce.PRODUCTS),
@@ -466,15 +467,15 @@ public class BrazeRemoteCommand extends RemoteCommand {
                         double orderCancelledTax = payload.optDouble(Ecommerce.TAX);
                         double orderCancelledShipping = payload.optDouble(Ecommerce.SHIPPING);
                         mBraze.logOrderCancelled(
-                                payload.getString(Ecommerce.ORDER_ID),
-                                BrazeUtils.requireScalarString(payload, Ecommerce.CURRENCY),
-                                payload.getString(Ecommerce.SOURCE),
+                                BrazeUtils.requireScalarString(payload, Ecommerce.ORDER_ID),
+                                BrazeUtils.optionalCurrency(payload, Ecommerce.CURRENCY),
+                                BrazeUtils.requireScalarString(payload, Ecommerce.SOURCE),
                                 payload.getDouble(Ecommerce.TOTAL_VALUE),
                                 Double.isNaN(orderCancelledSubtotal) ? null : orderCancelledSubtotal,
                                 Double.isNaN(orderCancelledTax) ? null : orderCancelledTax,
                                 Double.isNaN(orderCancelledShipping) ? null : orderCancelledShipping,
                                 payload.getJSONObject(Ecommerce.PRODUCTS),
-                                payload.getString(Ecommerce.CANCEL_REASON),
+                                BrazeUtils.requireScalarString(payload, Ecommerce.CANCEL_REASON),
                                 Double.isNaN(orderCancelledDiscounts) ? null : orderCancelledDiscounts,
                                 payload.optJSONObject(Ecommerce.DISCOUNTS),
                                 payload.optJSONObject(Ecommerce.METADATA)
@@ -483,9 +484,9 @@ public class BrazeRemoteCommand extends RemoteCommand {
                     case Commands.LOG_ORDER_REFUNDED:
                         double orderRefundedDiscounts = payload.optDouble(Ecommerce.TOTAL_DISCOUNTS);
                         mBraze.logOrderRefunded(
-                                payload.getString(Ecommerce.ORDER_ID),
-                                BrazeUtils.requireScalarString(payload, Ecommerce.CURRENCY),
-                                payload.getString(Ecommerce.SOURCE),
+                                BrazeUtils.requireScalarString(payload, Ecommerce.ORDER_ID),
+                                BrazeUtils.optionalCurrency(payload, Ecommerce.CURRENCY),
+                                BrazeUtils.requireScalarString(payload, Ecommerce.SOURCE),
                                 payload.getDouble(Ecommerce.TOTAL_VALUE),
                                 payload.getJSONObject(Ecommerce.PRODUCTS),
                                 Double.isNaN(orderRefundedDiscounts) ? null : orderRefundedDiscounts,

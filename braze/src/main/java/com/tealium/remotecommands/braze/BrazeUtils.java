@@ -268,8 +268,10 @@ class BrazeUtils {
      * @param strictPropertiesEnabled whether per-product metadata values should be passed on unchanged
      * @return a list of EcommerceProduct
      * @throws JSONException when a required nested array (product_id/product_name/variant_id/price/quantity)
-     *                        is missing or their lengths don't match, so the caller skips the whole event
-     *                        rather than dispatching with an empty products list
+     *                        is missing or their lengths don't match, so the caller skips the whole event.
+     *                        Note: individual products with an invalid price/quantity are skipped per-index,
+     *                        so an event whose products are all invalid still dispatches with an empty
+     *                        products list (which Braze then rejects) rather than throwing.
      */
     static List<EcommerceProduct> getProductsFromNestedArrays(@Nullable JSONObject products, boolean strictPropertiesEnabled) throws JSONException {
         if (products == null) {
@@ -298,26 +300,28 @@ class BrazeUtils {
         JSONArray metadatas = optionalMatchedArray(products, BrazeConstants.Ecommerce.METADATA, count);
 
         for (int i = 0; i < count; i++) {
-            // price is required per product; skip (rather than silently fabricating $0) any
-            // product entry missing it, so one bad line item doesn't corrupt the rest of the event.
-            double price;
+            // price and quantity are required per product. A missing/non-numeric value, or a value
+            // the Braze EcommerceProduct constructor rejects (negative price, blank/>255-char string,
+            // negative quantity), skips only this line item -- one bad product must not drop the whole
+            // event, and quantity is not silently defaulted (matches the iOS remote command's strict
+            // per-item behaviour). getDouble/getLong throw JSONException on missing/non-numeric;
+            // the constructor throws IllegalArgumentException on invalid values.
             try {
-                price = prices.getDouble(i);
-            } catch (JSONException jex) {
-                Log.w(BrazeConstants.TAG, "Skipping ecommerce product at index " + i + " missing required price", jex);
-                continue;
+                double price = prices.getDouble(i);
+                long quantity = quantities.getLong(i);
+                result.add(new EcommerceProduct(
+                        productIds.optString(i),
+                        productNames.optString(i),
+                        variantIds.optString(i),
+                        price,
+                        quantity,
+                        imageUrls != null && keyHasValue(imageUrls, i) ? imageUrls.optString(i) : null,
+                        productUrls != null && keyHasValue(productUrls, i) ? productUrls.optString(i) : null,
+                        extractCustomProperties(metadatas != null ? metadatas.optJSONObject(i) : null, strictPropertiesEnabled)
+                ));
+            } catch (JSONException | IllegalArgumentException ex) {
+                Log.w(BrazeConstants.TAG, "Skipping invalid ecommerce product at index " + i, ex);
             }
-
-            result.add(new EcommerceProduct(
-                    productIds.optString(i),
-                    productNames.optString(i),
-                    variantIds.optString(i),
-                    price,
-                    quantities.optLong(i, 1L),
-                    imageUrls != null && keyHasValue(imageUrls, i) ? imageUrls.optString(i) : null,
-                    productUrls != null && keyHasValue(productUrls, i) ? productUrls.optString(i) : null,
-                    extractCustomProperties(metadatas != null ? metadatas.optJSONObject(i) : null, strictPropertiesEnabled)
-            ));
         }
 
         return result;
@@ -384,8 +388,10 @@ class BrazeUtils {
      *                 the required {@code payload.getJSONObject(Ecommerce.PRODUCTS)})
      * @return a JSONArray of plain JSONObjects
      * @throws JSONException when a required nested array (product_id/product_name/variant_id/price/quantity)
-     *                        is missing or their lengths don't match, so the caller skips the whole event
-     *                        rather than dispatching with an empty products list
+     *                        is missing or their lengths don't match, so the caller skips the whole event.
+     *                        Note: individual products with an invalid price/quantity are skipped per-index,
+     *                        so an event whose products are all invalid still dispatches with an empty
+     *                        products list (which Braze then rejects) rather than throwing.
      */
     static JSONArray getProductsAsWireJson(@Nullable JSONObject products) throws JSONException {
         if (products == null) {
@@ -414,18 +420,16 @@ class BrazeUtils {
         JSONArray metadatas = optionalMatchedArray(products, BrazeConstants.Ecommerce.METADATA, count);
 
         for (int i = 0; i < count; i++) {
-            if (!keyHasValue(prices, i)) {
-                Log.w(BrazeConstants.TAG, "Skipping ecommerce product at index " + i + " missing required price");
-                continue;
-            }
-
             JSONObject product = new JSONObject();
             try {
+                // price and quantity are required per product; getDouble/getInt throw JSONException on
+                // a missing/non-numeric value and skip only this line item. Quantity is not silently
+                // defaulted (matches the typed getProductsFromNestedArrays path and iOS).
                 product.put(BrazeConstants.Ecommerce.PRODUCT_ID, productIds.opt(i));
                 product.put(BrazeConstants.Ecommerce.PRODUCT_NAME, productNames.opt(i));
                 product.put(BrazeConstants.Ecommerce.VARIANT_ID, variantIds.opt(i));
                 product.put(BrazeConstants.Ecommerce.PRICE, prices.getDouble(i));
-                product.put(BrazeConstants.Ecommerce.QUANTITY, quantities.optInt(i, 1));
+                product.put(BrazeConstants.Ecommerce.QUANTITY, quantities.getInt(i));
                 if (imageUrls != null && keyHasValue(imageUrls, i)) {
                     product.put(BrazeConstants.Ecommerce.IMAGE_URL, imageUrls.optString(i));
                 }
@@ -436,9 +440,10 @@ class BrazeUtils {
                     product.put(BrazeConstants.Ecommerce.METADATA, metadatas.optJSONObject(i));
                 }
             } catch (JSONException jex) {
-                // A non-finite price (NaN/Infinity) makes JSONObject.put throw mid-build; skip the
-                // partially-built product rather than appending it.
-                Log.w(BrazeConstants.TAG, "Failed to build wire-schema ecommerce product JSON", jex);
+                // Missing/non-numeric required price or quantity, or a non-finite price (NaN/Infinity)
+                // that makes JSONObject.put throw mid-build; skip this product rather than appending a
+                // partially-built or invalid line item.
+                Log.w(BrazeConstants.TAG, "Skipping invalid wire-schema ecommerce product at index " + i, jex);
                 continue;
             }
 
@@ -528,6 +533,22 @@ class BrazeUtils {
     static String optionalScalarString(JSONObject json, String key) {
         Object raw = json.opt(key);
         return raw instanceof String ? (String) raw : null;
+    }
+
+    /**
+     * Reads an optional scalar currency and normalizes it to uppercase. Braze validates currency
+     * against ISO-4217 canonical uppercase, so a common lowercase input like "usd" would throw on
+     * event construction and silently drop the whole event; uppercasing here accepts that input.
+     * Returns null when the key is absent (currency is @Nullable on the typed ecommerce events),
+     * rejecting an array value like {@link #optionalScalarString}.
+     *
+     * @param json the payload
+     * @param key  the key to read
+     * @return the uppercased currency, or null when absent/non-scalar
+     */
+    static String optionalCurrency(JSONObject json, String key) {
+        String currency = optionalScalarString(json, key);
+        return currency != null ? currency.toUpperCase(Locale.ROOT) : null;
     }
 
     /**

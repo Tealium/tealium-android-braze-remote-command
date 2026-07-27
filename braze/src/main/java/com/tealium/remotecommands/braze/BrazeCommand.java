@@ -304,7 +304,7 @@ interface BrazeCommand {
      * @param productName the product name
      * @param variantId   the product variant identifier
      * @param price       the product price
-     * @param currency    the currency, forwarded unchanged (no USD default, unlike logPurchase); a blank or non-ISO-4217 value is rejected by Braze
+     * @param currency    the currency, normalized to uppercase for ISO-4217 (no USD default, unlike logPurchase); null when absent (the typed events accept a null currency), a non-ISO-4217 value is rejected by Braze
      * @param source      the event source
      * @param imageUrl    an optional product image url
      * @param productUrl  an optional product url
@@ -326,7 +326,7 @@ interface BrazeCommand {
      * logCustomEvent).
      *
      * @param cartId     the cart identifier
-     * @param currency   the currency, forwarded unchanged (no USD default, unlike logPurchase); a blank or non-ISO-4217 value is rejected by Braze
+     * @param currency   the currency, normalized to uppercase for ISO-4217 (no USD default, unlike logPurchase); null when absent (the typed events accept a null currency), a non-ISO-4217 value is rejected by Braze
      * @param source     the event source
      * @param totalValue the optional cart total value; may be null for add/remove actions
      * @param action     the cart action, mapped from the payload's ACTION key (see BrazeConstants.Ecommerce.Action.from)
@@ -348,7 +348,7 @@ interface BrazeCommand {
      * logCustomEvent).
      *
      * @param checkoutId the checkout identifier
-     * @param currency   the currency, forwarded unchanged (no USD default, unlike logPurchase); a blank or non-ISO-4217 value is rejected by Braze
+     * @param currency   the currency, normalized to uppercase for ISO-4217 (no USD default, unlike logPurchase); null when absent (the typed events accept a null currency), a non-ISO-4217 value is rejected by Braze
      * @param source     the event source
      * @param totalValue the checkout total value
      * @param products   the nested products object described in {@link #logCartUpdated}
@@ -371,7 +371,7 @@ interface BrazeCommand {
      * logCustomEvent).
      *
      * @param orderId        the order identifier
-     * @param currency       the currency, forwarded unchanged (no USD default, unlike logPurchase); a blank or non-ISO-4217 value is rejected by Braze
+     * @param currency       the currency, normalized to uppercase for ISO-4217 (no USD default, unlike logPurchase); null when absent (the typed events accept a null currency), a non-ISO-4217 value is rejected by Braze
      * @param source         the event source
      * @param totalValue     the order total value
      * @param products       the nested products object described in {@link #logCartUpdated}
@@ -391,7 +391,7 @@ interface BrazeCommand {
      * optional), zipped by index.
      *
      * @param orderId        the order identifier
-     * @param currency       the currency, forwarded unchanged (no USD default, unlike logPurchase); a blank or non-ISO-4217 value is rejected by Braze
+     * @param currency       the currency, normalized to uppercase for ISO-4217 (no USD default, unlike logPurchase); null when absent (the typed events accept a null currency), a non-ISO-4217 value is rejected by Braze
      * @param source         the event source
      * @param totalValue     the order total value
      * @param subtotalValue  an optional subtotal value (post-discount, pre-tax/shipping)
@@ -412,7 +412,7 @@ interface BrazeCommand {
      * see {@link #logOrderCancelled}.
      *
      * @param orderId        the order identifier
-     * @param currency       the currency, forwarded unchanged (no USD default, unlike logPurchase); a blank or non-ISO-4217 value is rejected by Braze
+     * @param currency       the currency, normalized to uppercase for ISO-4217 (no USD default, unlike logPurchase); null when absent (the typed events accept a null currency), a non-ISO-4217 value is rejected by Braze
      * @param source         the event source
      * @param totalValue     the order total value
      * @param products       the nested products object described in {@link #logOrderCancelled}
@@ -454,7 +454,6 @@ interface BrazeCommand {
      * @param latitude The latitude of the users last known location
      * @param longitude The longitude of the users last known location
      * @param altitude Optional altitude of the users last known location
-     * @param accuracy Optional accuracy of the users last known location
      * @param accuracy Optional accuracy of the users last known location
      */
     void setLastKnownLocation(@NonNull Double latitude, @NonNull Double longitude, @Nullable Double altitude, @Nullable Double accuracy);

@@ -886,10 +886,10 @@ public class BrazeRemoteCommandTests {
     }
 
     @Test
-    public void testCartUpdatedReplace_NotDispatched_WhenTotalValueMissing() throws Exception {
-        // Replace requires total_value; missing it means the SDK constructor throws once
-        // implemented, but at the dispatch layer the command is still invoked with a null value --
-        // the instance is responsible for skipping. This test guards the dispatch/read side only.
+    public void testCartUpdatedReplace_NotDispatched_WhenTotalValueMissing_ActionOmitted() throws Exception {
+        // total_value is required for a full-cart snapshot; with action omitted (defaults to
+        // replace) an absent total_value makes the dispatch layer throw, so the event is skipped
+        // client-side rather than dispatched. (Sibling of the explicit action=replace case.)
         JSONObject products = productsObject(singleProduct());
         RemoteCommand.Response response = ResponseBuilder.create()
                 .addCommand(Commands.LOG_CART_UPDATED)
@@ -904,7 +904,7 @@ public class BrazeRemoteCommandTests {
 
         brazeRemoteCommand.onInvoke(response);
 
-        verify(mockBrazeInstance).logCartUpdated(eq("cart-1"), eq("USD"), eq("test-source"), eq((Double) null), eq(BrazeConstants.Ecommerce.Action.REPLACE), sameProducts(products), eq(null));
+        verify(mockBrazeInstance, never()).logCartUpdated(any(), any(), any(), any(), any(), any(), any());
     }
 
     @Test
@@ -1023,6 +1023,92 @@ public class BrazeRemoteCommandTests {
         brazeRemoteCommand.onInvoke(response);
 
         verify(mockBrazeInstance).logProductViewed(eq("sku123"), eq("Widget"), eq("widget_blue"), eq(49.99), eq("USD"), eq("test-source"), eq(null), eq(null), eq(null));
+    }
+
+    @Test
+    public void testCartUpdatedEvent_NotDispatched_WhenCartIdMissing() throws Exception {
+        // cart_id is required for cart_updated; reading it via requireScalarString means an absent
+        // cart_id skips the event client-side rather than passing "" that the SDK would reject.
+        JSONObject products = productsObject(singleProduct());
+        RemoteCommand.Response response = ResponseBuilder.create()
+                .addCommand(Commands.LOG_CART_UPDATED)
+                .populatePayload((json) -> {
+                    json.put(Ecommerce.CURRENCY, "USD");
+                    json.put(Ecommerce.SOURCE, "test-source");
+                    json.put(Ecommerce.TOTAL_VALUE, 49.99);
+                    json.put(Ecommerce.ACTION, "add");
+                    json.put(Ecommerce.PRODUCTS, products);
+                    // cart_id intentionally omitted; required per the wire schema.
+                })
+                .build();
+
+        brazeRemoteCommand.onInvoke(response);
+
+        verify(mockBrazeInstance, never()).logCartUpdated(any(), any(), any(), any(), any(), any(), any());
+    }
+
+    @Test
+    public void testOrderPlacedEvent_CurrencyLowercaseUppercased() throws Exception {
+        // Braze validates ISO-4217 canonical uppercase; a lowercase "usd" is normalized to "USD"
+        // so the event is not dropped at ingestion.
+        JSONObject products = productsObject(singleProduct());
+        RemoteCommand.Response response = ResponseBuilder.create()
+                .addCommand(Commands.LOG_ORDER_PLACED)
+                .populatePayload((json) -> {
+                    json.put(Ecommerce.ORDER_ID, "order-1");
+                    json.put(Ecommerce.CURRENCY, "usd");
+                    json.put(Ecommerce.SOURCE, "test-source");
+                    json.put(Ecommerce.TOTAL_VALUE, 49.99);
+                    json.put(Ecommerce.PRODUCTS, products);
+                })
+                .build();
+
+        brazeRemoteCommand.onInvoke(response);
+
+        verify(mockBrazeInstance).logOrderPlaced(eq("order-1"), eq("USD"), eq("test-source"), eq(49.99), sameProducts(products), eq(null), eq(null), eq(null), eq(null));
+    }
+
+    @Test
+    public void testOrderPlacedEvent_NullCurrency_WhenMissing() throws Exception {
+        // currency is @Nullable on the typed ecommerce events; when absent it is passed as null
+        // rather than force-dropping the whole event via requireScalarString.
+        JSONObject products = productsObject(singleProduct());
+        RemoteCommand.Response response = ResponseBuilder.create()
+                .addCommand(Commands.LOG_ORDER_PLACED)
+                .populatePayload((json) -> {
+                    json.put(Ecommerce.ORDER_ID, "order-1");
+                    json.put(Ecommerce.SOURCE, "test-source");
+                    json.put(Ecommerce.TOTAL_VALUE, 49.99);
+                    json.put(Ecommerce.PRODUCTS, products);
+                    // currency intentionally omitted.
+                })
+                .build();
+
+        brazeRemoteCommand.onInvoke(response);
+
+        verify(mockBrazeInstance).logOrderPlaced(eq("order-1"), eq(null), eq("test-source"), eq(49.99), sameProducts(products), eq(null), eq(null), eq(null), eq(null));
+    }
+
+    @Test
+    public void testOrderCancelledEvent_NotDispatched_WhenSourceIsArray() throws Exception {
+        // Regression: cancelled/refunded now use requireScalarString for source (previously raw
+        // getString), so an array-valued source is rejected instead of coerced to "[...]".
+        JSONObject products = productsObject(singleProduct());
+        RemoteCommand.Response response = ResponseBuilder.create()
+                .addCommand(Commands.LOG_ORDER_CANCELLED)
+                .populatePayload((json) -> {
+                    json.put(Ecommerce.ORDER_ID, "order-1");
+                    json.put(Ecommerce.CURRENCY, "USD");
+                    json.put(Ecommerce.SOURCE, new JSONArray().put("test-source"));
+                    json.put(Ecommerce.TOTAL_VALUE, 49.99);
+                    json.put(Ecommerce.CANCEL_REASON, "customer_request");
+                    json.put(Ecommerce.PRODUCTS, products);
+                })
+                .build();
+
+        brazeRemoteCommand.onInvoke(response);
+
+        verify(mockBrazeInstance, never()).logOrderCancelled(any(), any(), any(), anyDouble(), any(), any(), any(), any(), any(), any(), any(), any());
     }
 
     @Test

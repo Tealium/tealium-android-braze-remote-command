@@ -181,6 +181,12 @@ public final class BrazeConstants {
 
         public static final String CANCEL_REASON = "cancel_reason";
 
+        // Custom-event names for order_cancelled/order_refunded, which have no typed Braze SDK
+        // event class and are dispatched via logCustomEvent. Must stay in sync with the iOS remote
+        // command's CustomEvent names.
+        public static final String EVENT_ORDER_CANCELLED = "ecommerce.order_cancelled";
+        public static final String EVENT_ORDER_REFUNDED = "ecommerce.order_refunded";
+
         /**
          * The cart action for logcartupdated, read from the payload's ACTION key. Values match the
          * Braze cart_updated schema ("add"/"remove"/"replace"); an unrecognized or absent value

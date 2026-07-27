@@ -648,14 +648,18 @@ class BrazeInstance implements BrazeCommand, ActivityLifecycleCallbacks {
                 wirePayload.put(BrazeConstants.Ecommerce.DISCOUNTS, discountsJson);
             }
             if (properties != null) {
-                wirePayload.put(BrazeConstants.Ecommerce.METADATA, properties);
+                // Route event-level metadata through extractCustomProperties for the same string
+                // coercion + mStrictPropertiesEnabled handling every other ecommerce path applies,
+                // rather than putting the raw payload JSON on the wire.
+                wirePayload.put(BrazeConstants.Ecommerce.METADATA,
+                        BrazeUtils.extractCustomProperties(properties, mStrictPropertiesEnabled).forJsonPut());
             }
         } catch (JSONException jex) {
             Log.w(TAG, "Failed to build ecommerce.order_cancelled payload", jex);
             return;
         }
 
-        getBrazeInstance().logCustomEvent("ecommerce.order_cancelled", new BrazeProperties(wirePayload));
+        getBrazeInstance().logCustomEvent(BrazeConstants.Ecommerce.EVENT_ORDER_CANCELLED, new BrazeProperties(wirePayload));
     }
 
     @Override
@@ -675,14 +679,18 @@ class BrazeInstance implements BrazeCommand, ActivityLifecycleCallbacks {
                 wirePayload.put(BrazeConstants.Ecommerce.DISCOUNTS, discountsJson);
             }
             if (properties != null) {
-                wirePayload.put(BrazeConstants.Ecommerce.METADATA, properties);
+                // Route event-level metadata through extractCustomProperties for the same string
+                // coercion + mStrictPropertiesEnabled handling every other ecommerce path applies,
+                // rather than putting the raw payload JSON on the wire.
+                wirePayload.put(BrazeConstants.Ecommerce.METADATA,
+                        BrazeUtils.extractCustomProperties(properties, mStrictPropertiesEnabled).forJsonPut());
             }
         } catch (JSONException jex) {
             Log.w(TAG, "Failed to build ecommerce.order_refunded payload", jex);
             return;
         }
 
-        getBrazeInstance().logCustomEvent("ecommerce.order_refunded", new BrazeProperties(wirePayload));
+        getBrazeInstance().logCustomEvent(BrazeConstants.Ecommerce.EVENT_ORDER_REFUNDED, new BrazeProperties(wirePayload));
     }
 
     @Override
