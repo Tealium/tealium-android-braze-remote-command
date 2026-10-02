@@ -154,8 +154,9 @@ public class BrazeRemoteCommand extends RemoteCommand {
      * "attr_array_id_1" : "string_value_to_remove"
      * },
      * <p>
-     * // Logout: the logout command needs no payload keys; it switches to an anonymous user. A
-     * // failure to log out is only logged.
+     * // Logout: the logout command needs no payload keys. It flushes pending data, unregisters push,
+     * // then wipes local data and disables the SDK (Braze SDK 43.0.0+), so send enablesdk afterwards
+     * // to resume tracking. If push unregistration fails nothing is wiped; the failure is only logged.
      * <p>
      * // Notifications
      * "email_notification" : "<string>", // "unsubscribed", "subscribed", "opted_in"
@@ -194,7 +195,7 @@ public class BrazeRemoteCommand extends RemoteCommand {
      * "property_name_5" : <date>, // format "E MMM dd HH:mm:ss z yyyy"
      * }],
      * <p>
-     * // Ecommerce Events (Braze SDK 42.3.0+), keys match the Braze recommended-event schema 1:1.
+     * // Ecommerce Events (Braze SDK 44.0.0+), keys match the Braze recommended-event schema 1:1.
      * // Commands: logproductviewed, logcartupdated, logcheckoutstarted, logorderplaced,
      * //           logordercancelled, logorderrefunded
      * // Key aliases (canonical key first, the first one present wins), shared with logpurchase so one

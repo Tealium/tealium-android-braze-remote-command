@@ -412,6 +412,37 @@ public class BrazeUtilityMethodTests {
     }
 
     @Test
+    public void productsFromNestedArraysTest_SkipsNonStringProductFields() throws JSONException {
+        // Android's optString would turn a JSON null into "null" and a number into "12345", so only
+        // real String elements are accepted for the required id/name/variant fields.
+        JSONObject nullId = widgetProduct();
+        nullId.put(BrazeConstants.Ecommerce.PRODUCT_ID, JSONObject.NULL);
+        JSONObject numericId = widgetProduct();
+        numericId.put(BrazeConstants.Ecommerce.PRODUCT_ID, 12345);
+        JSONObject numericName = widgetProduct();
+        numericName.put(BrazeConstants.Ecommerce.PRODUCT_NAME, 42);
+        JSONObject nullVariant = widgetProduct();
+        nullVariant.put(BrazeConstants.Ecommerce.VARIANT_ID, JSONObject.NULL);
+
+        List<EcommerceProduct> result = BrazeUtils.getProductsFromNestedArrays(
+                productsObject(nullId, numericId, numericName, nullVariant, widgetProduct()), false);
+
+        assertEquals(1, result.size());
+        assertEquals("sku123", result.get(0).getProductId());
+    }
+
+    @Test
+    public void productsFromNestedArraysTest_TreatsNonStringOptionalUrlAsAbsent() throws JSONException {
+        JSONObject numericImageUrl = widgetProduct();
+        numericImageUrl.put(BrazeConstants.Ecommerce.IMAGE_URL, 123);
+
+        List<EcommerceProduct> result = BrazeUtils.getProductsFromNestedArrays(productsObject(numericImageUrl), false);
+
+        assertEquals(1, result.size());
+        assertNull(result.get(0).getImageUrl());
+    }
+
+    @Test
     public void productsAsWireJsonTest_RoundsFractionalQuantityAndSkipsNonFinite() throws JSONException {
         JSONArray result = BrazeUtils.getProductsAsWireJson(productsObject(
                 widgetProduct("NaN", 1),
@@ -527,6 +558,13 @@ public class BrazeUtilityMethodTests {
     public void requireCurrencyTest_UppercasesScalar() throws JSONException {
         JSONObject json = new JSONObject();
         json.put(BrazeConstants.Ecommerce.CURRENCY, "usd");
+        assertEquals("USD", BrazeUtils.requireCurrency(json, BrazeConstants.Ecommerce.CURRENCY));
+    }
+
+    @Test
+    public void requireCurrencyTest_TrimsSurroundingWhitespace() throws JSONException {
+        JSONObject json = new JSONObject();
+        json.put(BrazeConstants.Ecommerce.CURRENCY, " usd ");
         assertEquals("USD", BrazeUtils.requireCurrency(json, BrazeConstants.Ecommerce.CURRENCY));
     }
 
@@ -689,6 +727,35 @@ public class BrazeUtilityMethodTests {
     }
 
     @Test
+    public void productsAsWireJsonTest_SkipsNonStringProductFields() throws JSONException {
+        JSONObject nullId = widgetProduct();
+        nullId.put(BrazeConstants.Ecommerce.PRODUCT_ID, JSONObject.NULL);
+        JSONObject numericId = widgetProduct();
+        numericId.put(BrazeConstants.Ecommerce.PRODUCT_ID, 12345);
+        JSONObject nullName = widgetProduct();
+        nullName.put(BrazeConstants.Ecommerce.PRODUCT_NAME, JSONObject.NULL);
+        JSONObject numericVariant = widgetProduct();
+        numericVariant.put(BrazeConstants.Ecommerce.VARIANT_ID, 7);
+
+        JSONArray result = BrazeUtils.getProductsAsWireJson(
+                productsObject(nullId, numericId, nullName, numericVariant, widgetProduct()));
+
+        assertEquals(1, result.length());
+        assertEquals("sku123", result.getJSONObject(0).getString(BrazeConstants.Ecommerce.PRODUCT_ID));
+    }
+
+    @Test
+    public void productsAsWireJsonTest_TreatsNonStringOptionalUrlAsAbsent() throws JSONException {
+        JSONObject numericImageUrl = widgetProduct();
+        numericImageUrl.put(BrazeConstants.Ecommerce.IMAGE_URL, 123);
+
+        JSONArray result = BrazeUtils.getProductsAsWireJson(productsObject(numericImageUrl));
+
+        assertEquals(1, result.length());
+        assertFalse(result.getJSONObject(0).has(BrazeConstants.Ecommerce.IMAGE_URL));
+    }
+
+    @Test
     public void discountsFromNestedArraysTest_SkipsNonNumericAmount() throws JSONException {
         // A non-numeric amount coerces to NaN via optDouble; the discount entry must be present but
         // carry no amount key rather than boxing NaN.
@@ -703,6 +770,38 @@ public class BrazeUtilityMethodTests {
         assertEquals("SUMMER10", result.get(0).get("code"));
         assertFalse(result.get(0).containsKey("amount"));
         assertEquals("percentage", result.get(0).get("type"));
+    }
+
+    @Test
+    public void discountsFromNestedArraysTest_SkipsInfiniteAmount() throws JSONException {
+        // An "Infinity" string parses to infinity via optDouble; like NaN, it must not be boxed into
+        // the discount, but the rest of the entry is kept.
+        JSONObject discounts = discountsObject(
+                new JSONArray(new String[]{"SUMMER10"}),
+                new JSONArray(new String[]{"Infinity"}),
+                new JSONArray(new String[]{"percentage"}));
+
+        List<Map<String, Object>> result = BrazeUtils.getDiscountsFromNestedArrays(discounts);
+
+        assertEquals(1, result.size());
+        assertEquals("SUMMER10", result.get(0).get("code"));
+        assertFalse(result.get(0).containsKey("amount"));
+        assertEquals("percentage", result.get(0).get("type"));
+    }
+
+    @Test
+    public void discountsAsWireJsonTest_SkipsInfiniteAmount() throws JSONException {
+        JSONObject discounts = discountsObject(
+                new JSONArray(new String[]{"SUMMER10"}),
+                new JSONArray(new String[]{"Infinity"}),
+                new JSONArray(new String[]{"percentage"}));
+
+        JSONArray result = BrazeUtils.getDiscountsAsWireJson(discounts);
+
+        assertEquals(1, result.length());
+        assertEquals("SUMMER10", result.getJSONObject(0).getString(BrazeConstants.Ecommerce.DISCOUNT_CODE));
+        assertFalse(result.getJSONObject(0).has(BrazeConstants.Ecommerce.DISCOUNT_AMOUNT));
+        assertEquals("percentage", result.getJSONObject(0).getString(BrazeConstants.Ecommerce.DISCOUNT_TYPE));
     }
 
     @Test
@@ -807,7 +906,7 @@ public class BrazeUtilityMethodTests {
             /*
              * At the time of writing, the Android SDK will stringify values in a HashMap such that
              * the native type is lost. The method being tested here will attempt to recover that.
-             * As a result the expected types should be integer/double/booolean despite the value
+             * As a result the expected types should be integer/double/boolean despite the value
              * that was put in, was actually a string.
              * */
             assertEquals(integerValue, brazePropsJson.getInt("integerStringValue"));

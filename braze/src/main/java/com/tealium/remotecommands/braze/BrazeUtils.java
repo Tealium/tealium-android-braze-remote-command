@@ -275,7 +275,8 @@ class BrazeUtils {
      * @return a list of EcommerceProduct
      * @throws JSONException when a required nested array (product_id/product_name/variant_id/price/quantity)
      *                        is missing or their lengths don't match, so the caller skips the whole event.
-     *                        Individual products with an invalid price/quantity are skipped per-index;
+     *                        Individual products with an invalid price/quantity, or a product_id/
+     *                        product_name/variant_id element that is not a String, are skipped per-index;
      *                        if that leaves no valid products, this throws too so the whole event is
      *                        skipped client-side (parity with iOS, which throws emptyProductsArray)
      *                        rather than dispatching an empty products list.
@@ -307,7 +308,8 @@ class BrazeUtils {
         JSONArray metadatas = optionalMatchedArray(products, BrazeConstants.Ecommerce.METADATA, count);
 
         for (int i = 0; i < count; i++) {
-            // price and quantity are required per product. A missing/non-numeric/non-finite value, or
+            // price and quantity are required per product, as are String product_id/product_name/
+            // variant_id elements. A missing/non-numeric/non-finite value, a non-String id/name, or
             // a value the Braze EcommerceProduct constructor rejects (negative price, blank/>255-char
             // string, negative quantity), skips only this line item -- one bad product must not drop
             // the whole event, and quantity is not silently defaulted (matches the iOS remote
@@ -318,13 +320,13 @@ class BrazeUtils {
                 double price = requireFinite(prices.getDouble(i), BrazeConstants.Ecommerce.PRICE);
                 long quantity = requireQuantity(quantities, i);
                 result.add(new EcommerceProduct(
-                        productIds.optString(i),
-                        productNames.optString(i),
-                        variantIds.optString(i),
+                        requireStringElement(productIds, i, BrazeConstants.Ecommerce.PRODUCT_ID),
+                        requireStringElement(productNames, i, BrazeConstants.Ecommerce.PRODUCT_NAME),
+                        requireStringElement(variantIds, i, BrazeConstants.Ecommerce.VARIANT_ID),
                         price,
                         quantity,
-                        imageUrls != null && keyHasValue(imageUrls, i) ? imageUrls.optString(i) : null,
-                        productUrls != null && keyHasValue(productUrls, i) ? productUrls.optString(i) : null,
+                        optionalStringElement(imageUrls, i),
+                        optionalStringElement(productUrls, i),
                         extractCustomProperties(metadatas != null ? metadatas.optJSONObject(i) : null, strictPropertiesEnabled)
                 ));
             } catch (JSONException | IllegalArgumentException ex) {
@@ -371,10 +373,11 @@ class BrazeUtils {
                 entry.put(BrazeConstants.Ecommerce.DISCOUNT_CODE, codes.optString(i));
             }
             if (amounts != null && keyHasValue(amounts, i)) {
-                // A non-numeric amount coerces to NaN via optDouble; only carry the amount when it is
-                // a real number so we never box NaN into the discount map.
+                // A non-numeric amount coerces to NaN via optDouble, and a "Infinity" string parses to
+                // infinity; only carry the amount when it is a finite number so we never box either
+                // into the discount map.
                 double amt = amounts.optDouble(i, Double.NaN);
-                if (!Double.isNaN(amt)) {
+                if (Double.isFinite(amt)) {
                     entry.put(BrazeConstants.Ecommerce.DISCOUNT_AMOUNT, amt);
                 }
             }
@@ -398,6 +401,30 @@ class BrazeUtils {
     }
 
     /**
+     * Reads a required String element of a product array. Android's org.json turns a JSON null or
+     * a number into text ("null", "5") via optString, so only a real String is accepted. iOS rejects
+     * these too, but drops the whole event; here only the line item is skipped.
+     *
+     * @throws JSONException if the element is a JSON null or any non-String value
+     */
+    private static String requireStringElement(JSONArray array, int index, String key) throws JSONException {
+        Object raw = array.opt(index);
+        if (raw instanceof String) {
+            return (String) raw;
+        }
+        throw new JSONException("Expected a String element for '" + key + "' at index " + index);
+    }
+
+    /**
+     * Reads an optional String element of a product array. Returns null when the array is absent or
+     * the element is a JSON null or any non-String value, so it is treated as not provided.
+     */
+    private static String optionalStringElement(@Nullable JSONArray array, int index) {
+        Object raw = array != null ? array.opt(index) : null;
+        return raw instanceof String ? (String) raw : null;
+    }
+
+    /**
      * Builds a JSONArray of plain product objects from the nested Ecommerce.PRODUCTS object, for
      * use as the "products" value in the ecommerce.order_cancelled / ecommerce.order_refunded
      * logCustomEvent wire payload. Same nested-parallel-arrays convention as
@@ -409,7 +436,8 @@ class BrazeUtils {
      * @return a JSONArray of plain JSONObjects
      * @throws JSONException when a required nested array (product_id/product_name/variant_id/price/quantity)
      *                        is missing or their lengths don't match, so the caller skips the whole event.
-     *                        Individual products with an invalid price/quantity are skipped per-index;
+     *                        Individual products with an invalid price/quantity, or a product_id/
+     *                        product_name/variant_id element that is not a String, are skipped per-index;
      *                        if that leaves no valid products, this throws too so the whole event is
      *                        skipped client-side (parity with iOS, which throws emptyProductsArray)
      *                        rather than dispatching an empty products list.
@@ -446,7 +474,8 @@ class BrazeUtils {
                 // This event has no typed Braze class, so nothing validates the line item for us: apply
                 // the same rules as the EcommerceProduct constructor used on the typed path. price and
                 // quantity are required and must not be negative (requireQuantity rejects a negative
-                // quantity); a missing, non-numeric, non-finite or invalid value throws JSONException
+                // quantity), as are String product_id/product_name/variant_id elements; a missing,
+                // non-numeric, non-finite, non-String or invalid value throws JSONException
                 // and skips only this line item. Quantity is not silently defaulted (matches the typed
                 // getProductsFromNestedArrays path and iOS).
                 double price = requireFinite(prices.getDouble(i), BrazeConstants.Ecommerce.PRICE);
@@ -454,16 +483,18 @@ class BrazeUtils {
                 if (price < 0) {
                     throw new JSONException("Negative price");
                 }
-                product.put(BrazeConstants.Ecommerce.PRODUCT_ID, requireSdkString(productIds.optString(i), BrazeConstants.Ecommerce.PRODUCT_ID));
-                product.put(BrazeConstants.Ecommerce.PRODUCT_NAME, requireSdkString(productNames.optString(i), BrazeConstants.Ecommerce.PRODUCT_NAME));
-                product.put(BrazeConstants.Ecommerce.VARIANT_ID, requireSdkString(variantIds.optString(i), BrazeConstants.Ecommerce.VARIANT_ID));
+                product.put(BrazeConstants.Ecommerce.PRODUCT_ID, requireSdkString(requireStringElement(productIds, i, BrazeConstants.Ecommerce.PRODUCT_ID), BrazeConstants.Ecommerce.PRODUCT_ID));
+                product.put(BrazeConstants.Ecommerce.PRODUCT_NAME, requireSdkString(requireStringElement(productNames, i, BrazeConstants.Ecommerce.PRODUCT_NAME), BrazeConstants.Ecommerce.PRODUCT_NAME));
+                product.put(BrazeConstants.Ecommerce.VARIANT_ID, requireSdkString(requireStringElement(variantIds, i, BrazeConstants.Ecommerce.VARIANT_ID), BrazeConstants.Ecommerce.VARIANT_ID));
                 product.put(BrazeConstants.Ecommerce.PRICE, price);
                 product.put(BrazeConstants.Ecommerce.QUANTITY, quantity);
-                if (imageUrls != null && keyHasValue(imageUrls, i)) {
-                    product.put(BrazeConstants.Ecommerce.IMAGE_URL, requireSdkString(imageUrls.optString(i), BrazeConstants.Ecommerce.IMAGE_URL));
+                String imageUrl = optionalStringElement(imageUrls, i);
+                if (imageUrl != null) {
+                    product.put(BrazeConstants.Ecommerce.IMAGE_URL, requireSdkString(imageUrl, BrazeConstants.Ecommerce.IMAGE_URL));
                 }
-                if (productUrls != null && keyHasValue(productUrls, i)) {
-                    product.put(BrazeConstants.Ecommerce.PRODUCT_URL, requireSdkString(productUrls.optString(i), BrazeConstants.Ecommerce.PRODUCT_URL));
+                String productUrl = optionalStringElement(productUrls, i);
+                if (productUrl != null) {
+                    product.put(BrazeConstants.Ecommerce.PRODUCT_URL, requireSdkString(productUrl, BrazeConstants.Ecommerce.PRODUCT_URL));
                 }
                 if (metadatas != null && metadatas.optJSONObject(i) != null) {
                     product.put(BrazeConstants.Ecommerce.METADATA, metadatas.optJSONObject(i));
@@ -517,10 +548,12 @@ class BrazeUtils {
                     discount.put(BrazeConstants.Ecommerce.DISCOUNT_CODE, codes.optString(i));
                 }
                 if (amounts != null && keyHasValue(amounts, i)) {
-                    // Only carry a real numeric amount; a non-numeric value coerces to NaN, which
-                    // JSONObject.put would reject -- skip it explicitly to parallel the typed path.
+                    // Only carry a finite numeric amount; a non-numeric value coerces to NaN and
+                    // "Infinity" parses to infinity, both of which JSONObject.put would reject
+                    // (dropping the whole discount) -- skip the amount explicitly to parallel the
+                    // typed path.
                     double amt = amounts.optDouble(i, Double.NaN);
-                    if (!Double.isNaN(amt)) {
+                    if (Double.isFinite(amt)) {
                         discount.put(BrazeConstants.Ecommerce.DISCOUNT_AMOUNT, amt);
                     }
                 }
@@ -735,21 +768,21 @@ class BrazeUtils {
     }
 
     /**
-     * Reads a required scalar currency and normalizes it to uppercase. Currency is required for all
+     * Reads a required scalar currency and normalizes it by trimming and uppercasing. Currency is required for all
      * six recommended ecommerce events (the Braze SDK base EcommerceEvent constructor rejects a null
      * currency, and Braze validates the value against ISO-4217 canonical uppercase), so this reuses
      * {@link #requireNonBlankString} -- throwing when the key is absent, a JSON null, an array, any
-     * non-String value, or blank -- then uppercases so a common lowercase input like "usd" is
+     * non-String value, or blank -- then trims and uppercases so a common input like " usd " is
      * accepted rather than dropped at event construction. Matches the iOS remote command's
      * requireCurrency strictness.
      *
      * @param json the payload
      * @param key  the key to read
-     * @return the uppercased currency
+     * @return the trimmed, uppercased currency
      * @throws JSONException if the value is absent, blank, or is not a scalar String
      */
     static String requireCurrency(JSONObject json, String key) throws JSONException {
-        return requireNonBlankString(json, key).toUpperCase(Locale.ROOT);
+        return requireNonBlankString(json, key).trim().toUpperCase(Locale.ROOT);
     }
 
     /**

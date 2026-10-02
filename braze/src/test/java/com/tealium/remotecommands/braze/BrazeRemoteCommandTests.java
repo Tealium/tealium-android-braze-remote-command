@@ -942,6 +942,26 @@ public class BrazeRemoteCommandTests {
     }
 
     @Test
+    public void testOrderCancelledEvent_TrimsAndUppercasesCurrency() throws Exception {
+        JSONObject products = productsObject(singleProduct());
+        RemoteCommand.Response response = ResponseBuilder.create()
+                .addCommand(Commands.LOG_ORDER_CANCELLED)
+                .populatePayload((json) -> {
+                    json.put(Ecommerce.ORDER_ID, "order-1");
+                    json.put(Ecommerce.CURRENCY, " usd ");
+                    json.put(Ecommerce.SOURCE, "test-source");
+                    json.put(Ecommerce.TOTAL_VALUE, 49.99);
+                    json.put(Ecommerce.CANCEL_REASON, "customer_request");
+                    json.put(Ecommerce.PRODUCTS, products);
+                })
+                .build();
+
+        brazeRemoteCommand.onInvoke(response);
+
+        verify(mockBrazeInstance).logOrderCancelled(eq("order-1"), eq("USD"), eq("test-source"), eq(49.99), eq(null), eq(null), eq(null), sameProducts(products), eq("customer_request"), eq(null), eq(null), eq(null));
+    }
+
+    @Test
     public void testOrderCancelledEvent_NotDispatched_WhenTotalValueMissing() throws Exception {
         JSONObject products = productsObject(singleProduct());
         RemoteCommand.Response response = ResponseBuilder.create()

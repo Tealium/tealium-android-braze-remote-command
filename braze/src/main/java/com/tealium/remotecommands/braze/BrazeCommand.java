@@ -55,8 +55,10 @@ interface BrazeCommand {
     void wipeData();
 
     /**
-     * Executes Braze's logout function, which switches to an anonymous user and clears the
-     * current user's identity. The SDK completes it asynchronously; a failure is only logged.
+     * Executes Braze's logout function (Braze SDK 43.0.0+), which flushes pending data,
+     * unregisters push, then wipes all local data and disables the SDK; an {@code enablesdk}
+     * command is needed afterwards to resume tracking. If push unregistration fails nothing is
+     * wiped or disabled. The SDK completes it asynchronously; a failure is only logged.
      */
     void logout();
 
@@ -392,7 +394,7 @@ interface BrazeCommand {
      * optional), zipped by index.
      *
      * @param orderId        the order identifier
-     * @param currency       required; trimmed+uppercased for ISO-4217 (no USD default, unlike logPurchase). The event is skipped when currency is absent, non-scalar, or not a valid ISO-4217 code (the Braze SDK base EcommerceEvent constructor rejects a null currency, and validates the value against ISO-4217).
+     * @param currency       required; trimmed and uppercased, but not validated as ISO-4217 (logged via logCustomEvent, so the SDK does not check it). The event is skipped when currency is absent, non-scalar, or blank.
      * @param source         the event source
      * @param totalValue     the order total value
      * @param subtotalValue  an optional subtotal value (post-discount, pre-tax/shipping)
@@ -413,7 +415,7 @@ interface BrazeCommand {
      * see {@link #logOrderCancelled}.
      *
      * @param orderId        the order identifier
-     * @param currency       required; trimmed+uppercased for ISO-4217 (no USD default, unlike logPurchase). The event is skipped when currency is absent, non-scalar, or not a valid ISO-4217 code (the Braze SDK base EcommerceEvent constructor rejects a null currency, and validates the value against ISO-4217).
+     * @param currency       required; trimmed and uppercased, but not validated as ISO-4217 (logged via logCustomEvent, so the SDK does not check it). The event is skipped when currency is absent, non-scalar, or blank.
      * @param source         the event source
      * @param totalValue     the order total value
      * @param products       the nested products object described in {@link #logOrderCancelled}
