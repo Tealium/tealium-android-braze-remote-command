@@ -91,7 +91,7 @@ public class BrazeRemoteCommand extends RemoteCommand {
      * Payload JSON is expected like so:
      * {
      * // Commands
-     * "command" : "<string>", // comma-separated string, e.g. initialize,wipeData
+     * "command_name" : "<string>", // comma-separated string, e.g. initialize,wipeData
      * <p>
      * // Initialization
      * "api_key" : "<string>",
@@ -100,7 +100,6 @@ public class BrazeRemoteCommand extends RemoteCommand {
      * "firebase_enabled" : <boolean>, // true/false
      * "adm_enabled" : <boolean>, // true/false
      * "auto_push_deep_links" : <boolean>, // true/false
-     * "disable_location" : <boolean>,
      * "enable_news_feed_indicator" : <boolean>,
      * <p>
      * "firebase_sender_id" : "<string>",
