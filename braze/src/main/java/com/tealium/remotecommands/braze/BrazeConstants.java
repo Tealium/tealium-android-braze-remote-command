@@ -42,6 +42,7 @@ public final class BrazeConstants {
         public static final String ENABLE_SDK = "enablesdk";
         public static final String DISABLE_SDK = "disablesdk";
         public static final String WIPE_DATA = "wipedata";
+        public static final String LOGOUT = "logout";
         public static final String USER_IDENTIFIER = "useridentifier";
         public static final String USER_ALIAS = "useralias";
         public static final String USER_ATTRIBUTE = "userattribute";

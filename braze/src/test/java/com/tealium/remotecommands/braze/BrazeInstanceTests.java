@@ -15,6 +15,7 @@ import static org.mockito.Mockito.when;
 
 import android.app.Activity;
 import android.app.Application;
+import android.util.Log;
 
 import androidx.test.core.app.ApplicationProvider;
 
@@ -42,12 +43,18 @@ import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.MockedStatic;
 import org.robolectric.RobolectricTestRunner;
+import org.robolectric.shadows.ShadowLog;
 
 import java.math.BigDecimal;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
 import java.util.TimeZone;
+
+import kotlin.Result;
+import kotlin.ResultKt;
+import kotlin.Unit;
+import kotlin.jvm.functions.Function1;
 
 @RunWith(RobolectricTestRunner.class)
 public class BrazeInstanceTests {
@@ -225,6 +232,51 @@ public class BrazeInstanceTests {
         mockedBrazeStatic.verify(() -> {
             Braze.wipeData(context);
         });
+    }
+
+    /**
+     * Boxes a kotlin.Result the way the Braze SDK hands it to a callback. Java cannot call the
+     * mangled Result factories directly, so this goes through the boxing method by reflection.
+     */
+    private Object boxedResult(Object rawValue) throws Exception {
+        return Result.class.getDeclaredMethod("box-impl", Object.class).invoke(null, rawValue);
+    }
+
+    private Function1<Object, Unit> captureLogoutCallback() {
+        ArgumentCaptor<Function1<Object, Unit>> callback = ArgumentCaptor.forClass(Function1.class);
+        verify(mockBraze).logout(callback.capture());
+        return callback.getValue();
+    }
+
+    @Test
+    public void logout_LogsOut() {
+        brazeInstance.logout();
+
+        verify(mockBraze).logout(any(Function1.class));
+    }
+
+    @Test
+    public void logout_LogsWarning_WhenLogoutFails() throws Exception {
+        ShadowLog.clear();
+        brazeInstance.logout();
+
+        captureLogoutCallback().invoke(boxedResult(ResultKt.createFailure(new IllegalStateException("boom"))));
+
+        boolean warned = false;
+        for (ShadowLog.LogItem item : ShadowLog.getLogsForTag(BrazeConstants.TAG)) {
+            warned |= item.type == Log.WARN && item.msg.startsWith("Braze: logout failed (") && item.msg.contains("boom");
+        }
+        assertTrue(warned);
+    }
+
+    @Test
+    public void logout_LogsNothing_WhenLogoutSucceeds() throws Exception {
+        ShadowLog.clear();
+        brazeInstance.logout();
+
+        captureLogoutCallback().invoke(boxedResult(Unit.INSTANCE));
+
+        assertTrue(ShadowLog.getLogsForTag(BrazeConstants.TAG).isEmpty());
     }
 
     @Test

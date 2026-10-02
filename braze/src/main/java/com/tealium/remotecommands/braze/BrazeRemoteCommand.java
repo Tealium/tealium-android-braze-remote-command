@@ -155,6 +155,9 @@ public class BrazeRemoteCommand extends RemoteCommand {
      * "attr_array_id_1" : "string_value_to_remove"
      * },
      * <p>
+     * // Logout: the logout command needs no payload keys; it switches to an anonymous user. A
+     * // failure to log out is only logged.
+     * <p>
      * // Notifications
      * "email_notification" : "<string>", // "unsubscribed", "subscribed", "opted_in"
      * "push_notification" : "<string>", // "unsubscribed", "subscribed", "opted_in"
@@ -297,6 +300,9 @@ public class BrazeRemoteCommand extends RemoteCommand {
                         break;
                     case Commands.WIPE_DATA:
                         mBraze.wipeData();
+                        break;
+                    case Commands.LOGOUT:
+                        mBraze.logout();
                         break;
                     case Commands.USER_IDENTIFIER:
                         String authSignature = payload.optString(User.SDK_AUTH_SIGNATURE);

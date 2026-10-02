@@ -55,6 +55,12 @@ interface BrazeCommand {
     void wipeData();
 
     /**
+     * Executes Braze's logout function, which switches to an anonymous user and clears the
+     * current user's identity. The SDK completes it asynchronously; a failure is only logged.
+     */
+    void logout();
+
+    /**
      * Calls the changeUser method to switch which Braze User any subsequent events are related to.
      *
      * @param userId The new user identifier

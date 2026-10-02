@@ -1755,6 +1755,17 @@ public class BrazeRemoteCommandTests {
     }
 
     @Test
+    public void testLogout() throws Exception {
+        RemoteCommand.Response response = ResponseBuilder.create()
+                .addCommand(Commands.LOGOUT)
+                .build();
+
+        brazeRemoteCommand.onInvoke(response);
+
+        verify(mockBrazeInstance).logout();
+    }
+
+    @Test
     public void testDisableSdk() throws Exception {
         RemoteCommand.Response response = ResponseBuilder.create()
                 .addCommand(Commands.DISABLE_SDK)

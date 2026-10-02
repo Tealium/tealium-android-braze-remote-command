@@ -24,6 +24,8 @@ import com.braze.models.recommended.ecommerce.EcommerceProduct;
 import com.braze.models.recommended.ecommerce.OrderPlacedEvent;
 import com.braze.models.recommended.ecommerce.ProductViewedEvent;
 
+import kotlin.Unit;
+
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -247,6 +249,17 @@ class BrazeInstance implements BrazeCommand, ActivityLifecycleCallbacks {
     @Override
     public void wipeData() {
         Braze.wipeData(mApplication.getApplicationContext());
+    }
+
+    @Override
+    public void logout() {
+        getBrazeInstance().logout(result -> {
+            Throwable failure = BrazeResults.failureOrNull(result);
+            if (failure != null) {
+                Log.w(TAG, "Braze: logout failed (" + failure + ")");
+            }
+            return Unit.INSTANCE;
+        });
     }
 
     @Override
