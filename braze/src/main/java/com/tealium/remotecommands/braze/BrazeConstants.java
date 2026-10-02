@@ -4,6 +4,8 @@ import androidx.annotation.Nullable;
 
 import com.braze.models.recommended.ecommerce.CartUpdatedAction;
 
+import org.json.JSONObject;
+
 import java.util.HashMap;
 import java.util.Map;
 
@@ -208,8 +210,10 @@ public final class BrazeConstants {
 
         /**
          * The cart action for logcartupdated, read from the payload's ACTION key. Values match the
-         * Braze cart_updated schema ("add"/"remove"/"replace"); an unrecognized or absent value
-         * defaults to REPLACE, matching a full-cart snapshot.
+         * Braze cart_updated schema ("add"/"remove"/"replace"), ignoring case and surrounding
+         * whitespace. An absent action defaults to REPLACE, matching a full-cart snapshot; a present
+         * but unrecognized one is rejected rather than guessed, so a typo never logs the wrong
+         * cart update.
          */
         public enum Action {
             ADD("add", CartUpdatedAction.ADD),
@@ -225,19 +229,27 @@ public final class BrazeConstants {
             }
 
             /**
-             * Maps a payload action string to an Action, defaulting to REPLACE for an
-             * unrecognized or null value.
+             * Maps a payload action value to an Action: REPLACE for an absent or JSON null value,
+             * otherwise the Action whose value matches the trimmed string, ignoring case.
              *
-             * @param value the action string read from the payload
-             * @return the corresponding Action, or REPLACE when unrecognized/absent
+             * @param value the action read from the payload
+             * @return the corresponding Action, or null when the value is present but is not a
+             * string or not a recognized action
              */
-            public static Action from(@Nullable String value) {
-                for (Action action : values()) {
-                    if (action.value.equalsIgnoreCase(value)) {
-                        return action;
+            @Nullable
+            public static Action from(@Nullable Object value) {
+                if (JSONObject.NULL.equals(value)) {
+                    return REPLACE;
+                }
+                if (value instanceof String) {
+                    String trimmed = ((String) value).trim();
+                    for (Action action : values()) {
+                        if (action.value.equalsIgnoreCase(trimmed)) {
+                            return action;
+                        }
                     }
                 }
-                return REPLACE;
+                return null;
             }
         }
     }

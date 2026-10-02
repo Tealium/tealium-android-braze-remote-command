@@ -222,7 +222,7 @@ public class BrazeRemoteCommand extends RemoteCommand {
      * <p>
      * // logcartupdated:
      * "cart_id" : "<string>", // required
-     * "action" : "<string>", // "add" / "remove" / "replace"; omitted or unrecognized defaults to replace
+     * "action" : "<string>", // "add" / "remove" / "replace" (any case); omitted defaults to replace, unrecognized skips the event
      * "total_value" : <double>, // required when action is omitted/replace; optional for add/remove
      * "subtotal_value" : <double>, "tax" : <double>, "shipping" : <double>, // optional
      * "currency" : "<string>", "source" : "<string>",
@@ -424,7 +424,11 @@ public class BrazeRemoteCommand extends RemoteCommand {
                         break;
                     case Commands.LOG_CART_UPDATED:
                         Double cartTotalValue = BrazeUtils.optionalDouble(payload, Ecommerce.TOTAL_VALUE);
-                        Ecommerce.Action cartAction = Ecommerce.Action.from(BrazeUtils.optionalScalarString(payload, Ecommerce.ACTION));
+                        Object rawCartAction = payload.opt(Ecommerce.ACTION);
+                        Ecommerce.Action cartAction = Ecommerce.Action.from(rawCartAction);
+                        if (cartAction == null) {
+                            throw new JSONException("Unrecognized cart_updated action '" + rawCartAction + "', expected add, remove or replace");
+                        }
                         // total_value is required for a full-cart snapshot (action replace or omitted);
                         // catch it here so the event is skipped client-side rather than dropped at
                         // Braze ingestion. It stays optional for add/remove incremental updates.

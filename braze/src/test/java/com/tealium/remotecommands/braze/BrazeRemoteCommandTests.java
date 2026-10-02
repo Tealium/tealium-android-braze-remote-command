@@ -594,6 +594,68 @@ public class BrazeRemoteCommandTests {
     }
 
     @Test
+    public void testCartUpdatedEvent_ActionIsTrimmedAndCaseInsensitive() throws Exception {
+        JSONObject products = productsObject(singleProduct());
+        RemoteCommand.Response response = ResponseBuilder.create()
+                .addCommand(Commands.LOG_CART_UPDATED)
+                .populatePayload((json) -> {
+                    json.put(Ecommerce.CART_ID, "cart-1");
+                    json.put(Ecommerce.CURRENCY, "USD");
+                    json.put(Ecommerce.SOURCE, "test-source");
+                    json.put(Ecommerce.TOTAL_VALUE, 49.99);
+                    json.put(Ecommerce.ACTION, " ADD ");
+                    json.put(Ecommerce.PRODUCTS, products);
+                })
+                .build();
+
+        brazeRemoteCommand.onInvoke(response);
+
+        verify(mockBrazeInstance).logCartUpdated(eq("cart-1"), eq("USD"), eq("test-source"), eq(49.99), eq(null), eq(null), eq(null), eq(BrazeConstants.Ecommerce.Action.ADD), sameProducts(products), eq(null));
+    }
+
+    @Test
+    public void testCartUpdatedEvent_DefaultsToReplace_WhenActionIsJsonNull() throws Exception {
+        JSONObject products = productsObject(singleProduct());
+        RemoteCommand.Response response = ResponseBuilder.create()
+                .addCommand(Commands.LOG_CART_UPDATED)
+                .populatePayload((json) -> {
+                    json.put(Ecommerce.CART_ID, "cart-1");
+                    json.put(Ecommerce.CURRENCY, "USD");
+                    json.put(Ecommerce.SOURCE, "test-source");
+                    json.put(Ecommerce.TOTAL_VALUE, 49.99);
+                    json.put(Ecommerce.ACTION, JSONObject.NULL);
+                    json.put(Ecommerce.PRODUCTS, products);
+                })
+                .build();
+
+        brazeRemoteCommand.onInvoke(response);
+
+        verify(mockBrazeInstance).logCartUpdated(eq("cart-1"), eq("USD"), eq("test-source"), eq(49.99), eq(null), eq(null), eq(null), eq(BrazeConstants.Ecommerce.Action.REPLACE), sameProducts(products), eq(null));
+    }
+
+    @Test
+    public void testCartUpdatedEvent_NotDispatched_WhenActionUnrecognized() throws Exception {
+        JSONObject products = productsObject(singleProduct());
+        for (Object action : new Object[]{"append", "", "   ", 1, new JSONArray().put("add")}) {
+            RemoteCommand.Response response = ResponseBuilder.create()
+                    .addCommand(Commands.LOG_CART_UPDATED)
+                    .populatePayload((json) -> {
+                        json.put(Ecommerce.CART_ID, "cart-1");
+                        json.put(Ecommerce.CURRENCY, "USD");
+                        json.put(Ecommerce.SOURCE, "test-source");
+                        json.put(Ecommerce.TOTAL_VALUE, 49.99);
+                        json.put(Ecommerce.ACTION, action);
+                        json.put(Ecommerce.PRODUCTS, products);
+                    })
+                    .build();
+
+            brazeRemoteCommand.onInvoke(response);
+        }
+
+        verify(mockBrazeInstance, never()).logCartUpdated(any(), any(), any(), any(), any(), any(), any(), any(), any(), any());
+    }
+
+    @Test
     public void testCartUpdatedEvent_NotDispatched_WhenReplaceMissingTotalValue() throws Exception {
         // total_value is required for a full-cart snapshot (action replace/omitted); the event must
         // be skipped client-side rather than dispatched with a null total that Braze would drop.
