@@ -169,18 +169,20 @@ public class BrazeRemoteCommand extends RemoteCommand {
      * "property_name_5" : <date>, // format "E MMM dd HH:mm:ss z yyyy"
      * },
      * <p>
-     * // Purchases
+     * // Purchases (a single product uses scalar values instead of arrays). Each of quantity, price and
+     * // currency also accepts its ecommerce spelling, which wins when both are present, see the
+     * // key aliases below.
      * "product_id" : [
      * "<string>"
      * ],
-     * "product_qty" : [
+     * "product_qty" : [ // or "quantity"
      * <integer>
      * ],
-     * "product_price" : [
+     * "product_unit_price" : [ // or "price"
      * <double>
      * ],
-     * "product_currency" : [
-     * "<string>" // e.g. "USD"
+     * "product_currency" : [ // or "currency", "order_currency"; a single string applies to every product
+     * "<string>" // e.g. "USD"; defaults to USD when absent
      * ],
      * "purchase_properties" : [{
      * "property_name_1" : "string value",
@@ -383,11 +385,12 @@ public class BrazeRemoteCommand extends RemoteCommand {
                             if (purchaseProps == null) {
                                 purchaseProps = payload.optJSONArray(Purchase.PURCHASE_PROPERTIES_SHORTHAND);
                             }
+                            String[] productIds = BrazeUtils.getStringArrayFromJson(payload.optJSONArray(Purchase.PRODUCT_ID));
                             mBraze.logPurchase(
-                                    BrazeUtils.getStringArrayFromJson(payload.optJSONArray(Purchase.PRODUCT_ID)),
-                                    BrazeUtils.getStringArrayFromJson(payload.optJSONArray(Purchase.PRODUCT_CURRENCY)),
-                                    BrazeUtils.getBigDecimalArrayFromJson(payload.optJSONArray(Purchase.PRODUCT_PRICE)),
-                                    BrazeUtils.getIntegerArrayFromJson(payload.optJSONArray(Purchase.PRODUCT_QTY)),
+                                    productIds,
+                                    BrazeUtils.getPurchaseCurrencies(payload, productIds.length),
+                                    BrazeUtils.getBigDecimalArrayFromJson(payload.optJSONArray(BrazeUtils.resolveKey(payload, Ecommerce.PRICE))),
+                                    BrazeUtils.getIntegerArrayFromJson(payload.optJSONArray(BrazeUtils.resolveKey(payload, Ecommerce.QUANTITY))),
                                     BrazeUtils.getJSONObjectArrayFromJson(purchaseProps)
                             );
                         } else {
@@ -398,9 +401,9 @@ public class BrazeRemoteCommand extends RemoteCommand {
                             }
                             mBraze.logPurchase(
                                     payload.optString(Purchase.PRODUCT_ID),
-                                    payload.optString(Purchase.PRODUCT_CURRENCY),
-                                    BigDecimal.valueOf(payload.optDouble(Purchase.PRODUCT_PRICE, 0d)),
-                                    payload.optInt(Purchase.PRODUCT_QTY),
+                                    payload.optString(BrazeUtils.resolveKey(payload, Ecommerce.CURRENCY)),
+                                    BigDecimal.valueOf(payload.optDouble(BrazeUtils.resolveKey(payload, Ecommerce.PRICE), 0d)),
+                                    payload.optInt(BrazeUtils.resolveKey(payload, Ecommerce.QUANTITY)),
                                     purchaseProps
                             );
                         }

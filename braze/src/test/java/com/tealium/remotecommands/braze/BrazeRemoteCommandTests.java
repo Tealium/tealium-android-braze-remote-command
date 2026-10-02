@@ -216,6 +216,113 @@ public class BrazeRemoteCommandTests {
         verify(mockBrazeInstance).logPurchase("product_id", "GBP",  BigDecimal.valueOf(10.10), 10, purchaseProps);
     }
 
+    @Test
+    public void testPurchaseEvent_UsesOrderCurrencyAlias() throws Exception {
+        RemoteCommand.Response response = ResponseBuilder.create()
+                .addCommand(Commands.LOG_PURCHASE_EVENT)
+                .populatePayload((json) -> {
+                    json.put(Purchase.PRODUCT_ID, "product_id");
+                    json.put(Purchase.PRODUCT_QTY, 10);
+                    json.put(Purchase.PRODUCT_PRICE, 10.10);
+                    json.put(Purchase.ORDER_CURRENCY, "CAD");
+                })
+                .build();
+
+        brazeRemoteCommand.onInvoke(response);
+
+        verify(mockBrazeInstance).logPurchase("product_id", "CAD", BigDecimal.valueOf(10.10), 10, null);
+    }
+
+    @Test
+    public void testPurchaseEvent_CurrencyPrecedence_CanonicalThenProductThenOrder() throws Exception {
+        RemoteCommand.Response productOverOrder = ResponseBuilder.create()
+                .addCommand(Commands.LOG_PURCHASE_EVENT)
+                .populatePayload((json) -> {
+                    json.put(Purchase.PRODUCT_ID, "product_id");
+                    json.put(Purchase.PRODUCT_CURRENCY, "GBP");
+                    json.put(Purchase.ORDER_CURRENCY, "CAD");
+                })
+                .build();
+        RemoteCommand.Response canonicalOverAll = ResponseBuilder.create()
+                .addCommand(Commands.LOG_PURCHASE_EVENT)
+                .populatePayload((json) -> {
+                    json.put(Purchase.PRODUCT_ID, "product_id2");
+                    json.put(Ecommerce.CURRENCY, "EUR");
+                    json.put(Purchase.PRODUCT_CURRENCY, "GBP");
+                    json.put(Purchase.ORDER_CURRENCY, "CAD");
+                })
+                .build();
+
+        brazeRemoteCommand.onInvoke(productOverOrder);
+        brazeRemoteCommand.onInvoke(canonicalOverAll);
+
+        verify(mockBrazeInstance).logPurchase(eq("product_id"), eq("GBP"), any(BigDecimal.class), eq(0), eq(null));
+        verify(mockBrazeInstance).logPurchase(eq("product_id2"), eq("EUR"), any(BigDecimal.class), eq(0), eq(null));
+    }
+
+    @Test
+    public void testPurchaseEvent_PriceAndQuantity_CanonicalWinsOverLogPurchaseKeys() throws Exception {
+        RemoteCommand.Response response = ResponseBuilder.create()
+                .addCommand(Commands.LOG_PURCHASE_EVENT)
+                .populatePayload((json) -> {
+                    json.put(Purchase.PRODUCT_ID, "product_id");
+                    json.put(Ecommerce.QUANTITY, 3);
+                    json.put(Purchase.PRODUCT_QTY, 10);
+                    json.put(Ecommerce.PRICE, 5.5);
+                    json.put(Purchase.PRODUCT_PRICE, 10.10);
+                    json.put(Purchase.PRODUCT_CURRENCY, "GBP");
+                })
+                .build();
+
+        brazeRemoteCommand.onInvoke(response);
+
+        verify(mockBrazeInstance).logPurchase("product_id", "GBP", BigDecimal.valueOf(5.5), 3, null);
+    }
+
+    @Test
+    public void testPurchaseEvent_MultipleProducts_ScalarCurrencyAppliesToEveryProduct() throws Exception {
+        RemoteCommand.Response response = ResponseBuilder.create()
+                .addCommand(Commands.LOG_PURCHASE_EVENT)
+                .populatePayload((json) -> {
+                    json.put(Purchase.PRODUCT_ID, new JSONArray().put("p1").put("p2"));
+                    json.put(Purchase.PRODUCT_QTY, new JSONArray().put(2).put(4));
+                    json.put(Purchase.PRODUCT_PRICE, new JSONArray().put(1.5).put(2.5));
+                    json.put(Ecommerce.CURRENCY, "CAD");
+                })
+                .build();
+
+        brazeRemoteCommand.onInvoke(response);
+
+        verify(mockBrazeInstance).logPurchase(
+                eq(new String[]{"p1", "p2"}),
+                eq(new String[]{"CAD", "CAD"}),
+                eq(new BigDecimal[]{new BigDecimal(1.5), new BigDecimal(2.5)}),
+                eq(new Integer[]{2, 4}),
+                eq(new JSONObject[0]));
+    }
+
+    @Test
+    public void testPurchaseEvent_MultipleProducts_UsesAliasedArrays() throws Exception {
+        RemoteCommand.Response response = ResponseBuilder.create()
+                .addCommand(Commands.LOG_PURCHASE_EVENT)
+                .populatePayload((json) -> {
+                    json.put(Purchase.PRODUCT_ID, new JSONArray().put("p1").put("p2"));
+                    json.put(Ecommerce.QUANTITY, new JSONArray().put(2).put(4));
+                    json.put(Ecommerce.PRICE, new JSONArray().put(1.5).put(2.5));
+                    json.put(Purchase.ORDER_CURRENCY, new JSONArray().put("CAD").put("EUR"));
+                })
+                .build();
+
+        brazeRemoteCommand.onInvoke(response);
+
+        verify(mockBrazeInstance).logPurchase(
+                eq(new String[]{"p1", "p2"}),
+                eq(new String[]{"CAD", "EUR"}),
+                eq(new BigDecimal[]{new BigDecimal(1.5), new BigDecimal(2.5)}),
+                eq(new Integer[]{2, 4}),
+                eq(new JSONObject[0]));
+    }
+
     /**
      * Builds the nested Ecommerce.PRODUCTS object -- parallel arrays zipped by index -- from a
      * list of flat product field maps, matching what BrazeRemoteCommand reads from a real payload.

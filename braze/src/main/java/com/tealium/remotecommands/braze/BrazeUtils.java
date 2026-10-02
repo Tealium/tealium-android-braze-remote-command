@@ -19,6 +19,7 @@ import java.math.BigDecimal;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -728,6 +729,25 @@ class BrazeUtils {
         }
 
         return returnData;
+    }
+
+    /**
+     * Reads the currencies for a logpurchase with several products, resolving key aliases. A single
+     * String applies to every product, as on the iOS remote command; an array is read per product.
+     *
+     * @param payload      the payload
+     * @param productCount the number of products being purchased
+     * @return one currency per product for a single String, otherwise the array's elements (empty
+     * when the currency is absent)
+     */
+    static String[] getPurchaseCurrencies(JSONObject payload, int productCount) {
+        Object raw = payload.opt(resolveKey(payload, BrazeConstants.Ecommerce.CURRENCY));
+        if (raw instanceof String) {
+            String[] currencies = new String[productCount];
+            Arrays.fill(currencies, (String) raw);
+            return currencies;
+        }
+        return getStringArrayFromJson(raw instanceof JSONArray ? (JSONArray) raw : null);
     }
 
     /**
