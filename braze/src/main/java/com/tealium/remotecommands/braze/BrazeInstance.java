@@ -566,7 +566,7 @@ class BrazeInstance implements BrazeCommand, ActivityLifecycleCallbacks {
     }
 
     @Override
-    public void logProductViewed(@NonNull String productId, @NonNull String productName, @NonNull String variantId, double price, @NonNull String currency, @NonNull String source, @Nullable String imageUrl, @Nullable String productUrl, @Nullable JSONObject properties) {
+    public void logProductViewed(@NonNull String productId, @NonNull String productName, @NonNull String variantId, double price, @NonNull String currency, @NonNull String source, @Nullable String imageUrl, @Nullable String productUrl, @Nullable JSONObject properties, @Nullable List<String> type) {
         getBrazeInstance().logEcommerceEvent(new ProductViewedEvent(
                 productId,
                 productName,
@@ -577,12 +577,12 @@ class BrazeInstance implements BrazeCommand, ActivityLifecycleCallbacks {
                 imageUrl,
                 productUrl,
                 BrazeUtils.extractCustomProperties(properties, mStrictPropertiesEnabled),
-                null // type: not mapped yet.
+                type
         ));
     }
 
     @Override
-    public void logCartUpdated(@NonNull String cartId, @NonNull String currency, @NonNull String source, @Nullable Double totalValue, @NonNull BrazeConstants.Ecommerce.Action action, @Nullable JSONObject products, @Nullable JSONObject properties) throws JSONException {
+    public void logCartUpdated(@NonNull String cartId, @NonNull String currency, @NonNull String source, @Nullable Double totalValue, @Nullable Double subtotalValue, @Nullable Double tax, @Nullable Double shipping, @NonNull BrazeConstants.Ecommerce.Action action, @Nullable JSONObject products, @Nullable JSONObject properties) throws JSONException {
         getBrazeInstance().logEcommerceEvent(new CartUpdatedEvent(
                 cartId,
                 currency,
@@ -591,14 +591,14 @@ class BrazeInstance implements BrazeCommand, ActivityLifecycleCallbacks {
                 BrazeUtils.getProductsFromNestedArrays(products, mStrictPropertiesEnabled),
                 BrazeUtils.extractCustomProperties(properties, mStrictPropertiesEnabled),
                 action.brazeAction,
-                null, // subtotalValue: not mapped yet.
-                null, // tax: not mapped yet.
-                null // shipping: not mapped yet.
+                subtotalValue,
+                tax,
+                shipping
         ));
     }
 
     @Override
-    public void logCheckoutStarted(@NonNull String checkoutId, @NonNull String currency, @NonNull String source, double totalValue, @Nullable JSONObject products, @Nullable String cartId, @Nullable JSONObject properties) throws JSONException {
+    public void logCheckoutStarted(@NonNull String checkoutId, @NonNull String currency, @NonNull String source, double totalValue, @Nullable Double subtotalValue, @Nullable Double tax, @Nullable Double shipping, @Nullable JSONObject products, @Nullable String cartId, @Nullable JSONObject properties) throws JSONException {
         getBrazeInstance().logEcommerceEvent(new CheckoutStartedEvent(
                 checkoutId,
                 currency,
@@ -607,14 +607,14 @@ class BrazeInstance implements BrazeCommand, ActivityLifecycleCallbacks {
                 BrazeUtils.getProductsFromNestedArrays(products, mStrictPropertiesEnabled),
                 cartId,
                 BrazeUtils.extractCustomProperties(properties, mStrictPropertiesEnabled),
-                null, // subtotalValue: not mapped yet.
-                null, // tax: not mapped yet.
-                null // shipping: not mapped yet.
+                subtotalValue,
+                tax,
+                shipping
         ));
     }
 
     @Override
-    public void logOrderPlaced(@NonNull String orderId, @NonNull String currency, @NonNull String source, double totalValue, @Nullable JSONObject products, @Nullable String cartId, @Nullable Double totalDiscounts, @Nullable JSONObject discounts, @Nullable JSONObject properties) throws JSONException {
+    public void logOrderPlaced(@NonNull String orderId, @NonNull String currency, @NonNull String source, double totalValue, @Nullable Double subtotalValue, @Nullable Double tax, @Nullable Double shipping, @Nullable JSONObject products, @Nullable String cartId, @Nullable Double totalDiscounts, @Nullable JSONObject discounts, @Nullable JSONObject properties) throws JSONException {
         getBrazeInstance().logEcommerceEvent(new OrderPlacedEvent(
                 orderId,
                 currency,
@@ -625,9 +625,9 @@ class BrazeInstance implements BrazeCommand, ActivityLifecycleCallbacks {
                 totalDiscounts,
                 BrazeUtils.getDiscountsFromNestedArrays(discounts),
                 BrazeUtils.extractCustomProperties(properties, mStrictPropertiesEnabled),
-                null, // subtotalValue: not mapped yet.
-                null, // tax: not mapped yet.
-                null // shipping: not mapped yet.
+                subtotalValue,
+                tax,
+                shipping
         ));
     }
 

@@ -309,8 +309,9 @@ interface BrazeCommand {
      * @param imageUrl    an optional product image url
      * @param productUrl  an optional product url
      * @param properties  optional custom properties to accompany the event
+     * @param type        optional type identifiers for the product (e.g. "price_drop"); null when absent
      */
-    void logProductViewed(@NonNull String productId, @NonNull String productName, @NonNull String variantId, double price, @NonNull String currency, @NonNull String source, @Nullable String imageUrl, @Nullable String productUrl, @Nullable JSONObject properties);
+    void logProductViewed(@NonNull String productId, @NonNull String productName, @NonNull String variantId, double price, @NonNull String currency, @NonNull String source, @Nullable String imageUrl, @Nullable String productUrl, @Nullable JSONObject properties, @Nullable List<String> type);
 
     /**
      * Logs a Braze ecommerce CartUpdatedEvent. products is a nested JSONObject holding parallel
@@ -319,21 +320,19 @@ interface BrazeCommand {
      * <p>
      * Note: the Braze SDK validates its inputs and will throw for invalid values (see
      * {@link #logProductViewed}); such events are simply not logged.
-     * <p>
-     * Limitation: the Braze Android typed CartUpdatedEvent class does not expose
-     * subtotal_value/tax/shipping, so those fields are intentionally not forwarded for this event.
-     * They are supported on iOS, and on Android order_cancelled/order_refunded (which use
-     * logCustomEvent).
      *
      * @param cartId     the cart identifier
      * @param currency   required; trimmed+uppercased for ISO-4217 (no USD default, unlike logPurchase). The event is skipped when currency is absent, non-scalar, or not a valid ISO-4217 code (the Braze SDK base EcommerceEvent constructor rejects a null currency, and validates the value against ISO-4217).
      * @param source     the event source
      * @param totalValue the optional cart total value; may be null for add/remove actions
+     * @param subtotalValue an optional subtotal value (post-discount, pre-tax/shipping)
+     * @param tax        an optional total tax applied to the cart
+     * @param shipping   an optional total shipping cost
      * @param action     the cart action, mapped from the payload's ACTION key (see BrazeConstants.Ecommerce.Action.from)
      * @param products   the nested products object described above
      * @param properties optional custom properties to accompany the event
      */
-    void logCartUpdated(@NonNull String cartId, @NonNull String currency, @NonNull String source, @Nullable Double totalValue, @NonNull BrazeConstants.Ecommerce.Action action, @Nullable JSONObject products, @Nullable JSONObject properties) throws JSONException;
+    void logCartUpdated(@NonNull String cartId, @NonNull String currency, @NonNull String source, @Nullable Double totalValue, @Nullable Double subtotalValue, @Nullable Double tax, @Nullable Double shipping, @NonNull BrazeConstants.Ecommerce.Action action, @Nullable JSONObject products, @Nullable JSONObject properties) throws JSONException;
 
     /**
      * Logs a Braze ecommerce CheckoutStartedEvent. products is a nested JSONObject holding
@@ -341,21 +340,19 @@ interface BrazeCommand {
      * <p>
      * Note: the Braze SDK validates its inputs and will throw for invalid values (see
      * {@link #logProductViewed}); such events are simply not logged.
-     * <p>
-     * Limitation: the Braze Android typed CheckoutStartedEvent class does not expose
-     * subtotal_value/tax/shipping, so those fields are intentionally not forwarded for this event.
-     * They are supported on iOS, and on Android order_cancelled/order_refunded (which use
-     * logCustomEvent).
      *
      * @param checkoutId the checkout identifier
      * @param currency   required; trimmed+uppercased for ISO-4217 (no USD default, unlike logPurchase). The event is skipped when currency is absent, non-scalar, or not a valid ISO-4217 code (the Braze SDK base EcommerceEvent constructor rejects a null currency, and validates the value against ISO-4217).
      * @param source     the event source
      * @param totalValue the checkout total value
+     * @param subtotalValue an optional subtotal value (post-discount, pre-tax/shipping)
+     * @param tax        an optional total tax applied to the checkout
+     * @param shipping   an optional total shipping cost
      * @param products   the nested products object described in {@link #logCartUpdated}
      * @param cartId     an optional cart identifier
      * @param properties optional custom properties to accompany the event
      */
-    void logCheckoutStarted(@NonNull String checkoutId, @NonNull String currency, @NonNull String source, double totalValue, @Nullable JSONObject products, @Nullable String cartId, @Nullable JSONObject properties) throws JSONException;
+    void logCheckoutStarted(@NonNull String checkoutId, @NonNull String currency, @NonNull String source, double totalValue, @Nullable Double subtotalValue, @Nullable Double tax, @Nullable Double shipping, @Nullable JSONObject products, @Nullable String cartId, @Nullable JSONObject properties) throws JSONException;
 
     /**
      * Logs a Braze ecommerce OrderPlacedEvent. products/discounts are nested JSONObjects holding
@@ -364,23 +361,21 @@ interface BrazeCommand {
      * <p>
      * Note: the Braze SDK validates its inputs and will throw for invalid values (see
      * {@link #logProductViewed}); such events are simply not logged.
-     * <p>
-     * Limitation: the Braze Android typed OrderPlacedEvent class does not expose
-     * subtotal_value/tax/shipping, so those fields are intentionally not forwarded for this event.
-     * They are supported on iOS, and on Android order_cancelled/order_refunded (which use
-     * logCustomEvent).
      *
      * @param orderId        the order identifier
      * @param currency       required; trimmed+uppercased for ISO-4217 (no USD default, unlike logPurchase). The event is skipped when currency is absent, non-scalar, or not a valid ISO-4217 code (the Braze SDK base EcommerceEvent constructor rejects a null currency, and validates the value against ISO-4217).
      * @param source         the event source
      * @param totalValue     the order total value
+     * @param subtotalValue  an optional subtotal value (post-discount, pre-tax/shipping)
+     * @param tax            an optional total tax applied to the order
+     * @param shipping       an optional total shipping cost
      * @param products       the nested products object described in {@link #logCartUpdated}
      * @param cartId         an optional cart identifier
      * @param totalDiscounts an optional total discounts value
      * @param discounts      the nested discounts object described in {@link #logOrderCancelled}
      * @param properties     optional custom properties to accompany the event
      */
-    void logOrderPlaced(@NonNull String orderId, @NonNull String currency, @NonNull String source, double totalValue, @Nullable JSONObject products, @Nullable String cartId, @Nullable Double totalDiscounts, @Nullable JSONObject discounts, @Nullable JSONObject properties) throws JSONException;
+    void logOrderPlaced(@NonNull String orderId, @NonNull String currency, @NonNull String source, double totalValue, @Nullable Double subtotalValue, @Nullable Double tax, @Nullable Double shipping, @Nullable JSONObject products, @Nullable String cartId, @Nullable Double totalDiscounts, @Nullable JSONObject discounts, @Nullable JSONObject properties) throws JSONException;
 
     /**
      * Logs an ecommerce.order_cancelled custom event. Unlike the other ecommerce events, this has

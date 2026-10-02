@@ -562,6 +562,49 @@ class BrazeUtils {
     }
 
     /**
+     * Reads an optional Double. Returns null when the key is absent or holds anything that is not
+     * a finite number; numeric strings are coerced, as {@link JSONObject#optDouble} does.
+     *
+     * @param json the payload
+     * @param key  the key to read
+     * @return the finite value, or null
+     */
+    static Double optionalDouble(JSONObject json, String key) {
+        double value = json.optDouble(key);
+        return (Double.isNaN(value) || Double.isInfinite(value)) ? null : value;
+    }
+
+    /**
+     * Reads an optional list of Strings. A scalar String is wrapped into a one-element list, so a
+     * single value and a JSON array are both accepted. Returns null when the key is absent, or when
+     * the value is neither a String nor an array made up only of Strings.
+     *
+     * @param json the payload
+     * @param key  the key to read
+     * @return the list of Strings, or null
+     */
+    @Nullable
+    static List<String> optionalStringList(JSONObject json, String key) {
+        Object raw = json.opt(key);
+        List<String> result = new ArrayList<>();
+        if (raw instanceof String) {
+            result.add((String) raw);
+        } else if (raw instanceof JSONArray) {
+            JSONArray array = (JSONArray) raw;
+            for (int i = 0; i < array.length(); i++) {
+                Object element = array.opt(i);
+                if (!(element instanceof String)) {
+                    return null;
+                }
+                result.add((String) element);
+            }
+        } else {
+            return null;
+        }
+        return result;
+    }
+
+    /**
      * Reads a required scalar currency and normalizes it to uppercase. Currency is required for all
      * six recommended ecommerce events (the Braze SDK base EcommerceEvent constructor rejects a null
      * currency, and Braze validates the value against ISO-4217 canonical uppercase), so this reuses

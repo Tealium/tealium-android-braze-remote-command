@@ -429,6 +429,38 @@ public class BrazeUtilityMethodTests {
     }
 
     @Test
+    public void optionalStringListTest() throws JSONException {
+        JSONObject json = new JSONObject();
+        json.put("array", new JSONArray().put("a").put("b"));
+        json.put("scalar", "a");
+        json.put("mixed", new JSONArray().put("a").put(1));
+        json.put("number", 1);
+
+        assertEquals(List.of("a", "b"), BrazeUtils.optionalStringList(json, "array"));
+        assertEquals(List.of("a"), BrazeUtils.optionalStringList(json, "scalar"));
+        assertNull(BrazeUtils.optionalStringList(json, "mixed"));
+        assertNull(BrazeUtils.optionalStringList(json, "number"));
+        assertNull(BrazeUtils.optionalStringList(json, "absent"));
+    }
+
+    @Test
+    public void optionalDoubleTest() throws JSONException {
+        JSONObject json = new JSONObject();
+        json.put("number", 1.5);
+        json.put("numeric_string", "2.5");
+        json.put("not_a_number", "NaN");
+        json.put("infinite", "Infinity");
+        json.put("text", "abc");
+
+        assertEquals(1.5, BrazeUtils.optionalDouble(json, "number"), 0.0);
+        assertEquals(2.5, BrazeUtils.optionalDouble(json, "numeric_string"), 0.0);
+        assertNull(BrazeUtils.optionalDouble(json, "not_a_number"));
+        assertNull(BrazeUtils.optionalDouble(json, "infinite"));
+        assertNull(BrazeUtils.optionalDouble(json, "text"));
+        assertNull(BrazeUtils.optionalDouble(json, "absent"));
+    }
+
+    @Test
     public void discountsFromNestedArraysTest_SkipsNonNumericAmount() throws JSONException {
         // A non-numeric amount coerces to NaN via optDouble; the discount entry must be present but
         // carry no amount key rather than boxing NaN.
