@@ -282,8 +282,8 @@ class BrazeUtils {
         JSONArray productIds = products.optJSONArray(BrazeConstants.Ecommerce.PRODUCT_ID);
         JSONArray productNames = products.optJSONArray(BrazeConstants.Ecommerce.PRODUCT_NAME);
         JSONArray variantIds = products.optJSONArray(BrazeConstants.Ecommerce.VARIANT_ID);
-        JSONArray prices = products.optJSONArray(BrazeConstants.Ecommerce.PRICE);
-        JSONArray quantities = products.optJSONArray(BrazeConstants.Ecommerce.QUANTITY);
+        JSONArray prices = products.optJSONArray(resolveKey(products, BrazeConstants.Ecommerce.PRICE));
+        JSONArray quantities = products.optJSONArray(resolveKey(products, BrazeConstants.Ecommerce.QUANTITY));
         if (productIds == null || productNames == null || variantIds == null || prices == null || quantities == null) {
             throw new JSONException("Missing required ecommerce product arrays");
         }
@@ -415,8 +415,8 @@ class BrazeUtils {
         JSONArray productIds = products.optJSONArray(BrazeConstants.Ecommerce.PRODUCT_ID);
         JSONArray productNames = products.optJSONArray(BrazeConstants.Ecommerce.PRODUCT_NAME);
         JSONArray variantIds = products.optJSONArray(BrazeConstants.Ecommerce.VARIANT_ID);
-        JSONArray prices = products.optJSONArray(BrazeConstants.Ecommerce.PRICE);
-        JSONArray quantities = products.optJSONArray(BrazeConstants.Ecommerce.QUANTITY);
+        JSONArray prices = products.optJSONArray(resolveKey(products, BrazeConstants.Ecommerce.PRICE));
+        JSONArray quantities = products.optJSONArray(resolveKey(products, BrazeConstants.Ecommerce.QUANTITY));
         if (productIds == null || productNames == null || variantIds == null || prices == null || quantities == null) {
             throw new JSONException("Missing required ecommerce product arrays");
         }
@@ -523,6 +523,28 @@ class BrazeUtils {
         return result;
     }
 
+    /**
+     * Resolves which payload key to read for a data point, honouring {@link BrazeConstants#KEY_ALIASES}:
+     * the first accepted spelling that is present (not absent or JSON null) wins, canonical first.
+     * Resolved on read rather than by rewriting the payload, so the nested ecommerce products
+     * arrays get the same alias handling as the top-level keys.
+     *
+     * @param json the payload (or the nested products object)
+     * @param key  the canonical key
+     * @return the spelling present in {@code json}, or {@code key} itself when none is
+     */
+    static String resolveKey(JSONObject json, String key) {
+        String[] accepted = BrazeConstants.KEY_ALIASES.get(key);
+        if (accepted != null) {
+            for (String candidate : accepted) {
+                if (!json.isNull(candidate)) {
+                    return candidate;
+                }
+            }
+        }
+        return key;
+    }
+
     // Scalar-string readers for logProductViewed, which is scalar-only (it carries no products
     // array, unlike cart/checkout/order). These reject a JSONArray value explicitly because
     // Android's org.json coerces a JSONArray to its literal string form (e.g. "[\"sku\"]") via
@@ -541,7 +563,7 @@ class BrazeUtils {
      * @throws JSONException if the value is absent or is not a String
      */
     static String requireScalarString(JSONObject json, String key) throws JSONException {
-        Object raw = json.opt(key);
+        Object raw = json.opt(resolveKey(json, key));
         if (raw instanceof String) {
             return (String) raw;
         }
@@ -557,8 +579,21 @@ class BrazeUtils {
      * @return the scalar String value, or null
      */
     static String optionalScalarString(JSONObject json, String key) {
-        Object raw = json.opt(key);
+        Object raw = json.opt(resolveKey(json, key));
         return raw instanceof String ? (String) raw : null;
+    }
+
+    /**
+     * Reads a required Double, resolving key aliases. Numeric strings are coerced, as
+     * {@link JSONObject#getDouble} does.
+     *
+     * @param json the payload
+     * @param key  the canonical key to read
+     * @return the value
+     * @throws JSONException if the value is absent or not a number
+     */
+    static double requireDouble(JSONObject json, String key) throws JSONException {
+        return json.getDouble(resolveKey(json, key));
     }
 
     /**

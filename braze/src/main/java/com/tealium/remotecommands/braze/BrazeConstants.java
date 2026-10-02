@@ -4,6 +4,9 @@ import androidx.annotation.Nullable;
 
 import com.braze.models.recommended.ecommerce.CartUpdatedAction;
 
+import java.util.HashMap;
+import java.util.Map;
+
 public final class BrazeConstants {
 
     private BrazeConstants() {
@@ -11,6 +14,21 @@ public final class BrazeConstants {
 
     public static final String TAG = "Tealium-Braze";
     public static final String SEPARATOR = ",";
+
+    /**
+     * Every payload spelling accepted for a data point, keyed by its canonical key. Exists for
+     * backwards compatibility: logpurchase used its own spellings before the ecommerce commands
+     * introduced the Braze ones, and one value in an app must not need two mappings. Each list is
+     * ordered and the first spelling present wins, with the canonical Braze spelling always first.
+     * Read through {@link BrazeUtils#resolveKey}.
+     */
+    static final Map<String, String[]> KEY_ALIASES = new HashMap<>();
+
+    static {
+        KEY_ALIASES.put(Ecommerce.CURRENCY, new String[]{Ecommerce.CURRENCY, Purchase.PRODUCT_CURRENCY, Purchase.ORDER_CURRENCY});
+        KEY_ALIASES.put(Ecommerce.PRICE, new String[]{Ecommerce.PRICE, Purchase.PRODUCT_PRICE});
+        KEY_ALIASES.put(Ecommerce.QUANTITY, new String[]{Ecommerce.QUANTITY, Purchase.PRODUCT_QTY});
+    }
 
     public static final class Commands {
         private Commands() {
@@ -130,6 +148,7 @@ public final class BrazeConstants {
         public static final String PRODUCT_QTY = "product_qty";
         public static final String PRODUCT_PRICE = "product_unit_price";
         public static final String PRODUCT_CURRENCY = "product_currency";
+        public static final String ORDER_CURRENCY = "order_currency";
         public static final String PURCHASE_PROPERTIES = "purchase_properties";
         public static final String PURCHASE_PROPERTIES_SHORTHAND = "purchase";
     }

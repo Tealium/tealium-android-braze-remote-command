@@ -292,6 +292,67 @@ public class BrazeRemoteCommandTests {
     }
 
     @Test
+    public void testProductViewedEvent_AcceptsLogPurchaseKeyAliases() throws Exception {
+        RemoteCommand.Response response = ResponseBuilder.create()
+                .addCommand(Commands.LOG_PRODUCT_VIEWED)
+                .populatePayload((json) -> {
+                    json.put(Ecommerce.PRODUCT_ID, "sku123");
+                    json.put(Ecommerce.PRODUCT_NAME, "Widget");
+                    json.put(Ecommerce.VARIANT_ID, "widget_blue");
+                    json.put(Purchase.PRODUCT_PRICE, 49.99);
+                    json.put(Purchase.ORDER_CURRENCY, "gbp");
+                    json.put(Ecommerce.SOURCE, "test-source");
+                })
+                .build();
+
+        brazeRemoteCommand.onInvoke(response);
+
+        verify(mockBrazeInstance).logProductViewed(eq("sku123"), eq("Widget"), eq("widget_blue"), eq(49.99), eq("GBP"), eq("test-source"), eq(null), eq(null), eq(null), eq(null));
+    }
+
+    @Test
+    public void testProductViewedEvent_CanonicalKeysWinOverAliases() throws Exception {
+        RemoteCommand.Response response = ResponseBuilder.create()
+                .addCommand(Commands.LOG_PRODUCT_VIEWED)
+                .populatePayload((json) -> {
+                    json.put(Ecommerce.PRODUCT_ID, "sku123");
+                    json.put(Ecommerce.PRODUCT_NAME, "Widget");
+                    json.put(Ecommerce.VARIANT_ID, "widget_blue");
+                    json.put(Ecommerce.PRICE, 49.99);
+                    json.put(Purchase.PRODUCT_PRICE, 1.0);
+                    json.put(Ecommerce.CURRENCY, "USD");
+                    json.put(Purchase.PRODUCT_CURRENCY, "EUR");
+                    json.put(Purchase.ORDER_CURRENCY, "JPY");
+                    json.put(Ecommerce.SOURCE, "test-source");
+                })
+                .build();
+
+        brazeRemoteCommand.onInvoke(response);
+
+        verify(mockBrazeInstance).logProductViewed(eq("sku123"), eq("Widget"), eq("widget_blue"), eq(49.99), eq("USD"), eq("test-source"), eq(null), eq(null), eq(null), eq(null));
+    }
+
+    @Test
+    public void testOrderPlacedEvent_AliasedCurrency_ProductCurrencyBeforeOrderCurrency() throws Exception {
+        JSONObject products = productsObject(singleProduct());
+        RemoteCommand.Response response = ResponseBuilder.create()
+                .addCommand(Commands.LOG_ORDER_PLACED)
+                .populatePayload((json) -> {
+                    json.put(Ecommerce.ORDER_ID, "order-1");
+                    json.put(Purchase.PRODUCT_CURRENCY, "EUR");
+                    json.put(Purchase.ORDER_CURRENCY, "JPY");
+                    json.put(Ecommerce.SOURCE, "test-source");
+                    json.put(Ecommerce.TOTAL_VALUE, 49.99);
+                    json.put(Ecommerce.PRODUCTS, products);
+                })
+                .build();
+
+        brazeRemoteCommand.onInvoke(response);
+
+        verify(mockBrazeInstance).logOrderPlaced(eq("order-1"), eq("EUR"), eq("test-source"), eq(49.99), eq(null), eq(null), eq(null), sameProducts(products), eq(null), eq(null), eq(null), eq(null));
+    }
+
+    @Test
     public void testProductViewedEvent_NotDispatched_WhenPayloadIsSingleElementArray() throws Exception {
         // Scalar-only: logProductViewed carries no products array, so an array value for a product
         // field (even a single-element one) is a caller mistake and fails validation rather than

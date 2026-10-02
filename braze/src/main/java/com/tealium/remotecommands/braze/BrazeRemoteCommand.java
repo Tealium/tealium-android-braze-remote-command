@@ -193,6 +193,9 @@ public class BrazeRemoteCommand extends RemoteCommand {
      * // Ecommerce Events (Braze SDK 42.3.0+), keys match the Braze recommended-event schema 1:1.
      * // Commands: logproductviewed, logcartupdated, logcheckoutstarted, logorderplaced,
      * //           logordercancelled, logorderrefunded
+     * // Key aliases (canonical key first, the first one present wins), shared with logpurchase so one
+     * // mapping serves both: currency <- product_currency, order_currency; price <- product_unit_price;
+     * // quantity <- product_qty (also inside "products").
      * // logproductviewed (single product, scalar fields, no products object):
      * "product_id" : "<string>", "product_name" : "<string>", "variant_id" : "<string>",
      * "price" : <double>, "currency" : "<string>", "source" : "<string>",
@@ -407,7 +410,7 @@ public class BrazeRemoteCommand extends RemoteCommand {
                                 BrazeUtils.requireScalarString(payload, Ecommerce.PRODUCT_ID),
                                 BrazeUtils.requireScalarString(payload, Ecommerce.PRODUCT_NAME),
                                 BrazeUtils.requireScalarString(payload, Ecommerce.VARIANT_ID),
-                                payload.getDouble(Ecommerce.PRICE),
+                                BrazeUtils.requireDouble(payload, Ecommerce.PRICE),
                                 BrazeUtils.requireCurrency(payload, Ecommerce.CURRENCY),
                                 BrazeUtils.requireScalarString(payload, Ecommerce.SOURCE),
                                 BrazeUtils.optionalScalarString(payload, Ecommerce.IMAGE_URL),

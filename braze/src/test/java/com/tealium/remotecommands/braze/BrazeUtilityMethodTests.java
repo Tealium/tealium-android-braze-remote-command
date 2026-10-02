@@ -461,6 +461,107 @@ public class BrazeUtilityMethodTests {
     }
 
     @Test
+    public void resolveKeyTest_FirstPresentAliasWins_CanonicalFirst() throws JSONException {
+        JSONObject json = new JSONObject();
+        assertEquals("currency", BrazeUtils.resolveKey(json, BrazeConstants.Ecommerce.CURRENCY));
+
+        json.put(BrazeConstants.Purchase.ORDER_CURRENCY, "JPY");
+        assertEquals("order_currency", BrazeUtils.resolveKey(json, BrazeConstants.Ecommerce.CURRENCY));
+
+        json.put(BrazeConstants.Purchase.PRODUCT_CURRENCY, "EUR");
+        assertEquals("product_currency", BrazeUtils.resolveKey(json, BrazeConstants.Ecommerce.CURRENCY));
+
+        json.put(BrazeConstants.Ecommerce.CURRENCY, "GBP");
+        assertEquals("currency", BrazeUtils.resolveKey(json, BrazeConstants.Ecommerce.CURRENCY));
+
+        // A JSON null is treated as absent, so the next spelling is used.
+        json.put(BrazeConstants.Ecommerce.CURRENCY, JSONObject.NULL);
+        assertEquals("product_currency", BrazeUtils.resolveKey(json, BrazeConstants.Ecommerce.CURRENCY));
+    }
+
+    @Test
+    public void resolveKeyTest_PriceQuantityAliasesAndUnaliasedKeys() throws JSONException {
+        JSONObject json = new JSONObject();
+        json.put(BrazeConstants.Purchase.PRODUCT_PRICE, 1.0);
+        json.put(BrazeConstants.Purchase.PRODUCT_QTY, 1);
+        assertEquals("product_unit_price", BrazeUtils.resolveKey(json, BrazeConstants.Ecommerce.PRICE));
+        assertEquals("product_qty", BrazeUtils.resolveKey(json, BrazeConstants.Ecommerce.QUANTITY));
+
+        json.put(BrazeConstants.Ecommerce.PRICE, 2.0);
+        json.put(BrazeConstants.Ecommerce.QUANTITY, 2);
+        assertEquals("price", BrazeUtils.resolveKey(json, BrazeConstants.Ecommerce.PRICE));
+        assertEquals("quantity", BrazeUtils.resolveKey(json, BrazeConstants.Ecommerce.QUANTITY));
+
+        // Keys without aliases resolve to themselves.
+        assertEquals("source", BrazeUtils.resolveKey(json, BrazeConstants.Ecommerce.SOURCE));
+    }
+
+    @Test
+    public void requireCurrencyTest_ResolvesAliases() throws JSONException {
+        JSONObject json = new JSONObject();
+        json.put(BrazeConstants.Purchase.ORDER_CURRENCY, "jpy");
+        assertEquals("JPY", BrazeUtils.requireCurrency(json, BrazeConstants.Ecommerce.CURRENCY));
+
+        json.put(BrazeConstants.Purchase.PRODUCT_CURRENCY, "eur");
+        assertEquals("EUR", BrazeUtils.requireCurrency(json, BrazeConstants.Ecommerce.CURRENCY));
+
+        json.put(BrazeConstants.Ecommerce.CURRENCY, "gbp");
+        assertEquals("GBP", BrazeUtils.requireCurrency(json, BrazeConstants.Ecommerce.CURRENCY));
+    }
+
+    /**
+     * Returns a products object where price and quantity use their logpurchase spellings
+     * (product_unit_price/product_qty) instead of the canonical ones.
+     */
+    private JSONObject aliasedProductsObject(JSONObject product) throws JSONException {
+        JSONObject products = productsObject(product);
+        products.put(BrazeConstants.Purchase.PRODUCT_PRICE, products.remove(BrazeConstants.Ecommerce.PRICE));
+        products.put(BrazeConstants.Purchase.PRODUCT_QTY, products.remove(BrazeConstants.Ecommerce.QUANTITY));
+        return products;
+    }
+
+    private JSONObject widgetProduct() throws JSONException {
+        JSONObject product = new JSONObject();
+        product.put(BrazeConstants.Ecommerce.PRODUCT_ID, "sku123");
+        product.put(BrazeConstants.Ecommerce.PRODUCT_NAME, "Widget");
+        product.put(BrazeConstants.Ecommerce.VARIANT_ID, "widget_blue");
+        product.put(BrazeConstants.Ecommerce.PRICE, 49.99);
+        product.put(BrazeConstants.Ecommerce.QUANTITY, 2);
+        return product;
+    }
+
+    @Test
+    public void productsFromNestedArraysTest_ResolvesPriceAndQuantityAliases() throws JSONException {
+        List<EcommerceProduct> result = BrazeUtils.getProductsFromNestedArrays(aliasedProductsObject(widgetProduct()), false);
+
+        assertEquals(1, result.size());
+        assertEquals(49.99, result.get(0).getPrice(), 0.0001);
+        assertEquals(2L, result.get(0).getQuantity());
+    }
+
+    @Test
+    public void productsFromNestedArraysTest_CanonicalPriceAndQuantityWinOverAliases() throws JSONException {
+        JSONObject products = aliasedProductsObject(widgetProduct());
+        products.put(BrazeConstants.Ecommerce.PRICE, new JSONArray().put(10.0));
+        products.put(BrazeConstants.Ecommerce.QUANTITY, new JSONArray().put(5));
+
+        List<EcommerceProduct> result = BrazeUtils.getProductsFromNestedArrays(products, false);
+
+        assertEquals(10.0, result.get(0).getPrice(), 0.0001);
+        assertEquals(5L, result.get(0).getQuantity());
+    }
+
+    @Test
+    public void productsAsWireJsonTest_ResolvesPriceAndQuantityAliases() throws JSONException {
+        JSONArray result = BrazeUtils.getProductsAsWireJson(aliasedProductsObject(widgetProduct()));
+
+        assertEquals(1, result.length());
+        // The wire schema always uses the canonical key names.
+        assertEquals(49.99, result.getJSONObject(0).getDouble(BrazeConstants.Ecommerce.PRICE), 0.0001);
+        assertEquals(2, result.getJSONObject(0).getInt(BrazeConstants.Ecommerce.QUANTITY));
+    }
+
+    @Test
     public void discountsFromNestedArraysTest_SkipsNonNumericAmount() throws JSONException {
         // A non-numeric amount coerces to NaN via optDouble; the discount entry must be present but
         // carry no amount key rather than boxing NaN.
