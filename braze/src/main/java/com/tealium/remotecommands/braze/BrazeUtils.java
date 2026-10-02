@@ -2,10 +2,13 @@ package com.tealium.remotecommands.braze;
 
 import android.util.Log;
 
+import androidx.annotation.Nullable;
+
 import com.braze.enums.BrazeDateFormat;
 import com.braze.enums.Month;
 import com.braze.enums.Gender;
 import com.braze.models.outgoing.BrazeProperties;
+import com.braze.models.recommended.ecommerce.EcommerceProduct;
 import com.braze.support.DateTimeUtils;
 
 import org.json.JSONArray;
@@ -15,11 +18,21 @@ import org.json.JSONObject;
 import java.math.BigDecimal;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 class BrazeUtils {
+
+    /**
+     * The longest String the Braze SDK accepts for an ecommerce product field.
+     */
+    private static final int MAX_SDK_STRING_LENGTH = 255;
 
     /**
      * The Format of any Dates that were sent into the WebView as a native java.util.Date, will be
@@ -36,7 +49,7 @@ class BrazeUtils {
     /**
      * At the time of writing, the Android SDK will stringify values in a HashMap such that
      * the native type is lost. The method being tested here will attempt to recover that.
-     * As a result the expected types should be integer/double/booolean etc despite the value
+     * As a result the expected types should be integer/double/boolean etc despite the value
      * that was sent in the event might actually have been a string.
      * <p>
      * This is a helper method that will take
@@ -185,6 +198,19 @@ class BrazeUtils {
     }
 
     /**
+     * Helper to determine whether the element at {@code index} of a JSONArray is present and not a
+     * JSON null. Used for optional per-product arrays (image_url, product_url) where an individual
+     * element may be null for a product that lacks that field.
+     *
+     * @param array - the JSONArray to inspect
+     * @param index - the element index to check
+     * @return true when the element exists and is not null
+     */
+    static boolean keyHasValue(JSONArray array, int index) {
+        return (array != null && !array.isNull(index));
+    }
+
+    /**
      * Helper to convert string representation of a Gender into the required.
      * <p>
      * (m)ale = Gender.MALE
@@ -233,6 +259,530 @@ class BrazeUtils {
         }
 
         return genderEnum;
+    }
+
+
+    /**
+     * Builds a list of Braze EcommerceProduct objects from the nested Ecommerce.PRODUCTS object,
+     * whose values are parallel arrays keyed by PRODUCT_ID/PRODUCT_NAME/VARIANT_ID/PRICE/QUANTITY
+     * (required, equal length) and optional per-index IMAGE_URL/PRODUCT_URL/METADATA, zipped by
+     * index -- mirroring the tealium-android-firebase-remote-command items_params convention.
+     * A product missing its required price is skipped rather than fabricating a $0 line item.
+     *
+     * @param products                the nested Ecommerce.PRODUCTS object (must not be null -- callers read it via
+     *                                 the required {@code payload.getJSONObject(Ecommerce.PRODUCTS)})
+     * @param strictPropertiesEnabled whether per-product metadata values should be passed on unchanged
+     * @return a list of EcommerceProduct
+     * @throws JSONException when a required nested array (product_id/product_name/variant_id/price/quantity)
+     *                        is missing or their lengths don't match, so the caller skips the whole event.
+     *                        Individual products with an invalid price/quantity, or a product_id/
+     *                        product_name/variant_id element that is not a String, are skipped per-index;
+     *                        if that leaves no valid products, this throws too so the whole event is
+     *                        skipped client-side (parity with iOS, which throws emptyProductsArray)
+     *                        rather than dispatching an empty products list.
+     */
+    static List<EcommerceProduct> getProductsFromNestedArrays(@Nullable JSONObject products, boolean strictPropertiesEnabled) throws JSONException {
+        if (products == null) {
+            throw new JSONException("Missing required ecommerce products object");
+        }
+
+        JSONArray productIds = products.optJSONArray(BrazeConstants.Ecommerce.PRODUCT_ID);
+        JSONArray productNames = products.optJSONArray(BrazeConstants.Ecommerce.PRODUCT_NAME);
+        JSONArray variantIds = products.optJSONArray(BrazeConstants.Ecommerce.VARIANT_ID);
+        JSONArray prices = products.optJSONArray(resolveKey(products, BrazeConstants.Ecommerce.PRICE));
+        JSONArray quantities = products.optJSONArray(resolveKey(products, BrazeConstants.Ecommerce.QUANTITY));
+        if (productIds == null || productNames == null || variantIds == null || prices == null || quantities == null) {
+            throw new JSONException("Missing required ecommerce product arrays");
+        }
+
+        int count = productIds.length();
+        if (productNames.length() != count || variantIds.length() != count
+                || prices.length() != count || quantities.length() != count) {
+            throw new JSONException("Mismatched ecommerce product array lengths");
+        }
+
+        List<EcommerceProduct> result = new ArrayList<>();
+
+        JSONArray imageUrls = optionalMatchedArray(products, BrazeConstants.Ecommerce.IMAGE_URL, count);
+        JSONArray productUrls = optionalMatchedArray(products, BrazeConstants.Ecommerce.PRODUCT_URL, count);
+        JSONArray metadatas = optionalMatchedArray(products, BrazeConstants.Ecommerce.METADATA, count);
+
+        for (int i = 0; i < count; i++) {
+            // price and quantity are required per product, as are String product_id/product_name/
+            // variant_id elements. A missing/non-numeric/non-finite value, a non-String id/name, or
+            // a value the Braze EcommerceProduct constructor rejects (negative price, blank/>255-char
+            // string, negative quantity), skips only this line item -- one bad product must not drop
+            // the whole event, and quantity is not silently defaulted (matches the iOS remote
+            // command's strict per-item behaviour). requireFinite/requireQuantity throw
+            // JSONException on bad numbers; the constructor throws IllegalArgumentException on
+            // invalid values.
+            try {
+                double price = requireFinite(prices.getDouble(i), BrazeConstants.Ecommerce.PRICE);
+                long quantity = requireQuantity(quantities, i);
+                result.add(new EcommerceProduct(
+                        requireStringElement(productIds, i, BrazeConstants.Ecommerce.PRODUCT_ID),
+                        requireStringElement(productNames, i, BrazeConstants.Ecommerce.PRODUCT_NAME),
+                        requireStringElement(variantIds, i, BrazeConstants.Ecommerce.VARIANT_ID),
+                        price,
+                        quantity,
+                        optionalStringElement(imageUrls, i),
+                        optionalStringElement(productUrls, i),
+                        extractCustomProperties(metadatas != null ? metadatas.optJSONObject(i) : null, strictPropertiesEnabled)
+                ));
+            } catch (JSONException | IllegalArgumentException ex) {
+                Log.w(BrazeConstants.TAG, "Skipping invalid ecommerce product at index " + i, ex);
+            }
+        }
+
+        if (result.isEmpty()) {
+            // Every product was invalid; throw so the caller skips the whole event client-side
+            // rather than dispatching an event with an empty products list (parity with iOS, which
+            // throws emptyProductsArray).
+            throw new JSONException("No valid ecommerce products");
+        }
+
+        return result;
+    }
+
+    /**
+     * Builds a list of discount maps from the nested Ecommerce.DISCOUNTS object, whose values are
+     * parallel arrays keyed by DISCOUNT_CODE/DISCOUNT_AMOUNT/DISCOUNT_TYPE, zipped by index -- same
+     * nested-parallel-arrays convention as {@link #getProductsFromNestedArrays}. All three arrays
+     * are optional; absent or null entries are simply skipped for that discount rather than forcing
+     * all three fields.
+     *
+     * @param discounts the nested Ecommerce.DISCOUNTS object (may be null)
+     * @return a list of Map<String, Object>, empty if the nested object is absent or empty
+     */
+    static List<Map<String, Object>> getDiscountsFromNestedArrays(@Nullable JSONObject discounts) {
+        List<Map<String, Object>> result = new ArrayList<>();
+        if (discounts == null) {
+            return result;
+        }
+
+        JSONArray codes = discounts.optJSONArray(BrazeConstants.Ecommerce.DISCOUNT_CODE);
+        JSONArray amounts = discounts.optJSONArray(BrazeConstants.Ecommerce.DISCOUNT_AMOUNT);
+        JSONArray types = discounts.optJSONArray(BrazeConstants.Ecommerce.DISCOUNT_TYPE);
+
+        int count = Math.max(codes != null ? codes.length() : 0,
+                Math.max(amounts != null ? amounts.length() : 0, types != null ? types.length() : 0));
+
+        for (int i = 0; i < count; i++) {
+            Map<String, Object> entry = new HashMap<>();
+            if (codes != null && keyHasValue(codes, i)) {
+                entry.put(BrazeConstants.Ecommerce.DISCOUNT_CODE, codes.optString(i));
+            }
+            if (amounts != null && keyHasValue(amounts, i)) {
+                // A non-numeric amount coerces to NaN via optDouble, and a "Infinity" string parses to
+                // infinity; only carry the amount when it is a finite number so we never box either
+                // into the discount map.
+                double amt = amounts.optDouble(i, Double.NaN);
+                if (Double.isFinite(amt)) {
+                    entry.put(BrazeConstants.Ecommerce.DISCOUNT_AMOUNT, amt);
+                }
+            }
+            if (types != null && keyHasValue(types, i)) {
+                entry.put(BrazeConstants.Ecommerce.DISCOUNT_TYPE, types.optString(i));
+            }
+            result.add(entry);
+        }
+
+        return result;
+    }
+
+    /**
+     * Returns the optional array at {@code key} within {@code json} only when present and
+     * length-matched to {@code count}; otherwise null, so a misaligned optional array is dropped
+     * whole rather than indexed out of step with the required arrays.
+     */
+    private static JSONArray optionalMatchedArray(JSONObject json, String key, int count) {
+        JSONArray array = json.optJSONArray(key);
+        return (array != null && array.length() == count) ? array : null;
+    }
+
+    /**
+     * Reads a required String element of a product array. Android's org.json turns a JSON null or
+     * a number into text ("null", "5") via optString, so only a real String is accepted. iOS rejects
+     * these too, but drops the whole event; here only the line item is skipped.
+     *
+     * @throws JSONException if the element is a JSON null or any non-String value
+     */
+    private static String requireStringElement(JSONArray array, int index, String key) throws JSONException {
+        Object raw = array.opt(index);
+        if (raw instanceof String) {
+            return (String) raw;
+        }
+        throw new JSONException("Expected a String element for '" + key + "' at index " + index);
+    }
+
+    /**
+     * Reads an optional String element of a product array. Returns null when the array is absent or
+     * the element is a JSON null or any non-String value, so it is treated as not provided.
+     */
+    private static String optionalStringElement(@Nullable JSONArray array, int index) {
+        Object raw = array != null ? array.opt(index) : null;
+        return raw instanceof String ? (String) raw : null;
+    }
+
+    /**
+     * Builds a JSONArray of plain product objects from the nested Ecommerce.PRODUCTS object, for
+     * use as the "products" value in the ecommerce.order_cancelled / ecommerce.order_refunded
+     * logCustomEvent wire payload. Same nested-parallel-arrays convention as
+     * {@link #getProductsFromNestedArrays}; the wire schema uses the same key names (price,
+     * quantity, metadata) as the input, so no key remapping is needed.
+     *
+     * @param products the nested Ecommerce.PRODUCTS object (must not be null -- callers read it via
+     *                 the required {@code payload.getJSONObject(Ecommerce.PRODUCTS)})
+     * @return a JSONArray of plain JSONObjects
+     * @throws JSONException when a required nested array (product_id/product_name/variant_id/price/quantity)
+     *                        is missing or their lengths don't match, so the caller skips the whole event.
+     *                        Individual products with an invalid price/quantity, or a product_id/
+     *                        product_name/variant_id element that is not a String, are skipped per-index;
+     *                        if that leaves no valid products, this throws too so the whole event is
+     *                        skipped client-side (parity with iOS, which throws emptyProductsArray)
+     *                        rather than dispatching an empty products list.
+     */
+    static JSONArray getProductsAsWireJson(@Nullable JSONObject products) throws JSONException {
+        if (products == null) {
+            throw new JSONException("Missing required ecommerce products object");
+        }
+
+        JSONArray productIds = products.optJSONArray(BrazeConstants.Ecommerce.PRODUCT_ID);
+        JSONArray productNames = products.optJSONArray(BrazeConstants.Ecommerce.PRODUCT_NAME);
+        JSONArray variantIds = products.optJSONArray(BrazeConstants.Ecommerce.VARIANT_ID);
+        JSONArray prices = products.optJSONArray(resolveKey(products, BrazeConstants.Ecommerce.PRICE));
+        JSONArray quantities = products.optJSONArray(resolveKey(products, BrazeConstants.Ecommerce.QUANTITY));
+        if (productIds == null || productNames == null || variantIds == null || prices == null || quantities == null) {
+            throw new JSONException("Missing required ecommerce product arrays");
+        }
+
+        int count = productIds.length();
+        if (productNames.length() != count || variantIds.length() != count
+                || prices.length() != count || quantities.length() != count) {
+            throw new JSONException("Mismatched ecommerce product array lengths");
+        }
+
+        JSONArray result = new JSONArray();
+
+        JSONArray imageUrls = optionalMatchedArray(products, BrazeConstants.Ecommerce.IMAGE_URL, count);
+        JSONArray productUrls = optionalMatchedArray(products, BrazeConstants.Ecommerce.PRODUCT_URL, count);
+        JSONArray metadatas = optionalMatchedArray(products, BrazeConstants.Ecommerce.METADATA, count);
+
+        for (int i = 0; i < count; i++) {
+            JSONObject product = new JSONObject();
+            try {
+                // This event has no typed Braze class, so nothing validates the line item for us: apply
+                // the same rules as the EcommerceProduct constructor used on the typed path. price and
+                // quantity are required and must not be negative (requireQuantity rejects a negative
+                // quantity), as are String product_id/product_name/variant_id elements; a missing,
+                // non-numeric, non-finite, non-String or invalid value throws JSONException
+                // and skips only this line item. Quantity is not silently defaulted (matches the typed
+                // getProductsFromNestedArrays path and iOS).
+                double price = requireFinite(prices.getDouble(i), BrazeConstants.Ecommerce.PRICE);
+                long quantity = requireQuantity(quantities, i);
+                if (price < 0) {
+                    throw new JSONException("Negative price");
+                }
+                product.put(BrazeConstants.Ecommerce.PRODUCT_ID, requireSdkString(requireStringElement(productIds, i, BrazeConstants.Ecommerce.PRODUCT_ID), BrazeConstants.Ecommerce.PRODUCT_ID));
+                product.put(BrazeConstants.Ecommerce.PRODUCT_NAME, requireSdkString(requireStringElement(productNames, i, BrazeConstants.Ecommerce.PRODUCT_NAME), BrazeConstants.Ecommerce.PRODUCT_NAME));
+                product.put(BrazeConstants.Ecommerce.VARIANT_ID, requireSdkString(requireStringElement(variantIds, i, BrazeConstants.Ecommerce.VARIANT_ID), BrazeConstants.Ecommerce.VARIANT_ID));
+                product.put(BrazeConstants.Ecommerce.PRICE, price);
+                product.put(BrazeConstants.Ecommerce.QUANTITY, quantity);
+                String imageUrl = optionalStringElement(imageUrls, i);
+                if (imageUrl != null) {
+                    product.put(BrazeConstants.Ecommerce.IMAGE_URL, requireSdkString(imageUrl, BrazeConstants.Ecommerce.IMAGE_URL));
+                }
+                String productUrl = optionalStringElement(productUrls, i);
+                if (productUrl != null) {
+                    product.put(BrazeConstants.Ecommerce.PRODUCT_URL, requireSdkString(productUrl, BrazeConstants.Ecommerce.PRODUCT_URL));
+                }
+                if (metadatas != null && metadatas.optJSONObject(i) != null) {
+                    product.put(BrazeConstants.Ecommerce.METADATA, metadatas.optJSONObject(i));
+                }
+            } catch (JSONException jex) {
+                // Missing or invalid required field; skip this product rather than appending a
+                // partially-built or invalid line item.
+                Log.w(BrazeConstants.TAG, "Skipping invalid wire-schema ecommerce product at index " + i, jex);
+                continue;
+            }
+
+            result.put(product);
+        }
+
+        if (result.length() == 0) {
+            // Every product was invalid; throw so the caller skips the whole event client-side
+            // rather than dispatching an event with an empty products list (parity with iOS, which
+            // throws emptyProductsArray).
+            throw new JSONException("No valid ecommerce products");
+        }
+
+        return result;
+    }
+
+    /**
+     * Builds a JSONArray of plain discount objects from the nested Ecommerce.DISCOUNTS object, for
+     * use as the "discounts" value in the ecommerce.order_cancelled / ecommerce.order_refunded
+     * logCustomEvent wire payload. Same nested-parallel-arrays convention as
+     * {@link #getDiscountsFromNestedArrays}.
+     *
+     * @param discounts the nested Ecommerce.DISCOUNTS object (may be null)
+     * @return a JSONArray of plain JSONObjects, empty if the nested object is absent or empty
+     */
+    static JSONArray getDiscountsAsWireJson(@Nullable JSONObject discounts) {
+        JSONArray result = new JSONArray();
+        if (discounts == null) {
+            return result;
+        }
+
+        JSONArray codes = discounts.optJSONArray(BrazeConstants.Ecommerce.DISCOUNT_CODE);
+        JSONArray amounts = discounts.optJSONArray(BrazeConstants.Ecommerce.DISCOUNT_AMOUNT);
+        JSONArray types = discounts.optJSONArray(BrazeConstants.Ecommerce.DISCOUNT_TYPE);
+
+        int count = Math.max(codes != null ? codes.length() : 0,
+                Math.max(amounts != null ? amounts.length() : 0, types != null ? types.length() : 0));
+
+        for (int i = 0; i < count; i++) {
+            JSONObject discount = new JSONObject();
+            try {
+                if (codes != null && keyHasValue(codes, i)) {
+                    discount.put(BrazeConstants.Ecommerce.DISCOUNT_CODE, codes.optString(i));
+                }
+                if (amounts != null && keyHasValue(amounts, i)) {
+                    // Only carry a finite numeric amount; a non-numeric value coerces to NaN and
+                    // "Infinity" parses to infinity, both of which JSONObject.put would reject
+                    // (dropping the whole discount) -- skip the amount explicitly to parallel the
+                    // typed path.
+                    double amt = amounts.optDouble(i, Double.NaN);
+                    if (Double.isFinite(amt)) {
+                        discount.put(BrazeConstants.Ecommerce.DISCOUNT_AMOUNT, amt);
+                    }
+                }
+                if (types != null && keyHasValue(types, i)) {
+                    discount.put(BrazeConstants.Ecommerce.DISCOUNT_TYPE, types.optString(i));
+                }
+            } catch (JSONException jex) {
+                Log.w(BrazeConstants.TAG, "Failed to build wire-schema ecommerce discount JSON", jex);
+                continue;
+            }
+            result.put(discount);
+        }
+
+        return result;
+    }
+
+    /**
+     * Resolves which payload key to read for a data point, honouring {@link BrazeConstants#KEY_ALIASES}:
+     * the first accepted spelling that is present (not absent or JSON null) wins, canonical first.
+     * Resolved on read rather than by rewriting the payload, so the nested ecommerce products
+     * arrays get the same alias handling as the top-level keys.
+     *
+     * @param json the payload (or the nested products object)
+     * @param key  the canonical key
+     * @return the spelling present in {@code json}, or {@code key} itself when none is
+     */
+    static String resolveKey(JSONObject json, String key) {
+        String[] accepted = BrazeConstants.KEY_ALIASES.get(key);
+        if (accepted != null) {
+            for (String candidate : accepted) {
+                if (!json.isNull(candidate)) {
+                    return candidate;
+                }
+            }
+        }
+        return key;
+    }
+
+    // Scalar-string readers for logProductViewed, which is scalar-only (it carries no products
+    // array, unlike cart/checkout/order). These reject a JSONArray value explicitly because
+    // Android's org.json coerces a JSONArray to its literal string form (e.g. "[\"sku\"]") via
+    // getString()/optString() rather than throwing -- unlike getDouble()/getJSONArray(), and
+    // unlike the reference org.json used in off-device tests. Without this guard an array value
+    // would be logged as a corrupted scalar instead of skipping the event, and would diverge from
+    // the iOS remote command (whose `as? String` cast cleanly rejects an array).
+
+    /**
+     * Reads a required scalar String. Rejects a missing key, a JSON null, an array, or any
+     * non-String value (matching the iOS `as? String` strictness).
+     *
+     * @param json the payload
+     * @param key  the key to read
+     * @return the scalar String value
+     * @throws JSONException if the value is absent or is not a String
+     */
+    static String requireScalarString(JSONObject json, String key) throws JSONException {
+        Object raw = json.opt(resolveKey(json, key));
+        if (raw instanceof String) {
+            return (String) raw;
+        }
+        throw new JSONException("Expected a scalar String for '" + key + "'");
+    }
+
+    /**
+     * Reads an optional scalar String. Returns null when the key is absent, is a JSON null, is an
+     * array, or is any non-String value (matching the iOS `as? String` cast).
+     *
+     * @param json the payload
+     * @param key  the key to read
+     * @return the scalar String value, or null
+     */
+    static String optionalScalarString(JSONObject json, String key) {
+        Object raw = json.opt(resolveKey(json, key));
+        return raw instanceof String ? (String) raw : null;
+    }
+
+    /**
+     * Reads a required finite Double, resolving key aliases. Numeric strings are coerced, as
+     * {@link JSONObject#getDouble} does, which is also how "NaN" and "Infinity" strings get in.
+     *
+     * @param json the payload
+     * @param key  the canonical key to read
+     * @return the value
+     * @throws JSONException if the value is absent, not a number, or not finite
+     */
+    static double requireDouble(JSONObject json, String key) throws JSONException {
+        return requireFinite(json.getDouble(resolveKey(json, key)), key);
+    }
+
+    /**
+     * Rejects NaN and Infinity, which Braze would otherwise receive as a corrupt amount.
+     *
+     * @param value the number to check
+     * @param key   the key it was read from, for the error message
+     * @return the value, when finite
+     * @throws JSONException if the value is NaN or infinite
+     */
+    static double requireFinite(double value, String key) throws JSONException {
+        if (Double.isNaN(value) || Double.isInfinite(value)) {
+            throw new JSONException("Expected a finite number for '" + key + "'");
+        }
+        return value;
+    }
+
+    /**
+     * Reads the required quantity at {@code index} as a whole number. Data layers often send a
+     * fractional quantity (e.g. a weight), which is rounded to nearest with halves rounding up
+     * (2.5 becomes 3) rather than truncated. A negative value is rejected before rounding, so
+     * -0.5 is not turned into a valid 0.
+     *
+     * @param quantities the quantity array
+     * @param index      the element to read
+     * @return the rounded quantity
+     * @throws JSONException if the element is missing, not a number, not finite, or negative
+     */
+    static long requireQuantity(JSONArray quantities, int index) throws JSONException {
+        double quantity = requireFinite(quantities.getDouble(index), BrazeConstants.Ecommerce.QUANTITY);
+        if (quantity < 0) {
+            throw new JSONException("'" + BrazeConstants.Ecommerce.QUANTITY + "' must be 0 or more");
+        }
+        return Math.round(quantity);
+    }
+
+    /**
+     * Reads an optional Double. Returns null when the key is absent or holds anything that is not
+     * a finite number; numeric strings are coerced, as {@link JSONObject#optDouble} does.
+     *
+     * @param json the payload
+     * @param key  the key to read
+     * @return the finite value, or null
+     */
+    static Double optionalDouble(JSONObject json, String key) {
+        double value = json.optDouble(key);
+        return (Double.isNaN(value) || Double.isInfinite(value)) ? null : value;
+    }
+
+    /**
+     * Reads an optional list of Strings. A scalar String is wrapped into a one-element list, so a
+     * single value and a JSON array are both accepted. Returns null when the key is absent, or when
+     * the value is neither a String nor an array made up only of Strings.
+     *
+     * @param json the payload
+     * @param key  the key to read
+     * @return the list of Strings, or null
+     */
+    @Nullable
+    static List<String> optionalStringList(JSONObject json, String key) {
+        Object raw = json.opt(key);
+        List<String> result = new ArrayList<>();
+        if (raw instanceof String) {
+            result.add((String) raw);
+        } else if (raw instanceof JSONArray) {
+            JSONArray array = (JSONArray) raw;
+            for (int i = 0; i < array.length(); i++) {
+                Object element = array.opt(i);
+                if (!(element instanceof String)) {
+                    return null;
+                }
+                result.add((String) element);
+            }
+        } else {
+            return null;
+        }
+        return result;
+    }
+
+    /**
+     * Reads a required scalar String that is not blank. Needed for order_cancelled/order_refunded,
+     * which have no typed Braze class and so no SDK validation: a blank order_id, source or
+     * cancel_reason would otherwise only fail after ingestion, invisibly.
+     *
+     * @param json the payload
+     * @param key  the key to read
+     * @return the String value, unchanged
+     * @throws JSONException if the value is absent, not a String, or blank
+     */
+    static String requireNonBlankString(JSONObject json, String key) throws JSONException {
+        String value = requireScalarString(json, key);
+        if (value.trim().isEmpty()) {
+            throw new JSONException("'" + key + "' must not be blank");
+        }
+        return value;
+    }
+
+    /**
+     * Reads a required finite amount that is 0 or more. Same rationale as
+     * {@link #requireNonBlankString}: order_cancelled/order_refunded total_value is not validated
+     * by the SDK.
+     *
+     * @param json the payload
+     * @param key  the key to read
+     * @return the amount
+     * @throws JSONException if the value is absent, not a number, not finite, or negative
+     */
+    static double requireAmount(JSONObject json, String key) throws JSONException {
+        double value = requireDouble(json, key);
+        if (value < 0) {
+            throw new JSONException("'" + key + "' must be 0 or more");
+        }
+        return value;
+    }
+
+    /**
+     * Mirrors the Braze SDK rule for the strings of an EcommerceProduct: not blank and at most
+     * {@value #MAX_SDK_STRING_LENGTH} characters.
+     */
+    private static String requireSdkString(String value, String key) throws JSONException {
+        if (value.trim().isEmpty() || value.length() > MAX_SDK_STRING_LENGTH) {
+            throw new JSONException("'" + key + "' must be non-blank and at most " + MAX_SDK_STRING_LENGTH + " characters");
+        }
+        return value;
+    }
+
+    /**
+     * Reads a required scalar currency and normalizes it by trimming and uppercasing. Currency is required for all
+     * six recommended ecommerce events (the Braze SDK base EcommerceEvent constructor rejects a null
+     * currency, and Braze validates the value against ISO-4217 canonical uppercase), so this reuses
+     * {@link #requireNonBlankString} -- throwing when the key is absent, a JSON null, an array, any
+     * non-String value, or blank -- then trims and uppercases so a common input like " usd " is
+     * accepted rather than dropped at event construction. Matches the iOS remote command's
+     * requireCurrency strictness.
+     *
+     * @param json the payload
+     * @param key  the key to read
+     * @return the trimmed, uppercased currency
+     * @throws JSONException if the value is absent, blank, or is not a scalar String
+     */
+    static String requireCurrency(JSONObject json, String key) throws JSONException {
+        return requireNonBlankString(json, key).trim().toUpperCase(Locale.ROOT);
     }
 
     /**
@@ -307,6 +857,25 @@ class BrazeUtils {
         }
 
         return returnData;
+    }
+
+    /**
+     * Reads the currencies for a logpurchase with several products, resolving key aliases. A single
+     * String applies to every product, as on the iOS remote command; an array is read per product.
+     *
+     * @param payload      the payload
+     * @param productCount the number of products being purchased
+     * @return one currency per product for a single String, otherwise the array's elements (empty
+     * when the currency is absent)
+     */
+    static String[] getPurchaseCurrencies(JSONObject payload, int productCount) {
+        Object raw = payload.opt(resolveKey(payload, BrazeConstants.Ecommerce.CURRENCY));
+        if (raw instanceof String) {
+            String[] currencies = new String[productCount];
+            Arrays.fill(currencies, (String) raw);
+            return currencies;
+        }
+        return getStringArrayFromJson(raw instanceof JSONArray ? (JSONArray) raw : null);
     }
 
     /**

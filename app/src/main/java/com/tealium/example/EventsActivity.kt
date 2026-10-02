@@ -13,6 +13,14 @@ class EventsActivity : AppCompatActivity() {
     private lateinit var incrementCustomAttributesButton: AppCompatButton
     private lateinit var logPurchaseButton: AppCompatButton
     private lateinit var logMultiplePurchaseButton: AppCompatButton
+    private lateinit var logProductViewedButton: AppCompatButton
+    private lateinit var logCartUpdatedAddButton: AppCompatButton
+    private lateinit var logCartUpdatedRemoveButton: AppCompatButton
+    private lateinit var logCartUpdatedReplaceButton: AppCompatButton
+    private lateinit var logCheckoutStartedButton: AppCompatButton
+    private lateinit var logOrderPlacedButton: AppCompatButton
+    private lateinit var logOrderCancelledButton: AppCompatButton
+    private lateinit var logOrderRefundedButton: AppCompatButton
     private var petNameCounter = 1
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -25,6 +33,14 @@ class EventsActivity : AppCompatActivity() {
         incrementCustomAttributesButton = findViewById(R.id.btn_increment_custom_attributes)
         logPurchaseButton = findViewById(R.id.btn_log_purchase)
         logMultiplePurchaseButton = findViewById(R.id.btn_log_multiple_purchase)
+        logProductViewedButton = findViewById(R.id.btn_log_product_viewed)
+        logCartUpdatedAddButton = findViewById(R.id.btn_log_cart_updated_add)
+        logCartUpdatedRemoveButton = findViewById(R.id.btn_log_cart_updated_remove)
+        logCartUpdatedReplaceButton = findViewById(R.id.btn_log_cart_updated_replace)
+        logCheckoutStartedButton = findViewById(R.id.btn_log_checkout_started)
+        logOrderPlacedButton = findViewById(R.id.btn_log_order_placed)
+        logOrderCancelledButton = findViewById(R.id.btn_log_order_cancelled)
+        logOrderRefundedButton = findViewById(R.id.btn_log_order_refunded)
 
         logEventButton.setOnClickListener { logEvent() }
         logEventWithPropertiesButton.setOnClickListener { logEventWithProperties() }
@@ -33,6 +49,14 @@ class EventsActivity : AppCompatActivity() {
         incrementCustomAttributesButton.setOnClickListener { incrementCustomAttributes() }
         logPurchaseButton.setOnClickListener { logPurchase() }
         logMultiplePurchaseButton.setOnClickListener { logMultiplePurchase() }
+        logProductViewedButton.setOnClickListener { logProductViewed() }
+        logCartUpdatedAddButton.setOnClickListener { logCartUpdatedAdd() }
+        logCartUpdatedRemoveButton.setOnClickListener { logCartUpdatedRemove() }
+        logCartUpdatedReplaceButton.setOnClickListener { logCartUpdatedReplace() }
+        logCheckoutStartedButton.setOnClickListener { logCheckoutStarted() }
+        logOrderPlacedButton.setOnClickListener { logOrderPlaced() }
+        logOrderCancelledButton.setOnClickListener { logOrderCancelled() }
+        logOrderRefundedButton.setOnClickListener { logOrderRefunded() }
     }
 
     private fun logEvent() {
@@ -120,6 +144,98 @@ class EventsActivity : AppCompatActivity() {
 
         trackEvent("log_purchase", data)
     }
+
+    private fun logProductViewed() {
+        // logProductViewed describes a single product, so its fields are plain scalars (no arrays).
+        // Uses its own single-product data layer variables -- distinct from the cart_* variables
+        // below, which map into the nested `products` object's parallel arrays and would otherwise
+        // collide with these scalar fields.
+        trackEvent(
+            "log_product_viewed", mapOf(
+                "product_id" to "sku123",
+                "product_name" to "Widget",
+                "product_variant_id" to "widget_blue_lg",
+                "product_viewed_price" to 49.99,
+                "ecommerce_currency" to "USD",
+                "ecommerce_source" to "android-example"
+            )
+        )
+    }
+
+    private fun logCartUpdatedAdd() {
+        trackEvent("log_cart_updated", cartData() + mapOf("cart_action" to "add"))
+    }
+
+    private fun logCartUpdatedRemove() {
+        trackEvent("log_cart_updated", cartData() + mapOf("cart_action" to "remove"))
+    }
+
+    private fun logCartUpdatedReplace() {
+        // Replace is a full snapshot and requires total_value.
+        trackEvent("log_cart_updated", cartData() + mapOf("cart_action" to "replace", "order_total_value" to 109.96))
+    }
+
+    private fun logCheckoutStarted() {
+        trackEvent(
+            "log_checkout_started", cartData() + mapOf(
+                "checkout_id" to "checkout-123",
+                "order_total_value" to 109.96
+            )
+        )
+    }
+
+    private fun logOrderPlaced() {
+        trackEvent(
+            "log_order_placed", cartData() + mapOf(
+                "order_id" to "order-789",
+                "order_total_value" to 109.96,
+                "order_total_discounts" to 5.0
+            ) + discountData()
+        )
+    }
+
+    private fun logOrderCancelled() {
+        trackEvent(
+            "log_order_cancelled", cartData() + mapOf(
+                "order_id" to "order-789",
+                "order_total_value" to 109.96,
+                "order_total_discounts" to 5.0,
+                "cancel_reason" to "customer_request"
+            ) + discountData()
+        )
+    }
+
+    private fun logOrderRefunded() {
+        trackEvent(
+            "log_order_refunded", cartData() + mapOf(
+                "order_id" to "order-789",
+                "order_total_value" to 109.96,
+                "order_total_discounts" to 5.0
+            ) + discountData()
+        )
+    }
+
+    // Sample multi-product cart payload shared by the cart / checkout / order demo events. Products
+    // are supplied as a nested object holding PARALLEL ARRAYS (one array per field, zipped by
+    // index) -- mapped via the cart_product_*/cart_price/cart_quantity dot-notation keys below.
+    private fun cartData(): Map<String, Any> = mapOf(
+        "cart_id" to "cart-456",
+        "ecommerce_currency" to "USD",
+        "ecommerce_source" to "android-example",
+        "cart_product_id" to listOf("sku123", "sku456"),
+        "cart_product_name" to listOf("Widget", "Gadget"),
+        "cart_variant_id" to listOf("widget_blue_lg", "gadget_red"),
+        "cart_price" to listOf(49.99, 19.99),
+        "cart_quantity" to listOf(1, 3)
+    )
+
+    // Sample discount payload: also a nested object holding parallel arrays (one per discount
+    // field, zipped by index), same convention as cartData()'s products.
+    private fun discountData(): Map<String, Any> = mapOf(
+        "discount_code" to listOf("SUMMER10"),
+        "discount_amount" to listOf(5.0),
+        "discount_type" to listOf("percentage")
+    )
 
     companion object {
         private val TAG = EventsActivity::class.java.simpleName
