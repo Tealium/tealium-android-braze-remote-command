@@ -361,6 +361,69 @@ public class BrazeUtilityMethodTests {
         assertEquals("sku123", result.get(0).getProductId());
     }
 
+    private JSONObject widgetProduct(Object price, Object quantity) throws JSONException {
+        JSONObject product = widgetProduct();
+        product.put(BrazeConstants.Ecommerce.PRICE, price);
+        product.put(BrazeConstants.Ecommerce.QUANTITY, quantity);
+        return product;
+    }
+
+    @Test
+    public void productsFromNestedArraysTest_RoundsFractionalQuantityHalfUp() throws JSONException {
+        List<EcommerceProduct> result = BrazeUtils.getProductsFromNestedArrays(productsObject(
+                widgetProduct(1.0, 2.5),
+                widgetProduct(1.0, 2.4),
+                widgetProduct(1.0, "2.5"),
+                widgetProduct(1.0, 2.6)), false);
+
+        assertEquals(4, result.size());
+        assertEquals(3L, result.get(0).getQuantity());
+        assertEquals(2L, result.get(1).getQuantity());
+        assertEquals(3L, result.get(2).getQuantity());
+        assertEquals(3L, result.get(3).getQuantity());
+    }
+
+    @Test
+    public void productsFromNestedArraysTest_SkipsNegativeQuantityBeforeRounding() throws JSONException {
+        // -0.5 must not round to a valid 0.
+        List<EcommerceProduct> result = BrazeUtils.getProductsFromNestedArrays(productsObject(
+                widgetProduct(1.0, -0.5),
+                widgetProduct(1.0, -1),
+                widgetProduct(1.0, 0),
+                widgetProduct(1.0, 1)), false);
+
+        assertEquals(2, result.size());
+        assertEquals(0L, result.get(0).getQuantity());
+        assertEquals(1L, result.get(1).getQuantity());
+    }
+
+    @Test
+    public void productsFromNestedArraysTest_SkipsNonFinitePriceOrQuantity() throws JSONException {
+        // "NaN" and "Infinity" strings are what reach the payload; getDouble coerces them to numbers.
+        List<EcommerceProduct> result = BrazeUtils.getProductsFromNestedArrays(productsObject(
+                widgetProduct("NaN", 1),
+                widgetProduct("Infinity", 1),
+                widgetProduct(1.0, "NaN"),
+                widgetProduct(1.0, "Infinity"),
+                widgetProduct(49.99, 1)), false);
+
+        assertEquals(1, result.size());
+        assertEquals(49.99, result.get(0).getPrice(), 0.0001);
+    }
+
+    @Test
+    public void productsAsWireJsonTest_RoundsFractionalQuantityAndSkipsNonFinite() throws JSONException {
+        JSONArray result = BrazeUtils.getProductsAsWireJson(productsObject(
+                widgetProduct("NaN", 1),
+                widgetProduct(1.0, "Infinity"),
+                widgetProduct(1.0, 2.5),
+                widgetProduct(1.0, 2.4)));
+
+        assertEquals(2, result.length());
+        assertEquals(3, result.getJSONObject(0).getInt(BrazeConstants.Ecommerce.QUANTITY));
+        assertEquals(2, result.getJSONObject(1).getInt(BrazeConstants.Ecommerce.QUANTITY));
+    }
+
     @Test
     public void productsFromNestedArraysTest_ThrowsForMismatchedRequiredArrayLengths() throws JSONException {
         // Mismatched required-array lengths must throw so the caller skips the whole event (parity

@@ -460,6 +460,48 @@ public class BrazeRemoteCommandTests {
     }
 
     @Test
+    public void testProductViewedEvent_NotDispatched_WhenPriceNotFinite() throws Exception {
+        for (String price : new String[]{"NaN", "Infinity", "-Infinity"}) {
+            RemoteCommand.Response response = ResponseBuilder.create()
+                    .addCommand(Commands.LOG_PRODUCT_VIEWED)
+                    .populatePayload((json) -> {
+                        json.put(Ecommerce.PRODUCT_ID, "sku123");
+                        json.put(Ecommerce.PRODUCT_NAME, "Widget");
+                        json.put(Ecommerce.VARIANT_ID, "widget_blue");
+                        json.put(Ecommerce.PRICE, price);
+                        json.put(Ecommerce.CURRENCY, "USD");
+                        json.put(Ecommerce.SOURCE, "test-source");
+                    })
+                    .build();
+
+            brazeRemoteCommand.onInvoke(response);
+        }
+
+        verify(mockBrazeInstance, never()).logProductViewed(any(), any(), any(), anyDouble(), any(), any(), any(), any(), any(), any());
+    }
+
+    @Test
+    public void testCheckoutStartedEvent_NotDispatched_WhenTotalValueNotFinite() throws Exception {
+        JSONObject products = productsObject(singleProduct());
+        for (String totalValue : new String[]{"NaN", "Infinity"}) {
+            RemoteCommand.Response response = ResponseBuilder.create()
+                    .addCommand(Commands.LOG_CHECKOUT_STARTED)
+                    .populatePayload((json) -> {
+                        json.put(Ecommerce.CHECKOUT_ID, "checkout-1");
+                        json.put(Ecommerce.CURRENCY, "USD");
+                        json.put(Ecommerce.SOURCE, "test-source");
+                        json.put(Ecommerce.TOTAL_VALUE, totalValue);
+                        json.put(Ecommerce.PRODUCTS, products);
+                    })
+                    .build();
+
+            brazeRemoteCommand.onInvoke(response);
+        }
+
+        verify(mockBrazeInstance, never()).logCheckoutStarted(any(), any(), any(), anyDouble(), any(), any(), any(), any(), any(), any());
+    }
+
+    @Test
     public void testProductViewedEvent_NotDispatched_WhenPayloadIsSingleElementArray() throws Exception {
         // Scalar-only: logProductViewed carries no products array, so an array value for a product
         // field (even a single-element one) is a caller mistake and fails validation rather than

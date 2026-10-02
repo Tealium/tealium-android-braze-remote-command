@@ -302,15 +302,16 @@ class BrazeUtils {
         JSONArray metadatas = optionalMatchedArray(products, BrazeConstants.Ecommerce.METADATA, count);
 
         for (int i = 0; i < count; i++) {
-            // price and quantity are required per product. A missing/non-numeric value, or a value
-            // the Braze EcommerceProduct constructor rejects (negative price, blank/>255-char string,
-            // negative quantity), skips only this line item -- one bad product must not drop the whole
-            // event, and quantity is not silently defaulted (matches the iOS remote command's strict
-            // per-item behaviour). getDouble/getLong throw JSONException on missing/non-numeric;
-            // the constructor throws IllegalArgumentException on invalid values.
+            // price and quantity are required per product. A missing/non-numeric/non-finite value, or
+            // a value the Braze EcommerceProduct constructor rejects (negative price, blank/>255-char
+            // string, negative quantity), skips only this line item -- one bad product must not drop
+            // the whole event, and quantity is not silently defaulted (matches the iOS remote
+            // command's strict per-item behaviour). requireFinite/requireQuantity throw
+            // JSONException on bad numbers; the constructor throws IllegalArgumentException on
+            // invalid values.
             try {
-                double price = prices.getDouble(i);
-                long quantity = quantities.getLong(i);
+                double price = requireFinite(prices.getDouble(i), BrazeConstants.Ecommerce.PRICE);
+                long quantity = requireQuantity(quantities, i);
                 result.add(new EcommerceProduct(
                         productIds.optString(i),
                         productNames.optString(i),
@@ -437,14 +438,14 @@ class BrazeUtils {
         for (int i = 0; i < count; i++) {
             JSONObject product = new JSONObject();
             try {
-                // price and quantity are required per product; getDouble/getInt throw JSONException on
-                // a missing/non-numeric value and skip only this line item. Quantity is not silently
+                // price and quantity are required per product; a missing, non-numeric or non-finite
+                // value throws JSONException and skips only this line item. Quantity is not silently
                 // defaulted (matches the typed getProductsFromNestedArrays path and iOS).
                 product.put(BrazeConstants.Ecommerce.PRODUCT_ID, productIds.opt(i));
                 product.put(BrazeConstants.Ecommerce.PRODUCT_NAME, productNames.opt(i));
                 product.put(BrazeConstants.Ecommerce.VARIANT_ID, variantIds.opt(i));
-                product.put(BrazeConstants.Ecommerce.PRICE, prices.getDouble(i));
-                product.put(BrazeConstants.Ecommerce.QUANTITY, quantities.getInt(i));
+                product.put(BrazeConstants.Ecommerce.PRICE, requireFinite(prices.getDouble(i), BrazeConstants.Ecommerce.PRICE));
+                product.put(BrazeConstants.Ecommerce.QUANTITY, requireQuantity(quantities, i));
                 if (imageUrls != null && keyHasValue(imageUrls, i)) {
                     product.put(BrazeConstants.Ecommerce.IMAGE_URL, imageUrls.optString(i));
                 }
@@ -455,9 +456,8 @@ class BrazeUtils {
                     product.put(BrazeConstants.Ecommerce.METADATA, metadatas.optJSONObject(i));
                 }
             } catch (JSONException jex) {
-                // Missing/non-numeric required price or quantity, or a non-finite price (NaN/Infinity)
-                // that makes JSONObject.put throw mid-build; skip this product rather than appending a
-                // partially-built or invalid line item.
+                // Missing, non-numeric or non-finite required price or quantity; skip this product
+                // rather than appending a partially-built or invalid line item.
                 Log.w(BrazeConstants.TAG, "Skipping invalid wire-schema ecommerce product at index " + i, jex);
                 continue;
             }
@@ -585,16 +585,50 @@ class BrazeUtils {
     }
 
     /**
-     * Reads a required Double, resolving key aliases. Numeric strings are coerced, as
-     * {@link JSONObject#getDouble} does.
+     * Reads a required finite Double, resolving key aliases. Numeric strings are coerced, as
+     * {@link JSONObject#getDouble} does, which is also how "NaN" and "Infinity" strings get in.
      *
      * @param json the payload
      * @param key  the canonical key to read
      * @return the value
-     * @throws JSONException if the value is absent or not a number
+     * @throws JSONException if the value is absent, not a number, or not finite
      */
     static double requireDouble(JSONObject json, String key) throws JSONException {
-        return json.getDouble(resolveKey(json, key));
+        return requireFinite(json.getDouble(resolveKey(json, key)), key);
+    }
+
+    /**
+     * Rejects NaN and Infinity, which Braze would otherwise receive as a corrupt amount.
+     *
+     * @param value the number to check
+     * @param key   the key it was read from, for the error message
+     * @return the value, when finite
+     * @throws JSONException if the value is NaN or infinite
+     */
+    static double requireFinite(double value, String key) throws JSONException {
+        if (Double.isNaN(value) || Double.isInfinite(value)) {
+            throw new JSONException("Expected a finite number for '" + key + "'");
+        }
+        return value;
+    }
+
+    /**
+     * Reads the required quantity at {@code index} as a whole number. Data layers often send a
+     * fractional quantity (e.g. a weight), which is rounded to nearest with halves rounding up
+     * (2.5 becomes 3) rather than truncated. A negative value is rejected before rounding, so
+     * -0.5 is not turned into a valid 0.
+     *
+     * @param quantities the quantity array
+     * @param index      the element to read
+     * @return the rounded quantity
+     * @throws JSONException if the element is missing, not a number, not finite, or negative
+     */
+    static long requireQuantity(JSONArray quantities, int index) throws JSONException {
+        double quantity = requireFinite(quantities.getDouble(index), BrazeConstants.Ecommerce.QUANTITY);
+        if (quantity < 0) {
+            throw new JSONException("'" + BrazeConstants.Ecommerce.QUANTITY + "' must be 0 or more");
+        }
+        return Math.round(quantity);
     }
 
     /**
