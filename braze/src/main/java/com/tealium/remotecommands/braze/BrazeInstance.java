@@ -576,7 +576,8 @@ class BrazeInstance implements BrazeCommand, ActivityLifecycleCallbacks {
                 source,
                 imageUrl,
                 productUrl,
-                BrazeUtils.extractCustomProperties(properties, mStrictPropertiesEnabled)
+                BrazeUtils.extractCustomProperties(properties, mStrictPropertiesEnabled),
+                null // type: not mapped yet.
         ));
     }
 
@@ -589,7 +590,10 @@ class BrazeInstance implements BrazeCommand, ActivityLifecycleCallbacks {
                 totalValue,
                 BrazeUtils.getProductsFromNestedArrays(products, mStrictPropertiesEnabled),
                 BrazeUtils.extractCustomProperties(properties, mStrictPropertiesEnabled),
-                action.brazeAction
+                action.brazeAction,
+                null, // subtotalValue: not mapped yet.
+                null, // tax: not mapped yet.
+                null // shipping: not mapped yet.
         ));
     }
 
@@ -602,7 +606,10 @@ class BrazeInstance implements BrazeCommand, ActivityLifecycleCallbacks {
                 totalValue,
                 BrazeUtils.getProductsFromNestedArrays(products, mStrictPropertiesEnabled),
                 cartId,
-                BrazeUtils.extractCustomProperties(properties, mStrictPropertiesEnabled)
+                BrazeUtils.extractCustomProperties(properties, mStrictPropertiesEnabled),
+                null, // subtotalValue: not mapped yet.
+                null, // tax: not mapped yet.
+                null // shipping: not mapped yet.
         ));
     }
 
@@ -617,7 +624,10 @@ class BrazeInstance implements BrazeCommand, ActivityLifecycleCallbacks {
                 cartId,
                 totalDiscounts,
                 BrazeUtils.getDiscountsFromNestedArrays(discounts),
-                BrazeUtils.extractCustomProperties(properties, mStrictPropertiesEnabled)
+                BrazeUtils.extractCustomProperties(properties, mStrictPropertiesEnabled),
+                null, // subtotalValue: not mapped yet.
+                null, // tax: not mapped yet.
+                null // shipping: not mapped yet.
         ));
     }
 
