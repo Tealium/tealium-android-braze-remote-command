@@ -982,6 +982,116 @@ public class BrazeRemoteCommandTests {
     }
 
     @Test
+    public void testOrderCancelledEvent_NotDispatched_WhenRequiredStringIsBlank() throws Exception {
+        // order_cancelled has no typed SDK class, so blank values are rejected here rather than
+        // failing invisibly after ingestion.
+        JSONObject products = productsObject(singleProduct());
+        for (String key : new String[]{Ecommerce.ORDER_ID, Ecommerce.CURRENCY, Ecommerce.SOURCE, Ecommerce.CANCEL_REASON}) {
+            RemoteCommand.Response response = ResponseBuilder.create()
+                    .addCommand(Commands.LOG_ORDER_CANCELLED)
+                    .populatePayload((json) -> {
+                        json.put(Ecommerce.ORDER_ID, "order-1");
+                        json.put(Ecommerce.CURRENCY, "USD");
+                        json.put(Ecommerce.SOURCE, "test-source");
+                        json.put(Ecommerce.TOTAL_VALUE, 49.99);
+                        json.put(Ecommerce.CANCEL_REASON, "customer_request");
+                        json.put(Ecommerce.PRODUCTS, products);
+                        json.put(key, "  ");
+                    })
+                    .build();
+
+            brazeRemoteCommand.onInvoke(response);
+        }
+
+        verify(mockBrazeInstance, never()).logOrderCancelled(any(), any(), any(), anyDouble(), any(), any(), any(), any(), any(), any(), any(), any());
+    }
+
+    @Test
+    public void testOrderCancelledEvent_NotDispatched_WhenTotalValueNegativeOrNotFinite() throws Exception {
+        JSONObject products = productsObject(singleProduct());
+        for (Object totalValue : new Object[]{-0.01, "NaN", "Infinity"}) {
+            RemoteCommand.Response response = ResponseBuilder.create()
+                    .addCommand(Commands.LOG_ORDER_CANCELLED)
+                    .populatePayload((json) -> {
+                        json.put(Ecommerce.ORDER_ID, "order-1");
+                        json.put(Ecommerce.CURRENCY, "USD");
+                        json.put(Ecommerce.SOURCE, "test-source");
+                        json.put(Ecommerce.TOTAL_VALUE, totalValue);
+                        json.put(Ecommerce.CANCEL_REASON, "customer_request");
+                        json.put(Ecommerce.PRODUCTS, products);
+                    })
+                    .build();
+
+            brazeRemoteCommand.onInvoke(response);
+        }
+
+        verify(mockBrazeInstance, never()).logOrderCancelled(any(), any(), any(), anyDouble(), any(), any(), any(), any(), any(), any(), any(), any());
+    }
+
+    @Test
+    public void testOrderCancelledEvent_Dispatched_WhenTotalValueIsZero() throws Exception {
+        JSONObject products = productsObject(singleProduct());
+        RemoteCommand.Response response = ResponseBuilder.create()
+                .addCommand(Commands.LOG_ORDER_CANCELLED)
+                .populatePayload((json) -> {
+                    json.put(Ecommerce.ORDER_ID, "order-1");
+                    json.put(Ecommerce.CURRENCY, "USD");
+                    json.put(Ecommerce.SOURCE, "test-source");
+                    json.put(Ecommerce.TOTAL_VALUE, 0);
+                    json.put(Ecommerce.CANCEL_REASON, "customer_request");
+                    json.put(Ecommerce.PRODUCTS, products);
+                })
+                .build();
+
+        brazeRemoteCommand.onInvoke(response);
+
+        verify(mockBrazeInstance).logOrderCancelled(eq("order-1"), eq("USD"), eq("test-source"), eq(0.0), eq(null), eq(null), eq(null), sameProducts(products), eq("customer_request"), eq(null), eq(null), eq(null));
+    }
+
+    @Test
+    public void testOrderRefundedEvent_NotDispatched_WhenRequiredStringIsBlank() throws Exception {
+        JSONObject products = productsObject(singleProduct());
+        for (String key : new String[]{Ecommerce.ORDER_ID, Ecommerce.CURRENCY, Ecommerce.SOURCE}) {
+            RemoteCommand.Response response = ResponseBuilder.create()
+                    .addCommand(Commands.LOG_ORDER_REFUNDED)
+                    .populatePayload((json) -> {
+                        json.put(Ecommerce.ORDER_ID, "order-1");
+                        json.put(Ecommerce.CURRENCY, "USD");
+                        json.put(Ecommerce.SOURCE, "test-source");
+                        json.put(Ecommerce.TOTAL_VALUE, 49.99);
+                        json.put(Ecommerce.PRODUCTS, products);
+                        json.put(key, "");
+                    })
+                    .build();
+
+            brazeRemoteCommand.onInvoke(response);
+        }
+
+        verify(mockBrazeInstance, never()).logOrderRefunded(any(), any(), any(), anyDouble(), any(), any(), any(), any());
+    }
+
+    @Test
+    public void testOrderRefundedEvent_NotDispatched_WhenTotalValueNegativeOrNotFinite() throws Exception {
+        JSONObject products = productsObject(singleProduct());
+        for (Object totalValue : new Object[]{-1, "NaN", "-Infinity"}) {
+            RemoteCommand.Response response = ResponseBuilder.create()
+                    .addCommand(Commands.LOG_ORDER_REFUNDED)
+                    .populatePayload((json) -> {
+                        json.put(Ecommerce.ORDER_ID, "order-1");
+                        json.put(Ecommerce.CURRENCY, "USD");
+                        json.put(Ecommerce.SOURCE, "test-source");
+                        json.put(Ecommerce.TOTAL_VALUE, totalValue);
+                        json.put(Ecommerce.PRODUCTS, products);
+                    })
+                    .build();
+
+            brazeRemoteCommand.onInvoke(response);
+        }
+
+        verify(mockBrazeInstance, never()).logOrderRefunded(any(), any(), any(), anyDouble(), any(), any(), any(), any());
+    }
+
+    @Test
     public void testOrderCancelledEvent_ForwardsSubtotalTaxShipping() throws Exception {
         JSONObject products = productsObject(singleProduct());
         RemoteCommand.Response response = ResponseBuilder.create()

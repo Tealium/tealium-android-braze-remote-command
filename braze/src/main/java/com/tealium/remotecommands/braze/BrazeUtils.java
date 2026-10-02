@@ -30,6 +30,11 @@ import java.util.Map;
 class BrazeUtils {
 
     /**
+     * The longest String the Braze SDK accepts for an ecommerce product field.
+     */
+    private static final int MAX_SDK_STRING_LENGTH = 255;
+
+    /**
      * The Format of any Dates that were sent into the WebView as a native java.util.Date, will be
      * returned to the RemoteCommand in the following date format. This is a static property to
      * easily help conversion back into a native Date type.
@@ -438,26 +443,34 @@ class BrazeUtils {
         for (int i = 0; i < count; i++) {
             JSONObject product = new JSONObject();
             try {
-                // price and quantity are required per product; a missing, non-numeric or non-finite
-                // value throws JSONException and skips only this line item. Quantity is not silently
-                // defaulted (matches the typed getProductsFromNestedArrays path and iOS).
-                product.put(BrazeConstants.Ecommerce.PRODUCT_ID, productIds.opt(i));
-                product.put(BrazeConstants.Ecommerce.PRODUCT_NAME, productNames.opt(i));
-                product.put(BrazeConstants.Ecommerce.VARIANT_ID, variantIds.opt(i));
-                product.put(BrazeConstants.Ecommerce.PRICE, requireFinite(prices.getDouble(i), BrazeConstants.Ecommerce.PRICE));
-                product.put(BrazeConstants.Ecommerce.QUANTITY, requireQuantity(quantities, i));
+                // This event has no typed Braze class, so nothing validates the line item for us: apply
+                // the same rules as the EcommerceProduct constructor used on the typed path. price and
+                // quantity are required and must not be negative (requireQuantity rejects a negative
+                // quantity); a missing, non-numeric, non-finite or invalid value throws JSONException
+                // and skips only this line item. Quantity is not silently defaulted (matches the typed
+                // getProductsFromNestedArrays path and iOS).
+                double price = requireFinite(prices.getDouble(i), BrazeConstants.Ecommerce.PRICE);
+                long quantity = requireQuantity(quantities, i);
+                if (price < 0) {
+                    throw new JSONException("Negative price");
+                }
+                product.put(BrazeConstants.Ecommerce.PRODUCT_ID, requireSdkString(productIds.optString(i), BrazeConstants.Ecommerce.PRODUCT_ID));
+                product.put(BrazeConstants.Ecommerce.PRODUCT_NAME, requireSdkString(productNames.optString(i), BrazeConstants.Ecommerce.PRODUCT_NAME));
+                product.put(BrazeConstants.Ecommerce.VARIANT_ID, requireSdkString(variantIds.optString(i), BrazeConstants.Ecommerce.VARIANT_ID));
+                product.put(BrazeConstants.Ecommerce.PRICE, price);
+                product.put(BrazeConstants.Ecommerce.QUANTITY, quantity);
                 if (imageUrls != null && keyHasValue(imageUrls, i)) {
-                    product.put(BrazeConstants.Ecommerce.IMAGE_URL, imageUrls.optString(i));
+                    product.put(BrazeConstants.Ecommerce.IMAGE_URL, requireSdkString(imageUrls.optString(i), BrazeConstants.Ecommerce.IMAGE_URL));
                 }
                 if (productUrls != null && keyHasValue(productUrls, i)) {
-                    product.put(BrazeConstants.Ecommerce.PRODUCT_URL, productUrls.optString(i));
+                    product.put(BrazeConstants.Ecommerce.PRODUCT_URL, requireSdkString(productUrls.optString(i), BrazeConstants.Ecommerce.PRODUCT_URL));
                 }
                 if (metadatas != null && metadatas.optJSONObject(i) != null) {
                     product.put(BrazeConstants.Ecommerce.METADATA, metadatas.optJSONObject(i));
                 }
             } catch (JSONException jex) {
-                // Missing, non-numeric or non-finite required price or quantity; skip this product
-                // rather than appending a partially-built or invalid line item.
+                // Missing or invalid required field; skip this product rather than appending a
+                // partially-built or invalid line item.
                 Log.w(BrazeConstants.TAG, "Skipping invalid wire-schema ecommerce product at index " + i, jex);
                 continue;
             }
@@ -675,20 +688,68 @@ class BrazeUtils {
     }
 
     /**
+     * Reads a required scalar String that is not blank. Needed for order_cancelled/order_refunded,
+     * which have no typed Braze class and so no SDK validation: a blank order_id, source or
+     * cancel_reason would otherwise only fail after ingestion, invisibly.
+     *
+     * @param json the payload
+     * @param key  the key to read
+     * @return the String value, unchanged
+     * @throws JSONException if the value is absent, not a String, or blank
+     */
+    static String requireNonBlankString(JSONObject json, String key) throws JSONException {
+        String value = requireScalarString(json, key);
+        if (value.trim().isEmpty()) {
+            throw new JSONException("'" + key + "' must not be blank");
+        }
+        return value;
+    }
+
+    /**
+     * Reads a required finite amount that is 0 or more. Same rationale as
+     * {@link #requireNonBlankString}: order_cancelled/order_refunded total_value is not validated
+     * by the SDK.
+     *
+     * @param json the payload
+     * @param key  the key to read
+     * @return the amount
+     * @throws JSONException if the value is absent, not a number, not finite, or negative
+     */
+    static double requireAmount(JSONObject json, String key) throws JSONException {
+        double value = requireDouble(json, key);
+        if (value < 0) {
+            throw new JSONException("'" + key + "' must be 0 or more");
+        }
+        return value;
+    }
+
+    /**
+     * Mirrors the Braze SDK rule for the strings of an EcommerceProduct: not blank and at most
+     * {@value #MAX_SDK_STRING_LENGTH} characters.
+     */
+    private static String requireSdkString(String value, String key) throws JSONException {
+        if (value.trim().isEmpty() || value.length() > MAX_SDK_STRING_LENGTH) {
+            throw new JSONException("'" + key + "' must be non-blank and at most " + MAX_SDK_STRING_LENGTH + " characters");
+        }
+        return value;
+    }
+
+    /**
      * Reads a required scalar currency and normalizes it to uppercase. Currency is required for all
      * six recommended ecommerce events (the Braze SDK base EcommerceEvent constructor rejects a null
      * currency, and Braze validates the value against ISO-4217 canonical uppercase), so this reuses
-     * {@link #requireScalarString} -- throwing when the key is absent, a JSON null, an array, or any
-     * non-String value -- then uppercases so a common lowercase input like "usd" is accepted rather
-     * than dropped at event construction. Matches the iOS remote command's requireCurrency strictness.
+     * {@link #requireNonBlankString} -- throwing when the key is absent, a JSON null, an array, any
+     * non-String value, or blank -- then uppercases so a common lowercase input like "usd" is
+     * accepted rather than dropped at event construction. Matches the iOS remote command's
+     * requireCurrency strictness.
      *
      * @param json the payload
      * @param key  the key to read
      * @return the uppercased currency
-     * @throws JSONException if the value is absent or is not a scalar String
+     * @throws JSONException if the value is absent, blank, or is not a scalar String
      */
     static String requireCurrency(JSONObject json, String key) throws JSONException {
-        return requireScalarString(json, key).toUpperCase(Locale.ROOT);
+        return requireNonBlankString(json, key).toUpperCase(Locale.ROOT);
     }
 
     /**

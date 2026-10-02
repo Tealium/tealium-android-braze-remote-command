@@ -247,7 +247,10 @@ public class BrazeRemoteCommand extends RemoteCommand {
      * "products" : {...}, // required, see above
      * "metadata" : {...} // optional, event-level
      * <p>
-     * // logordercancelled / logorderrefunded (no typed Braze SDK class; logged via logCustomEvent):
+     * // logordercancelled / logorderrefunded (no typed Braze SDK class; logged via logCustomEvent, so
+     * // the SDK's checks are applied here: order_id, currency, source and cancel_reason must not be
+     * // blank, total_value must be 0 or more, and a product with a negative price or quantity or a
+     * // blank or over 255 character product_id/product_name/variant_id is skipped):
      * "order_id" : "<string>", // required
      * "total_value" : <double>, "currency" : "<string>", "source" : "<string>",
      * "cancel_reason" : "<string>", // logordercancelled only, required
@@ -480,15 +483,15 @@ public class BrazeRemoteCommand extends RemoteCommand {
                         break;
                     case Commands.LOG_ORDER_CANCELLED:
                         mBraze.logOrderCancelled(
-                                BrazeUtils.requireScalarString(payload, Ecommerce.ORDER_ID),
+                                BrazeUtils.requireNonBlankString(payload, Ecommerce.ORDER_ID),
                                 BrazeUtils.requireCurrency(payload, Ecommerce.CURRENCY),
-                                BrazeUtils.requireScalarString(payload, Ecommerce.SOURCE),
-                                BrazeUtils.requireDouble(payload, Ecommerce.TOTAL_VALUE),
+                                BrazeUtils.requireNonBlankString(payload, Ecommerce.SOURCE),
+                                BrazeUtils.requireAmount(payload, Ecommerce.TOTAL_VALUE),
                                 BrazeUtils.optionalDouble(payload, Ecommerce.SUBTOTAL_VALUE),
                                 BrazeUtils.optionalDouble(payload, Ecommerce.TAX),
                                 BrazeUtils.optionalDouble(payload, Ecommerce.SHIPPING),
                                 payload.getJSONObject(Ecommerce.PRODUCTS),
-                                BrazeUtils.requireScalarString(payload, Ecommerce.CANCEL_REASON),
+                                BrazeUtils.requireNonBlankString(payload, Ecommerce.CANCEL_REASON),
                                 BrazeUtils.optionalDouble(payload, Ecommerce.TOTAL_DISCOUNTS),
                                 payload.optJSONObject(Ecommerce.DISCOUNTS),
                                 payload.optJSONObject(Ecommerce.METADATA)
@@ -496,10 +499,10 @@ public class BrazeRemoteCommand extends RemoteCommand {
                         break;
                     case Commands.LOG_ORDER_REFUNDED:
                         mBraze.logOrderRefunded(
-                                BrazeUtils.requireScalarString(payload, Ecommerce.ORDER_ID),
+                                BrazeUtils.requireNonBlankString(payload, Ecommerce.ORDER_ID),
                                 BrazeUtils.requireCurrency(payload, Ecommerce.CURRENCY),
-                                BrazeUtils.requireScalarString(payload, Ecommerce.SOURCE),
-                                BrazeUtils.requireDouble(payload, Ecommerce.TOTAL_VALUE),
+                                BrazeUtils.requireNonBlankString(payload, Ecommerce.SOURCE),
+                                BrazeUtils.requireAmount(payload, Ecommerce.TOTAL_VALUE),
                                 payload.getJSONObject(Ecommerce.PRODUCTS),
                                 BrazeUtils.optionalDouble(payload, Ecommerce.TOTAL_DISCOUNTS),
                                 payload.optJSONObject(Ecommerce.DISCOUNTS),

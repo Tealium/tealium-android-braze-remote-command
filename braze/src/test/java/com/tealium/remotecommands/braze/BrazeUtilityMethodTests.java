@@ -424,6 +424,70 @@ public class BrazeUtilityMethodTests {
         assertEquals(2, result.getJSONObject(1).getInt(BrazeConstants.Ecommerce.QUANTITY));
     }
 
+    private JSONObject widgetProductWith(String key, Object value) throws JSONException {
+        JSONObject product = widgetProduct();
+        product.put(key, value);
+        return product;
+    }
+
+    @Test
+    public void productsAsWireJsonTest_SkipsProductsRejectedByTheTypedPathRules() throws JSONException {
+        String tooLong = "x".repeat(256);
+        JSONObject imageUrlProduct = widgetProduct();
+        imageUrlProduct.put(BrazeConstants.Ecommerce.IMAGE_URL, "  ");
+
+        JSONArray result = BrazeUtils.getProductsAsWireJson(productsObject(
+                widgetProduct(-0.01, 1),
+                widgetProduct(1.0, -1),
+                widgetProductWith(BrazeConstants.Ecommerce.PRODUCT_ID, " "),
+                widgetProductWith(BrazeConstants.Ecommerce.PRODUCT_NAME, tooLong),
+                widgetProductWith(BrazeConstants.Ecommerce.VARIANT_ID, ""),
+                imageUrlProduct,
+                widgetProductWith(BrazeConstants.Ecommerce.PRODUCT_NAME, "x".repeat(255))));
+
+        // Only the last product, whose name is exactly at the 255 character limit, survives.
+        assertEquals(1, result.length());
+        assertEquals(255, result.getJSONObject(0).getString(BrazeConstants.Ecommerce.PRODUCT_NAME).length());
+    }
+
+    @Test
+    public void productsAsWireJsonTest_ThrowsWhenAllProductsRejected() throws JSONException {
+        try {
+            BrazeUtils.getProductsAsWireJson(productsObject(widgetProduct(-1.0, 1), widgetProduct(1.0, -1)));
+            fail("Expected JSONException when every product is invalid");
+        } catch (JSONException expected) {
+            // expected
+        }
+    }
+
+    @Test
+    public void requireNonBlankStringAndAmountTest() throws JSONException {
+        JSONObject json = new JSONObject();
+        json.put("text", "value");
+        json.put("blank", " \t ");
+        json.put("zero", 0);
+        json.put("negative", -1);
+
+        assertEquals("value", BrazeUtils.requireNonBlankString(json, "text"));
+        assertEquals(0.0, BrazeUtils.requireAmount(json, "zero"), 0.0);
+        for (String key : new String[]{"blank", "absent"}) {
+            try {
+                BrazeUtils.requireNonBlankString(json, key);
+                fail("Expected JSONException for " + key);
+            } catch (JSONException expected) {
+                // expected
+            }
+        }
+        for (String key : new String[]{"negative", "text", "absent"}) {
+            try {
+                BrazeUtils.requireAmount(json, key);
+                fail("Expected JSONException for " + key);
+            } catch (JSONException expected) {
+                // expected
+            }
+        }
+    }
+
     @Test
     public void productsFromNestedArraysTest_ThrowsForMismatchedRequiredArrayLengths() throws JSONException {
         // Mismatched required-array lengths must throw so the caller skips the whole event (parity
