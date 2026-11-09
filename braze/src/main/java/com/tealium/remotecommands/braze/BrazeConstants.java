@@ -4,8 +4,6 @@ import androidx.annotation.Nullable;
 
 import com.braze.models.recommended.ecommerce.CartUpdatedAction;
 
-import org.json.JSONObject;
-
 import java.util.HashMap;
 import java.util.Map;
 
@@ -238,8 +236,9 @@ public final class BrazeConstants {
             }
 
             /**
-             * Maps a payload action value to an Action: REPLACE for an absent or JSON null value,
-             * otherwise the Action whose value matches the trimmed string, ignoring case.
+             * Maps a payload action value to an Action: REPLACE for an absent value, otherwise the
+             * Action whose value matches the trimmed string, ignoring case. A JSON null is not
+             * absent, so it is rejected, as on iOS.
              *
              * @param value the action read from the payload
              * @return the corresponding Action, or null when the value is present but is not a
@@ -247,7 +246,7 @@ public final class BrazeConstants {
              */
             @Nullable
             public static Action from(@Nullable Object value) {
-                if (JSONObject.NULL.equals(value)) {
+                if (value == null) {
                     return REPLACE;
                 }
                 if (value instanceof String) {

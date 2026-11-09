@@ -910,29 +910,9 @@ public class BrazeRemoteCommandTests {
     }
 
     @Test
-    public void testCartUpdatedEvent_DefaultsToReplace_WhenActionIsJsonNull() throws Exception {
-        JSONObject products = productsObject(singleProduct());
-        RemoteCommand.Response response = ResponseBuilder.create()
-                .addCommand(Commands.LOG_CART_UPDATED)
-                .populatePayload((json) -> {
-                    json.put(Ecommerce.CART_ID, "cart-1");
-                    json.put(Ecommerce.CURRENCY, "USD");
-                    json.put(Ecommerce.SOURCE, "test-source");
-                    json.put(Ecommerce.TOTAL_VALUE, 49.99);
-                    json.put(Ecommerce.ACTION, JSONObject.NULL);
-                    json.put(Ecommerce.PRODUCTS, products);
-                })
-                .build();
-
-        brazeRemoteCommand.onInvoke(response);
-
-        verify(mockBrazeInstance).logCartUpdated(eq("cart-1"), eq("USD"), eq("test-source"), eq(49.99), eq(null), eq(null), eq(null), eq(BrazeConstants.Ecommerce.Action.REPLACE), sameProducts(products), eq(null), eq(false));
-    }
-
-    @Test
     public void testCartUpdatedEvent_NotDispatched_WhenActionUnrecognized() throws Exception {
         JSONObject products = productsObject(singleProduct());
-        for (Object action : new Object[]{"append", "", "   ", 1, new JSONArray().put("add")}) {
+        for (Object action : new Object[]{"append", "", "   ", 1, new JSONArray().put("add"), JSONObject.NULL}) {
             RemoteCommand.Response response = ResponseBuilder.create()
                     .addCommand(Commands.LOG_CART_UPDATED)
                     .populatePayload((json) -> {
