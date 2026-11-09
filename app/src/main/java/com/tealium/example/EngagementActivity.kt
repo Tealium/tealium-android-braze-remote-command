@@ -23,17 +23,17 @@ class EngagementActivity : AppCompatActivity() {
             trackEvent("setengagement", data)
             data["email_subscription"]?.let { emailSubscription ->
                 if (emailSubscription == getString(R.string.hint_subscribed_value)) {
-                    trackEvent("subscribed", mapOf("subscription_group" to "email"))
+                    trackEvent("subscribe", mapOf("subscription_group" to EMAIL_SUBSCRIPTION_GROUP_ID))
                 } else if (emailSubscription == getString(R.string.hint_unsubscribed_value)) {
-                    trackEvent("unsubscribed", mapOf("subscription_group" to "email"))
+                    trackEvent("unsubscribe", mapOf("subscription_group" to EMAIL_SUBSCRIPTION_GROUP_ID))
                 }
             }
 
             data["push_subscription"]?.let { pushSubscription ->
                 if (pushSubscription == getString(R.string.hint_subscribed_value)) {
-                    trackEvent("subscribed", mapOf("subscription_group" to "push"))
+                    trackEvent("subscribe", mapOf("subscription_group" to PUSH_SUBSCRIPTION_GROUP_ID))
                 } else if (pushSubscription == getString(R.string.hint_unsubscribed_value)) {
-                    trackEvent("unsubscribed", mapOf("subscription_group" to "push"))
+                    trackEvent("unsubscribe", mapOf("subscription_group" to PUSH_SUBSCRIPTION_GROUP_ID))
                 }
             }
         }
@@ -65,5 +65,9 @@ class EngagementActivity : AppCompatActivity() {
 
     companion object {
         val TAG = EngagementActivity::class.java.simpleName
+
+        // Braze expects the group id from the dashboard, not the group name.
+        const val EMAIL_SUBSCRIPTION_GROUP_ID = "sample-email-subscription-group-id"
+        const val PUSH_SUBSCRIPTION_GROUP_ID = "sample-push-subscription-group-id"
     }
 }

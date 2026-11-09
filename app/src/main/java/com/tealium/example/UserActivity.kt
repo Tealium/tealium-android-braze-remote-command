@@ -59,8 +59,8 @@ class UserActivity : AppCompatActivity() {
     }
 
     private fun updateDateLabel() {
-        val dataFormat = "dd/MM/yyyy"
-        val sdf = SimpleDateFormat(dataFormat, Locale.getDefault())
+        // yyyy-MM-dd: the remote command does not parse dd/MM/yyyy.
+        val sdf = SimpleDateFormat("yyyy-MM-dd", Locale.ROOT)
         birthdayEditText.setText(sdf.format(calendar.time))
     }
 
@@ -70,7 +70,7 @@ class UserActivity : AppCompatActivity() {
             "customer_last_name" to lastNameEditText.text.toString(),
             "customer_email" to emailEditText.text.toString(),
             "customer_gender" to (if (TextUtils.isEmpty(genderEditText.text))
-                "prefernotosay"
+                "prefer_not_to_say"
             else genderEditText.text.toString()),
             "customer_home_city" to homeCityEditText.text.toString(),
             "customer_dob" to birthdayEditText.text.toString(),

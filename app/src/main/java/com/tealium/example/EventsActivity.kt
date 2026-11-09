@@ -118,7 +118,7 @@ class EventsActivity : AppCompatActivity() {
         trackEvent(
             "log_purchase", mapOf(
                 "product_id" to "sku123",
-                "order_currency" to "USD",
+                "currency_code" to "USD",
                 "price" to 1.99,
                 "rewards_member" to true,
                 "rewards_points_earned" to 50
@@ -133,7 +133,7 @@ class EventsActivity : AppCompatActivity() {
         )
         val data = mapOf(
             "product_id" to listOf("sku123", "sku456"),
-            "order_currency" to "USD",
+            "currency_code" to "USD",
             "price" to listOf(1.99, 2.99),
             "product_quantity" to listOf(1, 2),
             "purchase_props" to listOf(
