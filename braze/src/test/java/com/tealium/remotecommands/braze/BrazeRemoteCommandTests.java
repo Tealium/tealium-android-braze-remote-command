@@ -2,6 +2,8 @@ package com.tealium.remotecommands.braze;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyDouble;
@@ -21,6 +23,7 @@ import com.tealium.remotecommands.RemoteCommand;
 import com.tealium.remotecommands.braze.BrazeConstants.Commands;
 import com.tealium.remotecommands.braze.BrazeConstants.Config;
 import com.tealium.remotecommands.braze.BrazeConstants.Ecommerce;
+import com.tealium.remotecommands.braze.BrazeConstants.Event;
 import com.tealium.remotecommands.braze.BrazeConstants.Location;
 import com.tealium.remotecommands.braze.BrazeConstants.Purchase;
 import com.tealium.remotecommands.braze.BrazeConstants.User;
@@ -93,20 +96,20 @@ public class BrazeRemoteCommandTests {
                 .addCommand(Commands.INITIALIZE)
                 .populatePayload((json) -> {
                     json.put(Config.API_KEY, "api_key");
-                    json.put(BrazeConstants.Config.FIREBASE_ENABLED, true);
-                    json.put(BrazeConstants.Config.FIREBASE_SENDER_ID, "test-id");
-                    json.put(BrazeConstants.Config.ADM_ENABLED, true);
-                    json.put(BrazeConstants.Config.AUTO_PUSH_DEEP_LINKS, true);
-                    json.put(BrazeConstants.Config.BAD_NETWORK_INTERVAL, 30);
-                    json.put(BrazeConstants.Config.GOOD_NETWORK_INTERVAL, 30);
-                    json.put(BrazeConstants.Config.GREAT_NETWORK_INTERVAL, 30);
-                    json.put(BrazeConstants.Config.CUSTOM_ENDPOINT, "custom-endpoint");
-                    json.put(BrazeConstants.Config.DEFAULT_NOTIFICATION_COLOR, 0xFF00FF);
-                    json.put(BrazeConstants.Config.ENABLE_AUTOMATIC_LOCATION, true);
-                    json.put(BrazeConstants.Config.LARGE_NOTIFICATION_ICON, "large-notification-icon");
-                    json.put(BrazeConstants.Config.SMALL_NOTIFICATION_ICON, "small-notification-icon");
-                    json.put(BrazeConstants.Config.SESSION_TIMEOUT, 10);
-                    json.put(BrazeConstants.Config.TRIGGER_INTERVAL_SECONDS, 10);
+                    json.put(Config.FIREBASE_ENABLED, true);
+                    json.put(Config.FIREBASE_SENDER_ID, "test-id");
+                    json.put(Config.ADM_ENABLED, true);
+                    json.put(Config.AUTO_PUSH_DEEP_LINKS, true);
+                    json.put(Config.BAD_NETWORK_INTERVAL, 30);
+                    json.put(Config.GOOD_NETWORK_INTERVAL, 30);
+                    json.put(Config.GREAT_NETWORK_INTERVAL, 30);
+                    json.put(Config.CUSTOM_ENDPOINT, "custom-endpoint");
+                    json.put(Config.DEFAULT_NOTIFICATION_COLOR, 0xFF00FF);
+                    json.put(Config.ENABLE_AUTOMATIC_LOCATION, true);
+                    json.put(Config.LARGE_NOTIFICATION_ICON, "large-notification-icon");
+                    json.put(Config.SMALL_NOTIFICATION_ICON, "small-notification-icon");
+                    json.put(Config.SESSION_TIMEOUT, 10);
+                    json.put(Config.TRIGGER_INTERVAL_SECONDS, 10);
                 })
                 .build();
 
@@ -116,17 +119,54 @@ public class BrazeRemoteCommandTests {
     }
 
     @Test
+    public void testInitializeSetsStrictPropertiesEnabledWhenConfigured() throws Exception {
+        // enabled
+        RemoteCommand.Response response = ResponseBuilder.create()
+                .addCommand(Commands.INITIALIZE)
+                .populatePayload((json) -> {
+                    json.put(Config.API_KEY, "api_key")
+                        .put(Config.STRICT_PROPERTIES_ENABLED, true);
+                })
+                .build();
+        brazeRemoteCommand.onInvoke(response);
+        assertTrue(brazeRemoteCommand.mStrictPropertiesEnabled);
+
+        // disabled
+        response = ResponseBuilder.create()
+                .addCommand(Commands.INITIALIZE)
+                .populatePayload((json) -> {
+                    json.put(Config.API_KEY, "api_key")
+                            .put(Config.STRICT_PROPERTIES_ENABLED, false);
+                })
+                .build();
+        brazeRemoteCommand.onInvoke(response);
+        assertFalse(brazeRemoteCommand.mStrictPropertiesEnabled);
+    }
+
+    @Test
+    public void testInitializeLeavesStrictPropertiesEnabledFalseWhenNotConfigured() throws Exception {
+        RemoteCommand.Response response = ResponseBuilder.create()
+                .addCommand(Commands.INITIALIZE)
+                .populatePayload((json) -> {
+                    json.put(Config.API_KEY, "api_key");
+                })
+                .build();
+        brazeRemoteCommand.onInvoke(response);
+        assertFalse(brazeRemoteCommand.mStrictPropertiesEnabled);
+    }
+
+    @Test
     public void testCustomEventWithNullProperties() throws Exception {
         RemoteCommand.Response response = ResponseBuilder.create()
                 .addCommand(Commands.LOG_CUSTOM_EVENT)
                 .populatePayload((json) -> {
-                    json.put(BrazeConstants.Event.EVENT_NAME, "event");
+                    json.put(Event.EVENT_NAME, "event");
                 })
                 .build();
 
         brazeRemoteCommand.onInvoke(response);
 
-        verify(mockBrazeInstance).logCustomEvent(eq("event"), eq(null));
+        verify(mockBrazeInstance).logCustomEvent(eq("event"), eq(null), eq(false));
     }
 
     @Test
@@ -135,14 +175,14 @@ public class BrazeRemoteCommandTests {
         RemoteCommand.Response response = ResponseBuilder.create()
                 .addCommand(Commands.LOG_CUSTOM_EVENT)
                 .populatePayload((json) -> {
-                    json.put(BrazeConstants.Event.EVENT_NAME, "event");
-                    json.put(BrazeConstants.Event.EVENT_PROPERTIES, eventProps);
+                    json.put(Event.EVENT_NAME, "event");
+                    json.put(Event.EVENT_PROPERTIES, eventProps);
                 })
                 .build();
 
         brazeRemoteCommand.onInvoke(response);
 
-        verify(mockBrazeInstance).logCustomEvent(eq("event"), eq(eventProps));
+        verify(mockBrazeInstance).logCustomEvent(eq("event"), eq(eventProps), eq(false));
     }
 
     @Test
@@ -151,14 +191,49 @@ public class BrazeRemoteCommandTests {
         RemoteCommand.Response response = ResponseBuilder.create()
                 .addCommand(Commands.LOG_CUSTOM_EVENT)
                 .populatePayload((json) -> {
-                    json.put(BrazeConstants.Event.EVENT_NAME, "event");
-                    json.put(BrazeConstants.Event.EVENT_PROPERTIES_SHORTHAND, eventProps);
+                    json.put(Event.EVENT_NAME, "event");
+                    json.put(Event.EVENT_PROPERTIES_SHORTHAND, eventProps);
                 })
                 .build();
 
         brazeRemoteCommand.onInvoke(response);
 
-        verify(mockBrazeInstance).logCustomEvent(eq("event"), eq(eventProps));
+        verify(mockBrazeInstance).logCustomEvent(eq("event"), eq(eventProps), eq(false));
+    }
+
+    @Test
+    public void testCustomEventPrefersEventStrictPropertiesEnabledWhenPresent() throws Exception {
+        brazeRemoteCommand.mStrictPropertiesEnabled = false;
+        JSONObject eventProps = new JSONObject();
+        ResponseBuilder response = ResponseBuilder.create()
+                .addCommand(Commands.LOG_CUSTOM_EVENT)
+                .populatePayload((json) -> {
+                    json.put(Event.EVENT_NAME, "event");
+                    json.put(Event.EVENT_PROPERTIES_SHORTHAND, eventProps);
+                    json.put(Config.STRICT_PROPERTIES_ENABLED, true);
+                });
+
+        brazeRemoteCommand.onInvoke(response.build());
+        verify(mockBrazeInstance).logCustomEvent(any(), any(), eq(true));
+    }
+
+    @Test
+    public void testCustomEventUsesDefaultStrictPropertiesEnabledWhenNotPresent() throws Exception {
+        brazeRemoteCommand.mStrictPropertiesEnabled = true;
+        JSONObject eventProps = new JSONObject();
+        ResponseBuilder response = ResponseBuilder.create()
+                .addCommand(Commands.LOG_CUSTOM_EVENT)
+                .populatePayload((json) -> {
+                    json.put(Event.EVENT_NAME, "event");
+                    json.put(Event.EVENT_PROPERTIES_SHORTHAND, eventProps);
+                });
+
+        brazeRemoteCommand.onInvoke(response.build());
+        verify(mockBrazeInstance).logCustomEvent(any(), any(), eq(true));
+
+        brazeRemoteCommand.mStrictPropertiesEnabled = false;
+        brazeRemoteCommand.onInvoke(response.build());
+        verify(mockBrazeInstance).logCustomEvent(any(), any(), eq(false));
     }
 
     @Test
@@ -175,7 +250,7 @@ public class BrazeRemoteCommandTests {
 
         brazeRemoteCommand.onInvoke(response);
 
-        verify(mockBrazeInstance).logPurchase("product_id", "GBP",  BigDecimal.valueOf(10.10), 10, null);
+        verify(mockBrazeInstance).logPurchase("product_id", "GBP",  BigDecimal.valueOf(10.10), 10, null, false);
     }
 
     @Test
@@ -194,7 +269,48 @@ public class BrazeRemoteCommandTests {
 
         brazeRemoteCommand.onInvoke(response);
 
-        verify(mockBrazeInstance).logPurchase("product_id", "GBP",  BigDecimal.valueOf(10.10), 10, purchaseProps);
+        verify(mockBrazeInstance).logPurchase("product_id", "GBP",  BigDecimal.valueOf(10.10), 10, purchaseProps, false);
+    }
+
+    @Test
+    public void testPurchaseEventUsesEventStrictPropertiesEnabledWhenPresent() throws Exception {
+        brazeRemoteCommand.mStrictPropertiesEnabled = false;
+        JSONObject purchaseProps = new JSONObject();
+        RemoteCommand.Response response = ResponseBuilder.create()
+                .addCommand(Commands.LOG_PURCHASE_EVENT)
+                .populatePayload((json) -> {
+                    json.put(Purchase.PRODUCT_ID, "product_id");
+                    json.put(Purchase.PRODUCT_QTY, 10);
+                    json.put(Purchase.PRODUCT_PRICE, 10.10);
+                    json.put(Purchase.PRODUCT_CURRENCY, "GBP");
+                    json.put(Purchase.PURCHASE_PROPERTIES, purchaseProps);
+                    json.put(Config.STRICT_PROPERTIES_ENABLED, true);
+                })
+                .build();
+
+        brazeRemoteCommand.onInvoke(response);
+
+        verify(mockBrazeInstance).logPurchase("product_id", "GBP",  BigDecimal.valueOf(10.10), 10, purchaseProps, true);
+    }
+
+    @Test
+    public void testPurchaseEventUsesDefaultStrictPropertiesEnabledWhenNotPresent() throws Exception {
+        brazeRemoteCommand.mStrictPropertiesEnabled = true;
+        JSONObject purchaseProps = new JSONObject();
+        RemoteCommand.Response response = ResponseBuilder.create()
+                .addCommand(Commands.LOG_PURCHASE_EVENT)
+                .populatePayload((json) -> {
+                    json.put(Purchase.PRODUCT_ID, "product_id");
+                    json.put(Purchase.PRODUCT_QTY, 10);
+                    json.put(Purchase.PRODUCT_PRICE, 10.10);
+                    json.put(Purchase.PRODUCT_CURRENCY, "GBP");
+                    json.put(Purchase.PURCHASE_PROPERTIES, purchaseProps);
+                })
+                .build();
+
+        brazeRemoteCommand.onInvoke(response);
+
+        verify(mockBrazeInstance).logPurchase("product_id", "GBP",  BigDecimal.valueOf(10.10), 10, purchaseProps, true);
     }
 
     @Test
@@ -213,7 +329,7 @@ public class BrazeRemoteCommandTests {
 
         brazeRemoteCommand.onInvoke(response);
 
-        verify(mockBrazeInstance).logPurchase("product_id", "GBP",  BigDecimal.valueOf(10.10), 10, purchaseProps);
+        verify(mockBrazeInstance).logPurchase("product_id", "GBP",  BigDecimal.valueOf(10.10), 10, purchaseProps, false);
     }
 
     @Test
@@ -230,7 +346,7 @@ public class BrazeRemoteCommandTests {
 
         brazeRemoteCommand.onInvoke(response);
 
-        verify(mockBrazeInstance).logPurchase("product_id", "CAD", BigDecimal.valueOf(10.10), 10, null);
+        verify(mockBrazeInstance).logPurchase("product_id", "CAD", BigDecimal.valueOf(10.10), 10, null, false);
     }
 
     @Test
@@ -256,8 +372,8 @@ public class BrazeRemoteCommandTests {
         brazeRemoteCommand.onInvoke(productOverOrder);
         brazeRemoteCommand.onInvoke(canonicalOverAll);
 
-        verify(mockBrazeInstance).logPurchase(eq("product_id"), eq("GBP"), any(BigDecimal.class), eq(0), eq(null));
-        verify(mockBrazeInstance).logPurchase(eq("product_id2"), eq("EUR"), any(BigDecimal.class), eq(0), eq(null));
+        verify(mockBrazeInstance).logPurchase(eq("product_id"), eq("GBP"), any(BigDecimal.class), eq(0), eq(null), eq(false));
+        verify(mockBrazeInstance).logPurchase(eq("product_id2"), eq("EUR"), any(BigDecimal.class), eq(0), eq(null), eq(false));
     }
 
     @Test
@@ -276,7 +392,7 @@ public class BrazeRemoteCommandTests {
 
         brazeRemoteCommand.onInvoke(response);
 
-        verify(mockBrazeInstance).logPurchase("product_id", "GBP", BigDecimal.valueOf(5.5), 3, null);
+        verify(mockBrazeInstance).logPurchase("product_id", "GBP", BigDecimal.valueOf(5.5), 3, null, false);
     }
 
     @Test
@@ -298,7 +414,8 @@ public class BrazeRemoteCommandTests {
                 eq(new String[]{"CAD", "CAD"}),
                 eq(new BigDecimal[]{new BigDecimal(1.5), new BigDecimal(2.5)}),
                 eq(new Integer[]{2, 4}),
-                eq(new JSONObject[0]));
+                eq(new JSONObject[0]),
+                eq(false));
     }
 
     @Test
@@ -320,7 +437,8 @@ public class BrazeRemoteCommandTests {
                 eq(new String[]{"CAD", "EUR"}),
                 eq(new BigDecimal[]{new BigDecimal(1.5), new BigDecimal(2.5)}),
                 eq(new Integer[]{2, 4}),
-                eq(new JSONObject[0]));
+                eq(new JSONObject[0]),
+                eq(false));
     }
 
     /**
@@ -395,7 +513,7 @@ public class BrazeRemoteCommandTests {
 
         brazeRemoteCommand.onInvoke(response);
 
-        verify(mockBrazeInstance).logProductViewed(eq("sku123"), eq("Widget"), eq("widget_blue"), eq(49.99), eq("USD"), eq("test-source"), eq(null), eq(null), eq(null), eq(null));
+        verify(mockBrazeInstance).logProductViewed(eq("sku123"), eq("Widget"), eq("widget_blue"), eq(49.99), eq("USD"), eq("test-source"), eq(null), eq(null), eq(null), eq(null), eq(false));
     }
 
     @Test
@@ -414,7 +532,7 @@ public class BrazeRemoteCommandTests {
 
         brazeRemoteCommand.onInvoke(response);
 
-        verify(mockBrazeInstance).logProductViewed(eq("sku123"), eq("Widget"), eq("widget_blue"), eq(49.99), eq("GBP"), eq("test-source"), eq(null), eq(null), eq(null), eq(null));
+        verify(mockBrazeInstance).logProductViewed(eq("sku123"), eq("Widget"), eq("widget_blue"), eq(49.99), eq("GBP"), eq("test-source"), eq(null), eq(null), eq(null), eq(null), eq(false));
     }
 
     @Test
@@ -436,7 +554,7 @@ public class BrazeRemoteCommandTests {
 
         brazeRemoteCommand.onInvoke(response);
 
-        verify(mockBrazeInstance).logProductViewed(eq("sku123"), eq("Widget"), eq("widget_blue"), eq(49.99), eq("USD"), eq("test-source"), eq(null), eq(null), eq(null), eq(null));
+        verify(mockBrazeInstance).logProductViewed(eq("sku123"), eq("Widget"), eq("widget_blue"), eq(49.99), eq("USD"), eq("test-source"), eq(null), eq(null), eq(null), eq(null), eq(false));
     }
 
     @Test
@@ -456,7 +574,7 @@ public class BrazeRemoteCommandTests {
 
         brazeRemoteCommand.onInvoke(response);
 
-        verify(mockBrazeInstance).logOrderPlaced(eq("order-1"), eq("EUR"), eq("test-source"), eq(49.99), eq(null), eq(null), eq(null), sameProducts(products), eq(null), eq(null), eq(null), eq(null));
+        verify(mockBrazeInstance).logOrderPlaced(eq("order-1"), eq("EUR"), eq("test-source"), eq(49.99), eq(null), eq(null), eq(null), sameProducts(products), eq(null), eq(null), eq(null), eq(null), eq(false));
     }
 
     @Test
@@ -477,7 +595,7 @@ public class BrazeRemoteCommandTests {
             brazeRemoteCommand.onInvoke(response);
         }
 
-        verify(mockBrazeInstance, never()).logProductViewed(any(), any(), any(), anyDouble(), any(), any(), any(), any(), any(), any());
+        verify(mockBrazeInstance, never()).logProductViewed(any(), any(), any(), anyDouble(), any(), any(), any(), any(), any(), any(), anyBoolean());
     }
 
     @Test
@@ -498,7 +616,7 @@ public class BrazeRemoteCommandTests {
             brazeRemoteCommand.onInvoke(response);
         }
 
-        verify(mockBrazeInstance, never()).logCheckoutStarted(any(), any(), any(), anyDouble(), any(), any(), any(), any(), any(), any());
+        verify(mockBrazeInstance, never()).logCheckoutStarted(any(), any(), any(), anyDouble(), any(), any(), any(), any(), any(), any(), anyBoolean());
     }
 
     @Test
@@ -520,7 +638,7 @@ public class BrazeRemoteCommandTests {
 
         brazeRemoteCommand.onInvoke(response);
 
-        verify(mockBrazeInstance, never()).logProductViewed(any(), any(), any(), anyDouble(), any(), any(), any(), any(), any(), any());
+        verify(mockBrazeInstance, never()).logProductViewed(any(), any(), any(), anyDouble(), any(), any(), any(), any(), any(), any(), anyBoolean());
     }
 
     @Test
@@ -543,7 +661,7 @@ public class BrazeRemoteCommandTests {
 
         brazeRemoteCommand.onInvoke(response);
 
-        verify(mockBrazeInstance, never()).logProductViewed(any(), any(), any(), anyDouble(), any(), any(), any(), any(), any(), any());
+        verify(mockBrazeInstance, never()).logProductViewed(any(), any(), any(), anyDouble(), any(), any(), any(), any(), any(), any(), anyBoolean());
     }
 
     @Test
@@ -563,7 +681,7 @@ public class BrazeRemoteCommandTests {
 
         brazeRemoteCommand.onInvoke(response);
 
-        verify(mockBrazeInstance, never()).logProductViewed(any(), any(), any(), anyDouble(), any(), any(), any(), any(), any(), any());
+        verify(mockBrazeInstance, never()).logProductViewed(any(), any(), any(), anyDouble(), any(), any(), any(), any(), any(), any(), anyBoolean());
     }
 
     private JSONObject secondProduct() throws JSONException {
@@ -593,7 +711,7 @@ public class BrazeRemoteCommandTests {
 
         brazeRemoteCommand.onInvoke(response);
 
-        verify(mockBrazeInstance).logCartUpdated(eq("cart-1"), eq("USD"), eq("test-source"), eq(49.99), eq(null), eq(null), eq(null), eq(BrazeConstants.Ecommerce.Action.ADD), sameProducts(products), eq(null));
+        verify(mockBrazeInstance).logCartUpdated(eq("cart-1"), eq("USD"), eq("test-source"), eq(49.99), eq(null), eq(null), eq(null), eq(BrazeConstants.Ecommerce.Action.ADD), sameProducts(products), eq(null), eq(false));
     }
 
     @Test
@@ -612,7 +730,7 @@ public class BrazeRemoteCommandTests {
 
         brazeRemoteCommand.onInvoke(response);
 
-        verify(mockBrazeInstance).logCartUpdated(eq("cart-1"), eq("USD"), eq("test-source"), eq((Double) null), eq(null), eq(null), eq(null), eq(BrazeConstants.Ecommerce.Action.REMOVE), sameProducts(products), eq(null));
+        verify(mockBrazeInstance).logCartUpdated(eq("cart-1"), eq("USD"), eq("test-source"), eq((Double) null), eq(null), eq(null), eq(null), eq(BrazeConstants.Ecommerce.Action.REMOVE), sameProducts(products), eq(null), eq(false));
     }
 
     @Test
@@ -632,7 +750,7 @@ public class BrazeRemoteCommandTests {
 
         brazeRemoteCommand.onInvoke(response);
 
-        verify(mockBrazeInstance).logCartUpdated(eq("cart-1"), eq("USD"), eq("test-source"), eq(49.99), eq(null), eq(null), eq(null), eq(BrazeConstants.Ecommerce.Action.REPLACE), sameProducts(products), eq(null));
+        verify(mockBrazeInstance).logCartUpdated(eq("cart-1"), eq("USD"), eq("test-source"), eq(49.99), eq(null), eq(null), eq(null), eq(BrazeConstants.Ecommerce.Action.REPLACE), sameProducts(products), eq(null), eq(false));
     }
 
     @Test
@@ -652,7 +770,7 @@ public class BrazeRemoteCommandTests {
 
         brazeRemoteCommand.onInvoke(response);
 
-        verify(mockBrazeInstance).logCartUpdated(eq("cart-1"), eq("USD"), eq("test-source"), eq(49.99), eq(null), eq(null), eq(null), eq(BrazeConstants.Ecommerce.Action.ADD), sameProducts(products), eq(null));
+        verify(mockBrazeInstance).logCartUpdated(eq("cart-1"), eq("USD"), eq("test-source"), eq(49.99), eq(null), eq(null), eq(null), eq(BrazeConstants.Ecommerce.Action.ADD), sameProducts(products), eq(null), eq(false));
     }
 
     @Test
@@ -672,7 +790,7 @@ public class BrazeRemoteCommandTests {
 
         brazeRemoteCommand.onInvoke(response);
 
-        verify(mockBrazeInstance).logCartUpdated(eq("cart-1"), eq("USD"), eq("test-source"), eq(49.99), eq(null), eq(null), eq(null), eq(BrazeConstants.Ecommerce.Action.REPLACE), sameProducts(products), eq(null));
+        verify(mockBrazeInstance).logCartUpdated(eq("cart-1"), eq("USD"), eq("test-source"), eq(49.99), eq(null), eq(null), eq(null), eq(BrazeConstants.Ecommerce.Action.REPLACE), sameProducts(products), eq(null), eq(false));
     }
 
     @Test
@@ -694,7 +812,7 @@ public class BrazeRemoteCommandTests {
             brazeRemoteCommand.onInvoke(response);
         }
 
-        verify(mockBrazeInstance, never()).logCartUpdated(any(), any(), any(), any(), any(), any(), any(), any(), any(), any());
+        verify(mockBrazeInstance, never()).logCartUpdated(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), anyBoolean());
     }
 
     @Test
@@ -716,7 +834,7 @@ public class BrazeRemoteCommandTests {
 
         brazeRemoteCommand.onInvoke(response);
 
-        verify(mockBrazeInstance, never()).logCartUpdated(any(), any(), any(), any(), any(), any(), any(), any(), any(), any());
+        verify(mockBrazeInstance, never()).logCartUpdated(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), anyBoolean());
     }
 
     @Test
@@ -738,7 +856,7 @@ public class BrazeRemoteCommandTests {
 
         brazeRemoteCommand.onInvoke(response);
 
-        verify(mockBrazeInstance, never()).logCartUpdated(any(), any(), any(), any(), any(), any(), any(), any(), any(), any());
+        verify(mockBrazeInstance, never()).logCartUpdated(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), anyBoolean());
     }
 
     @Test
@@ -758,7 +876,7 @@ public class BrazeRemoteCommandTests {
 
         brazeRemoteCommand.onInvoke(response);
 
-        verify(mockBrazeInstance).logCheckoutStarted(eq("checkout-1"), eq("USD"), eq("test-source"), eq(49.99), eq(null), eq(null), eq(null), sameProducts(products), eq("cart-1"), eq(null));
+        verify(mockBrazeInstance).logCheckoutStarted(eq("checkout-1"), eq("USD"), eq("test-source"), eq(49.99), eq(null), eq(null), eq(null), sameProducts(products), eq("cart-1"), eq(null), eq(false));
     }
 
     @Test
@@ -781,7 +899,7 @@ public class BrazeRemoteCommandTests {
 
         brazeRemoteCommand.onInvoke(response);
 
-        verify(mockBrazeInstance).logCheckoutStarted(eq("checkout-1"), eq("USD"), eq("test-source"), eq(49.99), eq(null), eq(null), eq(null), sameProducts(products), eq("cart-1"), eq(eventProperties));
+        verify(mockBrazeInstance).logCheckoutStarted(eq("checkout-1"), eq("USD"), eq("test-source"), eq(49.99), eq(null), eq(null), eq(null), sameProducts(products), eq("cart-1"), eq(eventProperties), eq(false));
     }
 
     @Test
@@ -802,7 +920,7 @@ public class BrazeRemoteCommandTests {
 
         brazeRemoteCommand.onInvoke(response);
 
-        verify(mockBrazeInstance).logOrderPlaced(eq("order-1"), eq("USD"), eq("test-source"), eq(49.99), eq(null), eq(null), eq(null), sameProducts(products), eq("cart-1"), eq(5.0), eq(null), eq(null));
+        verify(mockBrazeInstance).logOrderPlaced(eq("order-1"), eq("USD"), eq("test-source"), eq(49.99), eq(null), eq(null), eq(null), sameProducts(products), eq("cart-1"), eq(5.0), eq(null), eq(null), eq(false));
     }
 
     @Test
@@ -827,7 +945,7 @@ public class BrazeRemoteCommandTests {
         brazeRemoteCommand.onInvoke(response);
 
         ArgumentCaptor<JSONObject> discountsCaptor = ArgumentCaptor.forClass(JSONObject.class);
-        verify(mockBrazeInstance).logOrderPlaced(eq("order-1"), eq("USD"), eq("test-source"), eq(49.99), eq(null), eq(null), eq(null), sameProducts(products), eq(null), eq(null), discountsCaptor.capture(), eq(null));
+        verify(mockBrazeInstance).logOrderPlaced(eq("order-1"), eq("USD"), eq("test-source"), eq(49.99), eq(null), eq(null), eq(null), sameProducts(products), eq(null), eq(null), discountsCaptor.capture(), eq(null), eq(false));
         assertNotNull(discountsCaptor.getValue());
         assertEquals(discounts.toString(), discountsCaptor.getValue().toString());
     }
@@ -848,7 +966,7 @@ public class BrazeRemoteCommandTests {
 
         brazeRemoteCommand.onInvoke(response);
 
-        verify(mockBrazeInstance, never()).logCheckoutStarted(any(), any(), any(), anyDouble(), any(), any(), any(), any(), any(), any());
+        verify(mockBrazeInstance, never()).logCheckoutStarted(any(), any(), any(), anyDouble(), any(), any(), any(), any(), any(), any(), anyBoolean());
     }
 
     @Test
@@ -867,7 +985,7 @@ public class BrazeRemoteCommandTests {
 
         brazeRemoteCommand.onInvoke(response);
 
-        verify(mockBrazeInstance, never()).logCartUpdated(any(), any(), any(), any(), any(), any(), any(), any(), any(), any());
+        verify(mockBrazeInstance, never()).logCartUpdated(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), anyBoolean());
     }
 
     @Test
@@ -885,7 +1003,7 @@ public class BrazeRemoteCommandTests {
 
         brazeRemoteCommand.onInvoke(response);
 
-        verify(mockBrazeInstance, never()).logCheckoutStarted(any(), any(), any(), anyDouble(), any(), any(), any(), any(), any(), any());
+        verify(mockBrazeInstance, never()).logCheckoutStarted(any(), any(), any(), anyDouble(), any(), any(), any(), any(), any(), any(), anyBoolean());
     }
 
     @Test
@@ -903,7 +1021,7 @@ public class BrazeRemoteCommandTests {
 
         brazeRemoteCommand.onInvoke(response);
 
-        verify(mockBrazeInstance, never()).logOrderPlaced(anyString(), anyString(), anyString(), anyDouble(), any(), any(), any(), any(), any(), any(), any(), any());
+        verify(mockBrazeInstance, never()).logOrderPlaced(anyString(), anyString(), anyString(), anyDouble(), any(), any(), any(), any(), any(), any(), any(), any(), anyBoolean());
     }
 
     @Test
@@ -918,7 +1036,7 @@ public class BrazeRemoteCommandTests {
 
         // Reached here without throwing, but the missing required total_value means the event was
         // never dispatched to the instance.
-        verify(mockBrazeInstance, never()).logOrderPlaced(anyString(), anyString(), anyString(), anyDouble(), any(), any(), any(), any(), any(), any(), any(), any());
+        verify(mockBrazeInstance, never()).logOrderPlaced(anyString(), anyString(), anyString(), anyDouble(), any(), any(), any(), any(), any(), any(), any(), any(), anyBoolean());
     }
 
     @Test
@@ -938,7 +1056,7 @@ public class BrazeRemoteCommandTests {
 
         brazeRemoteCommand.onInvoke(response);
 
-        verify(mockBrazeInstance).logOrderCancelled(eq("order-1"), eq("USD"), eq("test-source"), eq(49.99), eq(null), eq(null), eq(null), sameProducts(products), eq("customer_request"), eq(null), eq(null), eq(null));
+        verify(mockBrazeInstance).logOrderCancelled(eq("order-1"), eq("USD"), eq("test-source"), eq(49.99), eq(null), eq(null), eq(null), sameProducts(products), eq("customer_request"), eq(null), eq(null), eq(null), eq(false));
     }
 
     @Test
@@ -958,7 +1076,7 @@ public class BrazeRemoteCommandTests {
 
         brazeRemoteCommand.onInvoke(response);
 
-        verify(mockBrazeInstance).logOrderCancelled(eq("order-1"), eq("USD"), eq("test-source"), eq(49.99), eq(null), eq(null), eq(null), sameProducts(products), eq("customer_request"), eq(null), eq(null), eq(null));
+        verify(mockBrazeInstance).logOrderCancelled(eq("order-1"), eq("USD"), eq("test-source"), eq(49.99), eq(null), eq(null), eq(null), sameProducts(products), eq("customer_request"), eq(null), eq(null), eq(null), eq(false));
     }
 
     @Test
@@ -978,7 +1096,7 @@ public class BrazeRemoteCommandTests {
 
         brazeRemoteCommand.onInvoke(response);
 
-        verify(mockBrazeInstance, never()).logOrderCancelled(any(), any(), any(), anyDouble(), any(), any(), any(), any(), any(), any(), any(), any());
+        verify(mockBrazeInstance, never()).logOrderCancelled(any(), any(), any(), anyDouble(), any(), any(), any(), any(), any(), any(), any(), any(), anyBoolean());
     }
 
     @Test
@@ -998,7 +1116,7 @@ public class BrazeRemoteCommandTests {
 
         brazeRemoteCommand.onInvoke(response);
 
-        verify(mockBrazeInstance, never()).logOrderCancelled(any(), any(), any(), anyDouble(), any(), any(), any(), any(), any(), any(), any(), any());
+        verify(mockBrazeInstance, never()).logOrderCancelled(any(), any(), any(), anyDouble(), any(), any(), any(), any(), any(), any(), any(), any(), anyBoolean());
     }
 
     @Test
@@ -1023,7 +1141,7 @@ public class BrazeRemoteCommandTests {
             brazeRemoteCommand.onInvoke(response);
         }
 
-        verify(mockBrazeInstance, never()).logOrderCancelled(any(), any(), any(), anyDouble(), any(), any(), any(), any(), any(), any(), any(), any());
+        verify(mockBrazeInstance, never()).logOrderCancelled(any(), any(), any(), anyDouble(), any(), any(), any(), any(), any(), any(), any(), any(), anyBoolean());
     }
 
     @Test
@@ -1045,7 +1163,7 @@ public class BrazeRemoteCommandTests {
             brazeRemoteCommand.onInvoke(response);
         }
 
-        verify(mockBrazeInstance, never()).logOrderCancelled(any(), any(), any(), anyDouble(), any(), any(), any(), any(), any(), any(), any(), any());
+        verify(mockBrazeInstance, never()).logOrderCancelled(any(), any(), any(), anyDouble(), any(), any(), any(), any(), any(), any(), any(), any(), anyBoolean());
     }
 
     @Test
@@ -1065,7 +1183,7 @@ public class BrazeRemoteCommandTests {
 
         brazeRemoteCommand.onInvoke(response);
 
-        verify(mockBrazeInstance).logOrderCancelled(eq("order-1"), eq("USD"), eq("test-source"), eq(0.0), eq(null), eq(null), eq(null), sameProducts(products), eq("customer_request"), eq(null), eq(null), eq(null));
+        verify(mockBrazeInstance).logOrderCancelled(eq("order-1"), eq("USD"), eq("test-source"), eq(0.0), eq(null), eq(null), eq(null), sameProducts(products), eq("customer_request"), eq(null), eq(null), eq(null), eq(false));
     }
 
     @Test
@@ -1087,7 +1205,7 @@ public class BrazeRemoteCommandTests {
             brazeRemoteCommand.onInvoke(response);
         }
 
-        verify(mockBrazeInstance, never()).logOrderRefunded(any(), any(), any(), anyDouble(), any(), any(), any(), any());
+        verify(mockBrazeInstance, never()).logOrderRefunded(any(), any(), any(), anyDouble(), any(), any(), any(), any(), anyBoolean());
     }
 
     @Test
@@ -1108,7 +1226,7 @@ public class BrazeRemoteCommandTests {
             brazeRemoteCommand.onInvoke(response);
         }
 
-        verify(mockBrazeInstance, never()).logOrderRefunded(any(), any(), any(), anyDouble(), any(), any(), any(), any());
+        verify(mockBrazeInstance, never()).logOrderRefunded(any(), any(), any(), anyDouble(), any(), any(), any(), any(), anyBoolean());
     }
 
     @Test
@@ -1131,7 +1249,7 @@ public class BrazeRemoteCommandTests {
 
         brazeRemoteCommand.onInvoke(response);
 
-        verify(mockBrazeInstance).logOrderCancelled(eq("order-1"), eq("USD"), eq("test-source"), eq(49.99), eq(44.99), eq(3.0), eq(2.0), sameProducts(products), eq("customer_request"), eq(null), eq(null), eq(null));
+        verify(mockBrazeInstance).logOrderCancelled(eq("order-1"), eq("USD"), eq("test-source"), eq(49.99), eq(44.99), eq(3.0), eq(2.0), sameProducts(products), eq("customer_request"), eq(null), eq(null), eq(null), eq(false));
     }
 
     @Test
@@ -1154,7 +1272,7 @@ public class BrazeRemoteCommandTests {
 
         brazeRemoteCommand.onInvoke(response);
 
-        verify(mockBrazeInstance).logCartUpdated(eq("cart-1"), eq("USD"), eq("test-source"), eq(49.99), eq(44.99), eq(3.0), eq(2.0), eq(BrazeConstants.Ecommerce.Action.ADD), sameProducts(products), eq(null));
+        verify(mockBrazeInstance).logCartUpdated(eq("cart-1"), eq("USD"), eq("test-source"), eq(49.99), eq(44.99), eq(3.0), eq(2.0), eq(BrazeConstants.Ecommerce.Action.ADD), sameProducts(products), eq(null), eq(false));
     }
 
     @Test
@@ -1176,7 +1294,7 @@ public class BrazeRemoteCommandTests {
 
         brazeRemoteCommand.onInvoke(response);
 
-        verify(mockBrazeInstance).logCheckoutStarted(eq("checkout-1"), eq("USD"), eq("test-source"), eq(49.99), eq(44.99), eq(3.0), eq(2.0), sameProducts(products), eq(null), eq(null));
+        verify(mockBrazeInstance).logCheckoutStarted(eq("checkout-1"), eq("USD"), eq("test-source"), eq(49.99), eq(44.99), eq(3.0), eq(2.0), sameProducts(products), eq(null), eq(null), eq(false));
     }
 
     @Test
@@ -1198,7 +1316,7 @@ public class BrazeRemoteCommandTests {
 
         brazeRemoteCommand.onInvoke(response);
 
-        verify(mockBrazeInstance).logOrderPlaced(eq("order-1"), eq("USD"), eq("test-source"), eq(49.99), eq(44.99), eq(3.0), eq(2.0), sameProducts(products), eq(null), eq(null), eq(null), eq(null));
+        verify(mockBrazeInstance).logOrderPlaced(eq("order-1"), eq("USD"), eq("test-source"), eq(49.99), eq(44.99), eq(3.0), eq(2.0), sameProducts(products), eq(null), eq(null), eq(null), eq(null), eq(false));
     }
 
     @Test
@@ -1218,7 +1336,7 @@ public class BrazeRemoteCommandTests {
 
         brazeRemoteCommand.onInvoke(response);
 
-        verify(mockBrazeInstance).logProductViewed(eq("sku123"), eq("Widget"), eq("widget_blue"), eq(49.99), eq("USD"), eq("test-source"), eq(null), eq(null), eq(null), eq(List.of("price_drop", "back_in_stock")));
+        verify(mockBrazeInstance).logProductViewed(eq("sku123"), eq("Widget"), eq("widget_blue"), eq(49.99), eq("USD"), eq("test-source"), eq(null), eq(null), eq(null), eq(List.of("price_drop", "back_in_stock")), eq(false));
     }
 
     @Test
@@ -1238,7 +1356,7 @@ public class BrazeRemoteCommandTests {
 
         brazeRemoteCommand.onInvoke(response);
 
-        verify(mockBrazeInstance).logProductViewed(eq("sku123"), eq("Widget"), eq("widget_blue"), eq(49.99), eq("USD"), eq("test-source"), eq(null), eq(null), eq(null), eq(List.of("price_drop")));
+        verify(mockBrazeInstance).logProductViewed(eq("sku123"), eq("Widget"), eq("widget_blue"), eq(49.99), eq("USD"), eq("test-source"), eq(null), eq(null), eq(null), eq(List.of("price_drop")), eq(false));
     }
 
     @Test
@@ -1258,7 +1376,7 @@ public class BrazeRemoteCommandTests {
 
         brazeRemoteCommand.onInvoke(response);
 
-        verify(mockBrazeInstance, never()).logOrderCancelled(any(), any(), any(), anyDouble(), any(), any(), any(), any(), any(), any(), any(), any());
+        verify(mockBrazeInstance, never()).logOrderCancelled(any(), any(), any(), anyDouble(), any(), any(), any(), any(), any(), any(), any(), any(), anyBoolean());
     }
 
     @Test
@@ -1278,7 +1396,7 @@ public class BrazeRemoteCommandTests {
 
         brazeRemoteCommand.onInvoke(response);
 
-        verify(mockBrazeInstance, never()).logOrderCancelled(any(), any(), any(), anyDouble(), any(), any(), any(), any(), any(), any(), any(), any());
+        verify(mockBrazeInstance, never()).logOrderCancelled(any(), any(), any(), anyDouble(), any(), any(), any(), any(), any(), any(), any(), any(), anyBoolean());
     }
 
     @Test
@@ -1297,7 +1415,7 @@ public class BrazeRemoteCommandTests {
 
         brazeRemoteCommand.onInvoke(response);
 
-        verify(mockBrazeInstance).logOrderRefunded(eq("order-1"), eq("USD"), eq("test-source"), eq(49.99), sameProducts(products), eq(null), eq(null), eq(null));
+        verify(mockBrazeInstance).logOrderRefunded(eq("order-1"), eq("USD"), eq("test-source"), eq(49.99), sameProducts(products), eq(null), eq(null), eq(null), eq(false));
     }
 
     @Test
@@ -1316,7 +1434,7 @@ public class BrazeRemoteCommandTests {
 
         brazeRemoteCommand.onInvoke(response);
 
-        verify(mockBrazeInstance, never()).logOrderRefunded(any(), any(), any(), anyDouble(), any(), any(), any(), any());
+        verify(mockBrazeInstance, never()).logOrderRefunded(any(), any(), any(), anyDouble(), any(), any(), any(), any(), anyBoolean());
     }
 
     @Test
@@ -1335,7 +1453,7 @@ public class BrazeRemoteCommandTests {
 
         brazeRemoteCommand.onInvoke(response);
 
-        verify(mockBrazeInstance, never()).logOrderCancelled(any(), any(), any(), anyDouble(), any(), any(), any(), any(), any(), any(), any(), any());
+        verify(mockBrazeInstance, never()).logOrderCancelled(any(), any(), any(), anyDouble(), any(), any(), any(), any(), any(), any(), any(), any(), anyBoolean());
     }
 
     @Test
@@ -1353,7 +1471,7 @@ public class BrazeRemoteCommandTests {
 
         brazeRemoteCommand.onInvoke(response);
 
-        verify(mockBrazeInstance, never()).logOrderRefunded(any(), any(), any(), anyDouble(), any(), any(), any(), any());
+        verify(mockBrazeInstance, never()).logOrderRefunded(any(), any(), any(), anyDouble(), any(), any(), any(), any(), anyBoolean());
     }
 
     @Test
@@ -1372,7 +1490,7 @@ public class BrazeRemoteCommandTests {
 
         brazeRemoteCommand.onInvoke(response);
 
-        verify(mockBrazeInstance, never()).logOrderRefunded(any(), any(), any(), anyDouble(), any(), any(), any(), any());
+        verify(mockBrazeInstance, never()).logOrderRefunded(any(), any(), any(), anyDouble(), any(), any(), any(), any(), anyBoolean());
     }
 
     @Test
@@ -1391,7 +1509,7 @@ public class BrazeRemoteCommandTests {
 
         brazeRemoteCommand.onInvoke(response);
 
-        verify(mockBrazeInstance, never()).logOrderRefunded(any(), any(), any(), anyDouble(), any(), any(), any(), any());
+        verify(mockBrazeInstance, never()).logOrderRefunded(any(), any(), any(), anyDouble(), any(), any(), any(), any(), anyBoolean());
     }
 
     @Test
@@ -1413,7 +1531,7 @@ public class BrazeRemoteCommandTests {
 
         brazeRemoteCommand.onInvoke(response);
 
-        verify(mockBrazeInstance, never()).logCartUpdated(any(), any(), any(), any(), any(), any(), any(), any(), any(), any());
+        verify(mockBrazeInstance, never()).logCartUpdated(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), anyBoolean());
     }
 
     @Test
@@ -1432,7 +1550,7 @@ public class BrazeRemoteCommandTests {
 
         brazeRemoteCommand.onInvoke(response);
 
-        verify(mockBrazeInstance).logCartUpdated(eq("cart-1"), eq("USD"), eq("test-source"), eq(109.96), eq(null), eq(null), eq(null), eq(BrazeConstants.Ecommerce.Action.REPLACE), sameProducts(products), eq(null));
+        verify(mockBrazeInstance).logCartUpdated(eq("cart-1"), eq("USD"), eq("test-source"), eq(109.96), eq(null), eq(null), eq(null), eq(BrazeConstants.Ecommerce.Action.REPLACE), sameProducts(products), eq(null), eq(false));
     }
 
     @Test
@@ -1451,7 +1569,7 @@ public class BrazeRemoteCommandTests {
 
         brazeRemoteCommand.onInvoke(response);
 
-        verify(mockBrazeInstance).logOrderPlaced(eq("order-1"), eq("USD"), eq("test-source"), eq(109.96), eq(null), eq(null), eq(null), sameProducts(products), eq(null), eq(null), eq(null), eq(null));
+        verify(mockBrazeInstance).logOrderPlaced(eq("order-1"), eq("USD"), eq("test-source"), eq(109.96), eq(null), eq(null), eq(null), sameProducts(products), eq(null), eq(null), eq(null), eq(null), eq(false));
     }
 
     @Test
@@ -1471,7 +1589,7 @@ public class BrazeRemoteCommandTests {
 
         brazeRemoteCommand.onInvoke(response);
 
-        verify(mockBrazeInstance).logOrderCancelled(eq("order-1"), eq("USD"), eq("test-source"), eq(109.96), eq(null), eq(null), eq(null), sameProducts(products), eq("customer_request"), eq(null), eq(null), eq(null));
+        verify(mockBrazeInstance).logOrderCancelled(eq("order-1"), eq("USD"), eq("test-source"), eq(109.96), eq(null), eq(null), eq(null), sameProducts(products), eq("customer_request"), eq(null), eq(null), eq(null), eq(false));
     }
 
     @Test
@@ -1490,7 +1608,7 @@ public class BrazeRemoteCommandTests {
 
         brazeRemoteCommand.onInvoke(response);
 
-        verify(mockBrazeInstance).logOrderRefunded(eq("order-1"), eq("USD"), eq("test-source"), eq(109.96), sameProducts(products), eq(null), eq(null), eq(null));
+        verify(mockBrazeInstance).logOrderRefunded(eq("order-1"), eq("USD"), eq("test-source"), eq(109.96), sameProducts(products), eq(null), eq(null), eq(null), eq(false));
     }
 
     @Test
@@ -1510,7 +1628,7 @@ public class BrazeRemoteCommandTests {
 
         brazeRemoteCommand.onInvoke(response);
 
-        verify(mockBrazeInstance, never()).logProductViewed(any(), any(), any(), anyDouble(), any(), any(), any(), any(), any(), any());
+        verify(mockBrazeInstance, never()).logProductViewed(any(), any(), any(), anyDouble(), any(), any(), any(), any(), any(), any(), anyBoolean());
     }
 
     @Test
@@ -1531,7 +1649,7 @@ public class BrazeRemoteCommandTests {
 
         brazeRemoteCommand.onInvoke(response);
 
-        verify(mockBrazeInstance).logProductViewed(eq("sku123"), eq("Widget"), eq("widget_blue"), eq(49.99), eq("USD"), eq("test-source"), eq(null), eq(null), eq(null), eq(null));
+        verify(mockBrazeInstance).logProductViewed(eq("sku123"), eq("Widget"), eq("widget_blue"), eq(49.99), eq("USD"), eq("test-source"), eq(null), eq(null), eq(null), eq(null), eq(false));
     }
 
     @Test
@@ -1553,7 +1671,7 @@ public class BrazeRemoteCommandTests {
 
         brazeRemoteCommand.onInvoke(response);
 
-        verify(mockBrazeInstance, never()).logCartUpdated(any(), any(), any(), any(), any(), any(), any(), any(), any(), any());
+        verify(mockBrazeInstance, never()).logCartUpdated(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), anyBoolean());
     }
 
     @Test
@@ -1574,7 +1692,7 @@ public class BrazeRemoteCommandTests {
 
         brazeRemoteCommand.onInvoke(response);
 
-        verify(mockBrazeInstance).logOrderPlaced(eq("order-1"), eq("USD"), eq("test-source"), eq(49.99), eq(null), eq(null), eq(null), sameProducts(products), eq(null), eq(null), eq(null), eq(null));
+        verify(mockBrazeInstance).logOrderPlaced(eq("order-1"), eq("USD"), eq("test-source"), eq(49.99), eq(null), eq(null), eq(null), sameProducts(products), eq(null), eq(null), eq(null), eq(null), eq(false));
     }
 
     @Test
@@ -1595,7 +1713,7 @@ public class BrazeRemoteCommandTests {
 
         brazeRemoteCommand.onInvoke(response);
 
-        verify(mockBrazeInstance, never()).logProductViewed(any(), any(), any(), anyDouble(), any(), any(), any(), any(), any(), any());
+        verify(mockBrazeInstance, never()).logProductViewed(any(), any(), any(), anyDouble(), any(), any(), any(), any(), any(), any(), anyBoolean());
     }
 
     @Test
@@ -1615,7 +1733,7 @@ public class BrazeRemoteCommandTests {
 
         brazeRemoteCommand.onInvoke(response);
 
-        verify(mockBrazeInstance, never()).logCartUpdated(any(), any(), any(), any(), any(), any(), any(), any(), any(), any());
+        verify(mockBrazeInstance, never()).logCartUpdated(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), anyBoolean());
     }
 
     @Test
@@ -1634,7 +1752,7 @@ public class BrazeRemoteCommandTests {
 
         brazeRemoteCommand.onInvoke(response);
 
-        verify(mockBrazeInstance, never()).logCheckoutStarted(any(), any(), any(), anyDouble(), any(), any(), any(), any(), any(), any());
+        verify(mockBrazeInstance, never()).logCheckoutStarted(any(), any(), any(), anyDouble(), any(), any(), any(), any(), any(), any(), anyBoolean());
     }
 
     @Test
@@ -1653,7 +1771,7 @@ public class BrazeRemoteCommandTests {
 
         brazeRemoteCommand.onInvoke(response);
 
-        verify(mockBrazeInstance, never()).logOrderPlaced(anyString(), anyString(), anyString(), anyDouble(), any(), any(), any(), any(), any(), any(), any(), any());
+        verify(mockBrazeInstance, never()).logOrderPlaced(anyString(), anyString(), anyString(), anyDouble(), any(), any(), any(), any(), any(), any(), any(), any(), anyBoolean());
     }
 
     @Test
@@ -1675,7 +1793,7 @@ public class BrazeRemoteCommandTests {
 
         brazeRemoteCommand.onInvoke(response);
 
-        verify(mockBrazeInstance, never()).logOrderCancelled(any(), any(), any(), anyDouble(), any(), any(), any(), any(), any(), any(), any(), any());
+        verify(mockBrazeInstance, never()).logOrderCancelled(any(), any(), any(), anyDouble(), any(), any(), any(), any(), any(), any(), any(), any(), anyBoolean());
     }
 
     @Test
@@ -1696,7 +1814,7 @@ public class BrazeRemoteCommandTests {
 
         brazeRemoteCommand.onInvoke(response);
 
-        verify(mockBrazeInstance, never()).logOrderRefunded(any(), any(), any(), anyDouble(), any(), any(), any(), any());
+        verify(mockBrazeInstance, never()).logOrderRefunded(any(), any(), any(), anyDouble(), any(), any(), any(), any(), anyBoolean());
     }
 
     @Test
@@ -1717,7 +1835,7 @@ public class BrazeRemoteCommandTests {
 
         brazeRemoteCommand.onInvoke(response);
 
-        verify(mockBrazeInstance).logCheckoutStarted(eq("checkout-1"), eq("USD"), eq("test-source"), eq(49.99), eq(null), eq(null), eq(null), sameProducts(products), eq(null), eq(null));
+        verify(mockBrazeInstance).logCheckoutStarted(eq("checkout-1"), eq("USD"), eq("test-source"), eq(49.99), eq(null), eq(null), eq(null), sameProducts(products), eq(null), eq(null), eq(false));
     }
 
     @Test
@@ -1738,7 +1856,7 @@ public class BrazeRemoteCommandTests {
 
         brazeRemoteCommand.onInvoke(response);
 
-        verify(mockBrazeInstance).logOrderPlaced(eq("order-1"), eq("USD"), eq("test-source"), eq(49.99), eq(null), eq(null), eq(null), sameProducts(products), eq(null), eq(null), eq(null), eq(null));
+        verify(mockBrazeInstance).logOrderPlaced(eq("order-1"), eq("USD"), eq("test-source"), eq(49.99), eq(null), eq(null), eq(null), sameProducts(products), eq(null), eq(null), eq(null), eq(null), eq(false));
     }
 
     @Test
@@ -1760,7 +1878,7 @@ public class BrazeRemoteCommandTests {
 
         brazeRemoteCommand.onInvoke(response);
 
-        verify(mockBrazeInstance, never()).logOrderCancelled(any(), any(), any(), anyDouble(), any(), any(), any(), any(), any(), any(), any(), any());
+        verify(mockBrazeInstance, never()).logOrderCancelled(any(), any(), any(), anyDouble(), any(), any(), any(), any(), any(), any(), any(), any(), anyBoolean());
     }
 
     @Test

@@ -1,5 +1,14 @@
 package com.tealium.remotecommands.braze;
 
+import static com.tealium.remotecommands.braze.BrazeConstants.Commands;
+import static com.tealium.remotecommands.braze.BrazeConstants.Config;
+import static com.tealium.remotecommands.braze.BrazeConstants.Ecommerce;
+import static com.tealium.remotecommands.braze.BrazeConstants.Event;
+import static com.tealium.remotecommands.braze.BrazeConstants.Location;
+import static com.tealium.remotecommands.braze.BrazeConstants.Purchase;
+import static com.tealium.remotecommands.braze.BrazeConstants.TAG;
+import static com.tealium.remotecommands.braze.BrazeConstants.User;
+
 import android.app.Application;
 import android.util.Log;
 
@@ -15,15 +24,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
-import static com.tealium.remotecommands.braze.BrazeConstants.TAG;
-import static com.tealium.remotecommands.braze.BrazeConstants.Commands;
-import static com.tealium.remotecommands.braze.BrazeConstants.Config;
-import static com.tealium.remotecommands.braze.BrazeConstants.User;
-import static com.tealium.remotecommands.braze.BrazeConstants.Event;
-import static com.tealium.remotecommands.braze.BrazeConstants.Purchase;
-import static com.tealium.remotecommands.braze.BrazeConstants.Ecommerce;
-import static com.tealium.remotecommands.braze.BrazeConstants.Location;
-
 /**
  * Created by jameskeith on 23/10/2018.
  */
@@ -35,12 +35,13 @@ public class BrazeRemoteCommand extends RemoteCommand {
 
     BrazeCommand mBraze;
     List<ConfigOverrider> configOverriders = new LinkedList<>();
+    boolean mStrictPropertiesEnabled = false;
 
     /**
      * Constructs a RemoteCommand that integrates with the Braze SDK to allow Braze API calls to be
      * implemented through Tealium.
      *
-     * @param app                         - The Application instance
+     * @param app - The Application instance
      */
     public BrazeRemoteCommand(Application app) {
         this(app, true, null, true, null, DEFAULT_COMMAND_ID, DEFAULT_COMMAND_DESCRIPTION);
@@ -286,11 +287,8 @@ public class BrazeRemoteCommand extends RemoteCommand {
                 switch (command) {
                     case Commands.INITIALIZE:
                         String apiKey = payload.optString(Config.API_KEY);
-                        mBraze.initialize(
-                                apiKey,
-                                payload,
-                                configOverriders
-                        );
+                        mStrictPropertiesEnabled = extractStrictPropertiesEnabled(payload, mStrictPropertiesEnabled);
+                        mBraze.initialize(apiKey, payload, configOverriders);
                         break;
                     case Commands.ENABLE_SDK:
                         mBraze.enableSdk();
@@ -384,11 +382,13 @@ public class BrazeRemoteCommand extends RemoteCommand {
                         }
                         mBraze.logCustomEvent(
                                 payload.getString(Event.EVENT_NAME),
-                                eventProps
+                                eventProps,
+                                extractStrictPropertiesEnabled(payload, mStrictPropertiesEnabled)
                         );
                         break;
                     case Commands.LOG_PURCHASE_EVENT:
                         Object productId = payload.get(Purchase.PRODUCT_ID);
+                        boolean strictPropertiesEnabled = extractStrictPropertiesEnabled(payload, mStrictPropertiesEnabled);
                         if (productId instanceof JSONArray) {
                             JSONArray purchaseProps = payload.optJSONArray(Purchase.PURCHASE_PROPERTIES);
                             if (purchaseProps == null) {
@@ -400,7 +400,8 @@ public class BrazeRemoteCommand extends RemoteCommand {
                                     BrazeUtils.getPurchaseCurrencies(payload, productIds.length),
                                     BrazeUtils.getBigDecimalArrayFromJson(payload.optJSONArray(BrazeUtils.resolveKey(payload, Ecommerce.PRICE))),
                                     BrazeUtils.getIntegerArrayFromJson(payload.optJSONArray(BrazeUtils.resolveKey(payload, Ecommerce.QUANTITY))),
-                                    BrazeUtils.getJSONObjectArrayFromJson(purchaseProps)
+                                    BrazeUtils.getJSONObjectArrayFromJson(purchaseProps),
+                                    strictPropertiesEnabled
                             );
                         } else {
                             // assume a single purchase
@@ -413,7 +414,8 @@ public class BrazeRemoteCommand extends RemoteCommand {
                                     payload.optString(BrazeUtils.resolveKey(payload, Ecommerce.CURRENCY)),
                                     BigDecimal.valueOf(payload.optDouble(BrazeUtils.resolveKey(payload, Ecommerce.PRICE), 0d)),
                                     payload.optInt(BrazeUtils.resolveKey(payload, Ecommerce.QUANTITY)),
-                                    purchaseProps
+                                    purchaseProps,
+                                    strictPropertiesEnabled
                             );
                         }
                         break;
@@ -428,7 +430,8 @@ public class BrazeRemoteCommand extends RemoteCommand {
                                 BrazeUtils.optionalScalarString(payload, Ecommerce.IMAGE_URL),
                                 BrazeUtils.optionalScalarString(payload, Ecommerce.PRODUCT_URL),
                                 payload.optJSONObject(Ecommerce.METADATA),
-                                BrazeUtils.optionalStringList(payload, Ecommerce.TYPE)
+                                BrazeUtils.optionalStringList(payload, Ecommerce.TYPE),
+                                extractStrictPropertiesEnabled(payload, mStrictPropertiesEnabled)
                         );
                         break;
                     case Commands.LOG_CART_UPDATED:
@@ -454,7 +457,8 @@ public class BrazeRemoteCommand extends RemoteCommand {
                                 BrazeUtils.optionalDouble(payload, Ecommerce.SHIPPING),
                                 cartAction,
                                 payload.getJSONObject(Ecommerce.PRODUCTS),
-                                payload.optJSONObject(Ecommerce.METADATA)
+                                payload.optJSONObject(Ecommerce.METADATA),
+                                extractStrictPropertiesEnabled(payload, mStrictPropertiesEnabled)
                         );
                         break;
                     case Commands.LOG_CHECKOUT_STARTED:
@@ -468,7 +472,8 @@ public class BrazeRemoteCommand extends RemoteCommand {
                                 BrazeUtils.optionalDouble(payload, Ecommerce.SHIPPING),
                                 payload.getJSONObject(Ecommerce.PRODUCTS),
                                 BrazeUtils.optionalScalarString(payload, Ecommerce.CART_ID),
-                                payload.optJSONObject(Ecommerce.METADATA)
+                                payload.optJSONObject(Ecommerce.METADATA),
+                                extractStrictPropertiesEnabled(payload, mStrictPropertiesEnabled)
                         );
                         break;
                     case Commands.LOG_ORDER_PLACED:
@@ -484,7 +489,8 @@ public class BrazeRemoteCommand extends RemoteCommand {
                                 BrazeUtils.optionalScalarString(payload, Ecommerce.CART_ID),
                                 BrazeUtils.optionalDouble(payload, Ecommerce.TOTAL_DISCOUNTS),
                                 payload.optJSONObject(Ecommerce.DISCOUNTS),
-                                payload.optJSONObject(Ecommerce.METADATA)
+                                payload.optJSONObject(Ecommerce.METADATA),
+                                extractStrictPropertiesEnabled(payload, mStrictPropertiesEnabled)
                         );
                         break;
                     case Commands.LOG_ORDER_CANCELLED:
@@ -500,7 +506,8 @@ public class BrazeRemoteCommand extends RemoteCommand {
                                 BrazeUtils.requireNonBlankString(payload, Ecommerce.CANCEL_REASON),
                                 BrazeUtils.optionalDouble(payload, Ecommerce.TOTAL_DISCOUNTS),
                                 payload.optJSONObject(Ecommerce.DISCOUNTS),
-                                payload.optJSONObject(Ecommerce.METADATA)
+                                payload.optJSONObject(Ecommerce.METADATA),
+                                extractStrictPropertiesEnabled(payload, mStrictPropertiesEnabled)
                         );
                         break;
                     case Commands.LOG_ORDER_REFUNDED:
@@ -512,7 +519,8 @@ public class BrazeRemoteCommand extends RemoteCommand {
                                 payload.getJSONObject(Ecommerce.PRODUCTS),
                                 BrazeUtils.optionalDouble(payload, Ecommerce.TOTAL_DISCOUNTS),
                                 payload.optJSONObject(Ecommerce.DISCOUNTS),
-                                payload.optJSONObject(Ecommerce.METADATA)
+                                payload.optJSONObject(Ecommerce.METADATA),
+                                extractStrictPropertiesEnabled(payload, mStrictPropertiesEnabled)
                         );
                         break;
                     case Commands.EMAIL_NOTIFICATION:
@@ -590,5 +598,18 @@ public class BrazeRemoteCommand extends RemoteCommand {
     @FunctionalInterface
     public interface ConfigOverrider {
         void onOverride(BrazeConfig.Builder b);
+    }
+
+    /**
+     * Extracts the {@link com.tealium.remotecommands.braze.BrazeConstants.Config#STRICT_PROPERTIES_ENABLED STRICT_PROPERTIES_ENABLED}
+     * key from the payload.
+     * If a boolean value is present, it is returned; otherwise the provided fallback is returned.
+     *
+     * @param payload the full payload of the Remote Command event
+     * @param fallback the value to return when no boolean value was found in the payload
+     * @return the strict-properties boolean from the payload, or {@code fallback} if not present
+     */
+    static boolean extractStrictPropertiesEnabled(JSONObject payload, boolean fallback) {
+        return payload.optBoolean(Config.STRICT_PROPERTIES_ENABLED, fallback);
     }
 }

@@ -51,7 +51,6 @@ class BrazeInstance implements BrazeCommand, ActivityLifecycleCallbacks {
     Set<Class<?>> mSessionHandlingBlacklist;
     boolean mRegisterInAppMessageManager;
     Set<Class<?>> mInAppMessageBlacklist;
-    boolean mStrictPropertiesEnabled;
 
     public BrazeInstance(Application app) {
         this(app, true, null, true, null);
@@ -63,7 +62,6 @@ class BrazeInstance implements BrazeCommand, ActivityLifecycleCallbacks {
         mSessionHandlingBlacklist = sessionHandlingBlacklist;
         mRegisterInAppMessageManager = registerInAppMessageManager;
         mInAppMessageBlacklist = inAppMessageBlacklist;
-        mStrictPropertiesEnabled = false; // disabled by default
 
         if (sessionHandlingEnabled) {
             // Init process will be asynchronous; need to register a temporary listener to capture
@@ -161,10 +159,6 @@ class BrazeInstance implements BrazeCommand, ActivityLifecycleCallbacks {
 
             if (BrazeUtils.keyHasValue(launchOptions, Config.IS_SDK_AUTHENTICATION_ENABLED)) {
                 builder.setIsSdkAuthenticationEnabled(launchOptions.optBoolean(Config.IS_SDK_AUTHENTICATION_ENABLED));
-            }
-
-            if (BrazeUtils.keyHasValue(launchOptions, Config.STRICT_PROPERTIES_ENABLED)) {
-                mStrictPropertiesEnabled = launchOptions.optBoolean(Config.STRICT_PROPERTIES_ENABLED, mStrictPropertiesEnabled);
             }
 
             // Integers
@@ -544,12 +538,12 @@ class BrazeInstance implements BrazeCommand, ActivityLifecycleCallbacks {
     }
 
     @Override
-    public void logCustomEvent(@NonNull String eventName, @Nullable JSONObject eventProperties) {
+    public void logCustomEvent(@NonNull String eventName, @Nullable JSONObject eventProperties, boolean strictPropertiesEnabled) {
         BrazeProperties brazeProperties;
         if (eventProperties == null) {
             brazeProperties = null;
         } else {
-            brazeProperties = BrazeUtils.extractCustomProperties(eventProperties, mStrictPropertiesEnabled);
+            brazeProperties = BrazeUtils.extractCustomProperties(eventProperties, strictPropertiesEnabled);
         }
 
         // Braze api handles an empty BrazeProperties object, so no need to wrap both calls.
@@ -557,29 +551,30 @@ class BrazeInstance implements BrazeCommand, ActivityLifecycleCallbacks {
     }
 
     @Override
-    public void logPurchase(@NonNull String productId, @Nullable String currency, @NonNull BigDecimal unitPrice, Integer quantity, JSONObject purchaseProperties) {
+    public void logPurchase(@NonNull String productId, @Nullable String currency, @NonNull BigDecimal unitPrice, Integer quantity, JSONObject purchaseProperties, boolean strictPropertiesEnabled) {
         if (BrazeUtils.isNullOrEmpty(currency)) {
             currency = "USD";// braze default.
         }
 
-        getBrazeInstance().logPurchase(productId, currency, unitPrice, quantity > 0 ? quantity : 1, BrazeUtils.extractCustomProperties(purchaseProperties, mStrictPropertiesEnabled));
+        getBrazeInstance().logPurchase(productId, currency, unitPrice, quantity > 0 ? quantity : 1, BrazeUtils.extractCustomProperties(purchaseProperties, strictPropertiesEnabled));
     }
 
     @Override
-    public void logPurchase(@NonNull String[] productIds, String[] currencies, @NonNull BigDecimal[] unitPrices, Integer[] quantities, JSONObject[] purchaseProperties) {
+    public void logPurchase(@NonNull String[] productIds, String[] currencies, @NonNull BigDecimal[] unitPrices, Integer[] quantities, JSONObject[] purchaseProperties, boolean strictPropertiesEnabled) {
         for (int i = 0; i < productIds.length; i++) {
             logPurchase(
                     productIds[i],
                     currencies != null && currencies.length > i ? currencies[i] : null,
                     unitPrices != null && unitPrices.length > i ? unitPrices[i] : BigDecimal.ZERO,
                     quantities != null && quantities.length > i ? quantities[i] : 1,
-                    purchaseProperties != null && purchaseProperties.length > i ? purchaseProperties[i] : null
+                    purchaseProperties != null && purchaseProperties.length > i ? purchaseProperties[i] : null,
+                    strictPropertiesEnabled
             );
         }
     }
 
     @Override
-    public void logProductViewed(@NonNull String productId, @NonNull String productName, @NonNull String variantId, double price, @NonNull String currency, @NonNull String source, @Nullable String imageUrl, @Nullable String productUrl, @Nullable JSONObject properties, @Nullable List<String> type) {
+    public void logProductViewed(@NonNull String productId, @NonNull String productName, @NonNull String variantId, double price, @NonNull String currency, @NonNull String source, @Nullable String imageUrl, @Nullable String productUrl, @Nullable JSONObject properties, @Nullable List<String> type, boolean strictPropertiesEnabled) {
         getBrazeInstance().logEcommerceEvent(new ProductViewedEvent(
                 productId,
                 productName,
@@ -589,20 +584,20 @@ class BrazeInstance implements BrazeCommand, ActivityLifecycleCallbacks {
                 source,
                 imageUrl,
                 productUrl,
-                BrazeUtils.extractCustomProperties(properties, mStrictPropertiesEnabled),
+                BrazeUtils.extractCustomProperties(properties, strictPropertiesEnabled),
                 type
         ));
     }
 
     @Override
-    public void logCartUpdated(@NonNull String cartId, @NonNull String currency, @NonNull String source, @Nullable Double totalValue, @Nullable Double subtotalValue, @Nullable Double tax, @Nullable Double shipping, @NonNull BrazeConstants.Ecommerce.Action action, @Nullable JSONObject products, @Nullable JSONObject properties) throws JSONException {
+    public void logCartUpdated(@NonNull String cartId, @NonNull String currency, @NonNull String source, @Nullable Double totalValue, @Nullable Double subtotalValue, @Nullable Double tax, @Nullable Double shipping, @NonNull BrazeConstants.Ecommerce.Action action, @Nullable JSONObject products, @Nullable JSONObject properties, boolean strictPropertiesEnabled) throws JSONException {
         getBrazeInstance().logEcommerceEvent(new CartUpdatedEvent(
                 cartId,
                 currency,
                 source,
                 totalValue,
-                BrazeUtils.getProductsFromNestedArrays(products, mStrictPropertiesEnabled),
-                BrazeUtils.extractCustomProperties(properties, mStrictPropertiesEnabled),
+                BrazeUtils.getProductsFromNestedArrays(products, strictPropertiesEnabled),
+                BrazeUtils.extractCustomProperties(properties, strictPropertiesEnabled),
                 action.brazeAction,
                 subtotalValue,
                 tax,
@@ -611,15 +606,15 @@ class BrazeInstance implements BrazeCommand, ActivityLifecycleCallbacks {
     }
 
     @Override
-    public void logCheckoutStarted(@NonNull String checkoutId, @NonNull String currency, @NonNull String source, double totalValue, @Nullable Double subtotalValue, @Nullable Double tax, @Nullable Double shipping, @Nullable JSONObject products, @Nullable String cartId, @Nullable JSONObject properties) throws JSONException {
+    public void logCheckoutStarted(@NonNull String checkoutId, @NonNull String currency, @NonNull String source, double totalValue, @Nullable Double subtotalValue, @Nullable Double tax, @Nullable Double shipping, @Nullable JSONObject products, @Nullable String cartId, @Nullable JSONObject properties, boolean strictPropertiesEnabled) throws JSONException {
         getBrazeInstance().logEcommerceEvent(new CheckoutStartedEvent(
                 checkoutId,
                 currency,
                 source,
                 totalValue,
-                BrazeUtils.getProductsFromNestedArrays(products, mStrictPropertiesEnabled),
+                BrazeUtils.getProductsFromNestedArrays(products, strictPropertiesEnabled),
                 cartId,
-                BrazeUtils.extractCustomProperties(properties, mStrictPropertiesEnabled),
+                BrazeUtils.extractCustomProperties(properties, strictPropertiesEnabled),
                 subtotalValue,
                 tax,
                 shipping
@@ -627,17 +622,17 @@ class BrazeInstance implements BrazeCommand, ActivityLifecycleCallbacks {
     }
 
     @Override
-    public void logOrderPlaced(@NonNull String orderId, @NonNull String currency, @NonNull String source, double totalValue, @Nullable Double subtotalValue, @Nullable Double tax, @Nullable Double shipping, @Nullable JSONObject products, @Nullable String cartId, @Nullable Double totalDiscounts, @Nullable JSONObject discounts, @Nullable JSONObject properties) throws JSONException {
+    public void logOrderPlaced(@NonNull String orderId, @NonNull String currency, @NonNull String source, double totalValue, @Nullable Double subtotalValue, @Nullable Double tax, @Nullable Double shipping, @Nullable JSONObject products, @Nullable String cartId, @Nullable Double totalDiscounts, @Nullable JSONObject discounts, @Nullable JSONObject properties, boolean strictPropertiesEnabled) throws JSONException {
         getBrazeInstance().logEcommerceEvent(new OrderPlacedEvent(
                 orderId,
                 currency,
                 source,
                 totalValue,
-                BrazeUtils.getProductsFromNestedArrays(products, mStrictPropertiesEnabled),
+                BrazeUtils.getProductsFromNestedArrays(products, strictPropertiesEnabled),
                 cartId,
                 totalDiscounts,
                 BrazeUtils.getDiscountsFromNestedArrays(discounts),
-                BrazeUtils.extractCustomProperties(properties, mStrictPropertiesEnabled),
+                BrazeUtils.extractCustomProperties(properties, strictPropertiesEnabled),
                 subtotalValue,
                 tax,
                 shipping
@@ -645,7 +640,7 @@ class BrazeInstance implements BrazeCommand, ActivityLifecycleCallbacks {
     }
 
     @Override
-    public void logOrderCancelled(@NonNull String orderId, @NonNull String currency, @NonNull String source, double totalValue, @Nullable Double subtotalValue, @Nullable Double tax, @Nullable Double shipping, @Nullable JSONObject products, @NonNull String cancelReason, @Nullable Double totalDiscounts, @Nullable JSONObject discounts, @Nullable JSONObject properties) throws JSONException {
+    public void logOrderCancelled(@NonNull String orderId, @NonNull String currency, @NonNull String source, double totalValue, @Nullable Double subtotalValue, @Nullable Double tax, @Nullable Double shipping, @Nullable JSONObject products, @NonNull String cancelReason, @Nullable Double totalDiscounts, @Nullable JSONObject discounts, @Nullable JSONObject properties, boolean strictPropertiesEnabled) throws JSONException {
         JSONObject wirePayload = new JSONObject();
         try {
             wirePayload.put(BrazeConstants.Ecommerce.ORDER_ID, orderId);
@@ -672,10 +667,10 @@ class BrazeInstance implements BrazeCommand, ActivityLifecycleCallbacks {
             }
             if (properties != null) {
                 // Route event-level metadata through extractCustomProperties for the same string
-                // coercion + mStrictPropertiesEnabled handling every other ecommerce path applies,
+                // coercion + strictPropertiesEnabled handling every other ecommerce path applies,
                 // rather than putting the raw payload JSON on the wire.
                 wirePayload.put(BrazeConstants.Ecommerce.METADATA,
-                        BrazeUtils.extractCustomProperties(properties, mStrictPropertiesEnabled).forJsonPut());
+                        BrazeUtils.extractCustomProperties(properties, strictPropertiesEnabled).forJsonPut());
             }
         } catch (JSONException jex) {
             Log.w(TAG, "Failed to build ecommerce.order_cancelled payload", jex);
@@ -686,7 +681,7 @@ class BrazeInstance implements BrazeCommand, ActivityLifecycleCallbacks {
     }
 
     @Override
-    public void logOrderRefunded(@NonNull String orderId, @NonNull String currency, @NonNull String source, double totalValue, @Nullable JSONObject products, @Nullable Double totalDiscounts, @Nullable JSONObject discounts, @Nullable JSONObject properties) throws JSONException {
+    public void logOrderRefunded(@NonNull String orderId, @NonNull String currency, @NonNull String source, double totalValue, @Nullable JSONObject products, @Nullable Double totalDiscounts, @Nullable JSONObject discounts, @Nullable JSONObject properties, boolean strictPropertiesEnabled) throws JSONException {
         JSONObject wirePayload = new JSONObject();
         try {
             wirePayload.put(BrazeConstants.Ecommerce.ORDER_ID, orderId);
@@ -703,10 +698,10 @@ class BrazeInstance implements BrazeCommand, ActivityLifecycleCallbacks {
             }
             if (properties != null) {
                 // Route event-level metadata through extractCustomProperties for the same string
-                // coercion + mStrictPropertiesEnabled handling every other ecommerce path applies,
+                // coercion + strictPropertiesEnabled handling every other ecommerce path applies,
                 // rather than putting the raw payload JSON on the wire.
                 wirePayload.put(BrazeConstants.Ecommerce.METADATA,
-                        BrazeUtils.extractCustomProperties(properties, mStrictPropertiesEnabled).forJsonPut());
+                        BrazeUtils.extractCustomProperties(properties, strictPropertiesEnabled).forJsonPut());
             }
         } catch (JSONException jex) {
             Log.w(TAG, "Failed to build ecommerce.order_refunded payload", jex);

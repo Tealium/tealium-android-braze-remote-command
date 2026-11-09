@@ -185,29 +185,6 @@ public class BrazeInstanceTests {
     }
 
     @Test
-    public void initialize_SetsStrictPropertiesEnabled_When_Configured() throws JSONException {
-        JSONObject options = new JSONObject();
-
-        // enabled
-        options.put(BrazeConstants.Config.STRICT_PROPERTIES_ENABLED, true);
-        brazeInstance.initialize(null, options, null);
-        assertTrue(brazeInstance.mStrictPropertiesEnabled);
-
-        // disabled
-        options.put(BrazeConstants.Config.STRICT_PROPERTIES_ENABLED, false);
-        brazeInstance.initialize(null, options, null);
-        assertFalse(brazeInstance.mStrictPropertiesEnabled);
-    }
-
-    @Test
-    public void initialize_SetsStrictPropertiesEnabled_False_When_NotConfigured() throws JSONException {
-        JSONObject options = new JSONObject(); // not configured
-
-        brazeInstance.initialize(null, options, null);
-        assertFalse(brazeInstance.mStrictPropertiesEnabled);
-    }
-
-    @Test
     public void enableSdk_EnablesSdk() {
         brazeInstance.enableSdk();
 
@@ -486,7 +463,7 @@ public class BrazeInstanceTests {
 
     @Test
     public void logCustomEvent_LogsEvent_WithoutProperties() throws Exception {
-        brazeInstance.logCustomEvent("event", null);
+        brazeInstance.logCustomEvent("event", null, false);
 
         verify(mockBraze).logCustomEvent("event", null);
     }
@@ -505,7 +482,7 @@ public class BrazeInstanceTests {
         );
         JSONObject properties = new JSONObject(data);
 
-        brazeInstance.logCustomEvent("event", properties);
+        brazeInstance.logCustomEvent("event", properties, false);
 
         verify(mockBraze).logCustomEvent(eq("event"), brazeProps.capture());
         assertEquals("value", brazeProps.getValue().get("string-prop"));
@@ -519,7 +496,6 @@ public class BrazeInstanceTests {
 
     @Test
     public void logCustomEvent_LogsEvent_WithStrictProperties() throws JSONException {
-        brazeInstance.mStrictPropertiesEnabled = true;
         ArgumentCaptor<BrazeProperties> brazeProps = ArgumentCaptor.forClass(BrazeProperties.class);
         Map<String, Object> data = Map.of(
                 "string-prop", "value",
@@ -532,7 +508,7 @@ public class BrazeInstanceTests {
         );
         JSONObject properties = new JSONObject(data);
 
-        brazeInstance.logCustomEvent("event", properties);
+        brazeInstance.logCustomEvent("event", properties, true);
 
         verify(mockBraze).logCustomEvent(eq("event"), brazeProps.capture());
         assertEquals("value", brazeProps.getValue().get("string-prop"));
@@ -546,7 +522,6 @@ public class BrazeInstanceTests {
 
     @Test
     public void logCustomEvent_LogsEvent_WithParsedValues_WhenStrictPropertiesDisabled() throws JSONException {
-        brazeInstance.mStrictPropertiesEnabled = false;
         ArgumentCaptor<BrazeProperties> brazeProps = ArgumentCaptor.forClass(BrazeProperties.class);
         Map<String, Object> data = Map.of(
                 "string-prop", "value",
@@ -558,7 +533,7 @@ public class BrazeInstanceTests {
         );
         JSONObject properties = new JSONObject(data);
 
-        brazeInstance.logCustomEvent("event", properties);
+        brazeInstance.logCustomEvent("event", properties, false);
 
         verify(mockBraze).logCustomEvent(eq("event"), brazeProps.capture());
         assertEquals("value", brazeProps.getValue().get("string-prop"));
@@ -571,7 +546,6 @@ public class BrazeInstanceTests {
 
     @Test
     public void logCustomEvent_LogsEvent_WithStringValues_WhenStrictPropertiesEnabled() throws JSONException {
-        brazeInstance.mStrictPropertiesEnabled = true;
         ArgumentCaptor<BrazeProperties> brazeProps = ArgumentCaptor.forClass(BrazeProperties.class);
         Map<String, Object> data = Map.of(
                 "string-prop", "value",
@@ -583,7 +557,7 @@ public class BrazeInstanceTests {
         );
         JSONObject properties = new JSONObject(data);
 
-        brazeInstance.logCustomEvent("event", properties);
+        brazeInstance.logCustomEvent("event", properties, true);
 
         verify(mockBraze).logCustomEvent(eq("event"), brazeProps.capture());
         assertEquals("value", brazeProps.getValue().get("string-prop"));
@@ -598,11 +572,11 @@ public class BrazeInstanceTests {
     public void logPurchase_LogsPurchase_WithoutProperties() throws Exception {
         ArgumentCaptor<BrazeProperties> brazeProps = ArgumentCaptor.forClass(BrazeProperties.class);
 
-        brazeInstance.logPurchase("product1", "GBP", BigDecimal.ONE, 1, null);
+        brazeInstance.logPurchase("product1", "GBP", BigDecimal.ONE, 1, null, false);
         verify(mockBraze).logPurchase(eq("product1"), eq("GBP"), eq(BigDecimal.ONE), eq(1), brazeProps.capture());
         assertEquals(0, brazeProps.getValue().getSize());
 
-        brazeInstance.logPurchase("product1", null, BigDecimal.TEN, 10, null);
+        brazeInstance.logPurchase("product1", null, BigDecimal.TEN, 10, null, false);
         verify(mockBraze).logPurchase(eq("product1"), eq("USD"), eq(BigDecimal.TEN), eq(10), brazeProps.capture());
         assertEquals(0, brazeProps.getValue().getSize());
     }
@@ -613,7 +587,7 @@ public class BrazeInstanceTests {
         JSONObject properties = new JSONObject();
         properties.put("string-prop", "value");
 
-        brazeInstance.logPurchase("product1", "GBP", BigDecimal.ONE, 1, properties);
+        brazeInstance.logPurchase("product1", "GBP", BigDecimal.ONE, 1, properties, false);
 
         verify(mockBraze).logPurchase(eq("product1"), eq("GBP"), eq(BigDecimal.ONE), eq(1), brazeProps.capture());
         assertEquals("value", brazeProps.getValue().get("string-prop"));
@@ -630,7 +604,9 @@ public class BrazeInstanceTests {
                 new String[]{"GBP", null},
                 new BigDecimal[]{BigDecimal.ONE, BigDecimal.TEN},
                 new Integer[]{10},
-                new JSONObject[]{properties});
+                new JSONObject[]{properties},
+                false
+        );
 
         verify(mockBraze).logPurchase(eq("product1"), eq("GBP"), eq(BigDecimal.ONE), eq(10), brazeProps.capture());
         assertEquals("value", brazeProps.getValue().get("string-prop"));
@@ -691,7 +667,7 @@ public class BrazeInstanceTests {
         JSONObject properties = new JSONObject();
         properties.put("string-prop", "value");
 
-        brazeInstance.logProductViewed("sku123", "Widget", "widget_blue", 49.99, "GBP", "test-source", null, null, properties, null);
+        brazeInstance.logProductViewed("sku123", "Widget", "widget_blue", 49.99, "GBP", "test-source", null, null, properties, null, false);
 
         verify(mockBraze).logEcommerceEvent(event.capture());
         assertEquals("GBP", event.getValue().getCurrency());
@@ -707,7 +683,7 @@ public class BrazeInstanceTests {
     public void logProductViewed_ForwardsType() throws JSONException {
         ArgumentCaptor<ProductViewedEvent> event = ArgumentCaptor.forClass(ProductViewedEvent.class);
 
-        brazeInstance.logProductViewed("sku123", "Widget", "widget_blue", 49.99, "GBP", "test-source", null, null, null, List.of("price_drop", "back_in_stock"));
+        brazeInstance.logProductViewed("sku123", "Widget", "widget_blue", 49.99, "GBP", "test-source", null, null, null, List.of("price_drop", "back_in_stock"), false);
 
         verify(mockBraze).logEcommerceEvent(event.capture());
         assertEquals(List.of("price_drop", "back_in_stock"), event.getValue().getType());
@@ -717,7 +693,7 @@ public class BrazeInstanceTests {
     public void logCartUpdated_ForwardsSubtotalTaxShipping() throws JSONException {
         ArgumentCaptor<CartUpdatedEvent> event = ArgumentCaptor.forClass(CartUpdatedEvent.class);
 
-        brazeInstance.logCartUpdated("cart-1", "USD", "test-source", 49.99, 44.99, 3.0, 2.0, BrazeConstants.Ecommerce.Action.ADD, productsObject(singleProduct()), null);
+        brazeInstance.logCartUpdated("cart-1", "USD", "test-source", 49.99, 44.99, 3.0, 2.0, BrazeConstants.Ecommerce.Action.ADD, productsObject(singleProduct()), null, false);
 
         verify(mockBraze).logEcommerceEvent(event.capture());
         assertEquals(44.99, event.getValue().getSubtotalValue(), 0.0001);
@@ -729,7 +705,7 @@ public class BrazeInstanceTests {
     public void logCheckoutStarted_ForwardsSubtotalTaxShipping() throws JSONException {
         ArgumentCaptor<CheckoutStartedEvent> event = ArgumentCaptor.forClass(CheckoutStartedEvent.class);
 
-        brazeInstance.logCheckoutStarted("checkout-1", "USD", "test-source", 49.99, 44.99, 3.0, 2.0, productsObject(singleProduct()), null, null);
+        brazeInstance.logCheckoutStarted("checkout-1", "USD", "test-source", 49.99, 44.99, 3.0, 2.0, productsObject(singleProduct()), null, null, false);
 
         verify(mockBraze).logEcommerceEvent(event.capture());
         assertEquals(44.99, event.getValue().getSubtotalValue(), 0.0001);
@@ -741,7 +717,7 @@ public class BrazeInstanceTests {
     public void logOrderPlaced_ForwardsSubtotalTaxShipping() throws JSONException {
         ArgumentCaptor<OrderPlacedEvent> event = ArgumentCaptor.forClass(OrderPlacedEvent.class);
 
-        brazeInstance.logOrderPlaced("order-1", "USD", "test-source", 49.99, 44.99, 3.0, 2.0, productsObject(singleProduct()), null, null, null, null);
+        brazeInstance.logOrderPlaced("order-1", "USD", "test-source", 49.99, 44.99, 3.0, 2.0, productsObject(singleProduct()), null, null, null, null, false);
 
         verify(mockBraze).logEcommerceEvent(event.capture());
         assertEquals(44.99, event.getValue().getSubtotalValue(), 0.0001);
@@ -754,9 +730,9 @@ public class BrazeInstanceTests {
         ArgumentCaptor<CartUpdatedEvent> event = ArgumentCaptor.forClass(CartUpdatedEvent.class);
         JSONObject products = productsObject(singleProduct());
 
-        brazeInstance.logCartUpdated("cart-1", "USD", "test-source", 49.99, null, null, null, BrazeConstants.Ecommerce.Action.ADD, products, null);
-        brazeInstance.logCartUpdated("cart-1", "USD", "test-source", null, null, null, null, BrazeConstants.Ecommerce.Action.REMOVE, products, null);
-        brazeInstance.logCartUpdated("cart-1", "USD", "test-source", 49.99, null, null, null, BrazeConstants.Ecommerce.Action.REPLACE, products, null);
+        brazeInstance.logCartUpdated("cart-1", "USD", "test-source", 49.99, null, null, null, BrazeConstants.Ecommerce.Action.ADD, products, null, false);
+        brazeInstance.logCartUpdated("cart-1", "USD", "test-source", null, null, null, null, BrazeConstants.Ecommerce.Action.REMOVE, products, null, false);
+        brazeInstance.logCartUpdated("cart-1", "USD", "test-source", 49.99, null, null, null, BrazeConstants.Ecommerce.Action.REPLACE, products, null, false);
 
         verify(mockBraze, org.mockito.Mockito.times(3)).logEcommerceEvent(event.capture());
         assertEquals(CartUpdatedAction.ADD, event.getAllValues().get(0).getAction());
@@ -771,7 +747,7 @@ public class BrazeInstanceTests {
     public void logCartUpdated_LogsCartUpdatedEvent_WithMultipleProducts() throws JSONException {
         ArgumentCaptor<CartUpdatedEvent> event = ArgumentCaptor.forClass(CartUpdatedEvent.class);
 
-        brazeInstance.logCartUpdated("cart-1", "USD", "test-source", 69.98, null, null, null, BrazeConstants.Ecommerce.Action.ADD, productsObject(singleProduct(), secondProduct()), null);
+        brazeInstance.logCartUpdated("cart-1", "USD", "test-source", 69.98, null, null, null, BrazeConstants.Ecommerce.Action.ADD, productsObject(singleProduct(), secondProduct()), null, false);
 
         verify(mockBraze).logEcommerceEvent(event.capture());
         assertEquals(2, event.getValue().getProducts().size());
@@ -783,7 +759,7 @@ public class BrazeInstanceTests {
     public void logCheckoutStarted_LogsCheckoutStartedEvent() throws JSONException {
         ArgumentCaptor<CheckoutStartedEvent> event = ArgumentCaptor.forClass(CheckoutStartedEvent.class);
 
-        brazeInstance.logCheckoutStarted("checkout-1", "USD", "test-source", 49.99, null, null, null, productsObject(singleProduct()), null, null);
+        brazeInstance.logCheckoutStarted("checkout-1", "USD", "test-source", 49.99, null, null, null, productsObject(singleProduct()), null, null, false);
 
         verify(mockBraze).logEcommerceEvent(event.capture());
         assertEquals("checkout-1", event.getValue().getCheckoutId());
@@ -796,7 +772,7 @@ public class BrazeInstanceTests {
     public void logCheckoutStarted_LogsCheckoutStartedEvent_WithMultipleProducts() throws JSONException {
         ArgumentCaptor<CheckoutStartedEvent> event = ArgumentCaptor.forClass(CheckoutStartedEvent.class);
 
-        brazeInstance.logCheckoutStarted("checkout-1", "USD", "test-source", 69.98, null, null, null, productsObject(singleProduct(), secondProduct()), null, null);
+        brazeInstance.logCheckoutStarted("checkout-1", "USD", "test-source", 69.98, null, null, null, productsObject(singleProduct(), secondProduct()), null, null, false);
 
         verify(mockBraze).logEcommerceEvent(event.capture());
         assertEquals(2, event.getValue().getProducts().size());
@@ -808,7 +784,7 @@ public class BrazeInstanceTests {
     public void logOrderPlaced_LogsOrderPlacedEvent() throws JSONException {
         ArgumentCaptor<OrderPlacedEvent> event = ArgumentCaptor.forClass(OrderPlacedEvent.class);
 
-        brazeInstance.logOrderPlaced("order-1", "USD", "test-source", 49.99, null, null, null, productsObject(singleProduct()), "cart-1", 5.0, null, null);
+        brazeInstance.logOrderPlaced("order-1", "USD", "test-source", 49.99, null, null, null, productsObject(singleProduct()), "cart-1", 5.0, null, null, false);
 
         verify(mockBraze).logEcommerceEvent(event.capture());
         assertEquals("order-1", event.getValue().getOrderId());
@@ -821,7 +797,7 @@ public class BrazeInstanceTests {
     public void logOrderPlaced_AllowsNullOptionalFields() throws JSONException {
         ArgumentCaptor<OrderPlacedEvent> event = ArgumentCaptor.forClass(OrderPlacedEvent.class);
 
-        brazeInstance.logOrderPlaced("order-1", "USD", "test-source", 49.99, null, null, null, productsObject(singleProduct()), null, null, null, null);
+        brazeInstance.logOrderPlaced("order-1", "USD", "test-source", 49.99, null, null, null, productsObject(singleProduct()), null, null, null, null, false);
 
         verify(mockBraze).logEcommerceEvent(event.capture());
         assertNull(event.getValue().getCartId());
@@ -837,7 +813,7 @@ public class BrazeInstanceTests {
         discounts.put(BrazeConstants.Ecommerce.DISCOUNT_AMOUNT, new JSONArray(new double[]{5.0}));
         discounts.put(BrazeConstants.Ecommerce.DISCOUNT_TYPE, new JSONArray(new String[]{"percentage"}));
 
-        brazeInstance.logOrderPlaced("order-1", "USD", "test-source", 49.99, null, null, null, productsObject(singleProduct()), "cart-1", 5.0, discounts, null);
+        brazeInstance.logOrderPlaced("order-1", "USD", "test-source", 49.99, null, null, null, productsObject(singleProduct()), "cart-1", 5.0, discounts, null, false);
 
         verify(mockBraze).logEcommerceEvent(event.capture());
         List<Object> resultDiscounts = event.getValue().getDiscounts();
@@ -859,7 +835,7 @@ public class BrazeInstanceTests {
         discounts.put(BrazeConstants.Ecommerce.DISCOUNT_AMOUNT, new JSONArray(new String[]{"abc"}));
         discounts.put(BrazeConstants.Ecommerce.DISCOUNT_TYPE, new JSONArray(new String[]{"percentage"}));
 
-        brazeInstance.logOrderPlaced("order-1", "USD", "test-source", 49.99, null, null, null, productsObject(singleProduct()), "cart-1", 5.0, discounts, null);
+        brazeInstance.logOrderPlaced("order-1", "USD", "test-source", 49.99, null, null, null, productsObject(singleProduct()), "cart-1", 5.0, discounts, null, false);
 
         verify(mockBraze).logEcommerceEvent(event.capture());
         List<Object> resultDiscounts = event.getValue().getDiscounts();
@@ -874,7 +850,7 @@ public class BrazeInstanceTests {
     public void logOrderPlaced_AllowsNullDiscounts() throws JSONException {
         ArgumentCaptor<OrderPlacedEvent> event = ArgumentCaptor.forClass(OrderPlacedEvent.class);
 
-        brazeInstance.logOrderPlaced("order-1", "USD", "test-source", 49.99, null, null, null, productsObject(singleProduct()), "cart-1", 5.0, null, null);
+        brazeInstance.logOrderPlaced("order-1", "USD", "test-source", 49.99, null, null, null, productsObject(singleProduct()), "cart-1", 5.0, null, null, false);
 
         verify(mockBraze).logEcommerceEvent(event.capture());
         assertTrue(event.getValue().getDiscounts().isEmpty());
@@ -884,7 +860,7 @@ public class BrazeInstanceTests {
     public void logOrderPlaced_LogsOrderPlacedEvent_WithMultipleProducts() throws JSONException {
         ArgumentCaptor<OrderPlacedEvent> event = ArgumentCaptor.forClass(OrderPlacedEvent.class);
 
-        brazeInstance.logOrderPlaced("order-1", "USD", "test-source", 69.98, null, null, null, productsObject(singleProduct(), secondProduct()), "cart-1", null, null, null);
+        brazeInstance.logOrderPlaced("order-1", "USD", "test-source", 69.98, null, null, null, productsObject(singleProduct(), secondProduct()), "cart-1", null, null, null, false);
 
         verify(mockBraze).logEcommerceEvent(event.capture());
         assertEquals(2, event.getValue().getProducts().size());
@@ -902,7 +878,7 @@ public class BrazeInstanceTests {
         JSONObject metadata = new JSONObject();
         metadata.put("note", "vip-customer");
 
-        brazeInstance.logOrderCancelled("order-1", "USD", "test-source", 49.99, 44.99, 3.0, 2.0, productsObject(singleProduct()), "customer_request", 5.0, discounts, metadata);
+        brazeInstance.logOrderCancelled("order-1", "USD", "test-source", 49.99, 44.99, 3.0, 2.0, productsObject(singleProduct()), "customer_request", 5.0, discounts, metadata, false);
 
         verify(mockBraze).logCustomEvent(eq("ecommerce.order_cancelled"), props.capture());
         JSONObject payload = props.getValue().forJsonPut();
@@ -925,7 +901,7 @@ public class BrazeInstanceTests {
     public void logOrderCancelled_OmitsSubtotalTaxShipping_WhenNull() throws JSONException {
         ArgumentCaptor<BrazeProperties> props = ArgumentCaptor.forClass(BrazeProperties.class);
 
-        brazeInstance.logOrderCancelled("order-1", "USD", "test-source", 49.99, null, null, null, productsObject(singleProduct()), "customer_request", null, null, null);
+        brazeInstance.logOrderCancelled("order-1", "USD", "test-source", 49.99, null, null, null, productsObject(singleProduct()), "customer_request", null, null, null, false);
 
         verify(mockBraze).logCustomEvent(eq("ecommerce.order_cancelled"), props.capture());
         JSONObject payload = props.getValue().forJsonPut();
@@ -944,7 +920,7 @@ public class BrazeInstanceTests {
         JSONObject products = productsObject(product);
         products.put(BrazeConstants.Ecommerce.METADATA, new JSONArray().put(productProps));
 
-        brazeInstance.logOrderCancelled("order-1", "USD", "test-source", 49.99, null, null, null, products, "customer_request", null, null, null);
+        brazeInstance.logOrderCancelled("order-1", "USD", "test-source", 49.99, null, null, null, products, "customer_request", null, null, null, false);
 
         verify(mockBraze).logCustomEvent(eq("ecommerce.order_cancelled"), props.capture());
         JSONObject wireProduct = props.getValue().forJsonPut().getJSONArray("products").getJSONObject(0);
@@ -958,7 +934,7 @@ public class BrazeInstanceTests {
         JSONObject discounts = new JSONObject();
         discounts.put(BrazeConstants.Ecommerce.DISCOUNT_CODE, new JSONArray(new String[]{"SUMMER10"}));
 
-        brazeInstance.logOrderRefunded("order-1", "USD", "test-source", 49.99, productsObject(singleProduct()), 5.0, discounts, null);
+        brazeInstance.logOrderRefunded("order-1", "USD", "test-source", 49.99, productsObject(singleProduct()), 5.0, discounts, null, false);
 
         verify(mockBraze).logCustomEvent(eq("ecommerce.order_refunded"), props.capture());
         JSONObject payload = props.getValue().forJsonPut();
@@ -996,7 +972,7 @@ public class BrazeInstanceTests {
     public void logCheckoutStarted_Skips_WhenAllProductsInvalid() throws JSONException {
         // A4: no valid products left -> getProductsFromNestedArrays throws and the event is skipped.
         try {
-            brazeInstance.logCheckoutStarted("checkout-1", "USD", "test-source", 49.99, null, null, null, allInvalidProducts(), null, null);
+            brazeInstance.logCheckoutStarted("checkout-1", "USD", "test-source", 49.99, null, null, null, allInvalidProducts(), null, null, false);
         } catch (JSONException expected) {
             // The typed path propagates; the command layer's per-command catch skips the event.
         }
@@ -1007,7 +983,7 @@ public class BrazeInstanceTests {
     public void logCheckoutStarted_Skips_WhenProductsEmpty() throws JSONException {
         // A4: empty products arrays -> no line items -> event skipped.
         try {
-            brazeInstance.logCheckoutStarted("checkout-1", "USD", "test-source", 49.99, null, null, null, emptyProducts(), null, null);
+            brazeInstance.logCheckoutStarted("checkout-1", "USD", "test-source", 49.99, null, null, null, emptyProducts(), null, null, false);
         } catch (JSONException expected) {
             // expected
         }
@@ -1026,7 +1002,7 @@ public class BrazeInstanceTests {
         product.put(BrazeConstants.Ecommerce.PRICE, "not-a-number");
         product.put(BrazeConstants.Ecommerce.QUANTITY, 1);
 
-        brazeInstance.logOrderRefunded("order-1", "USD", "test-source", 49.99, productsObject(product), null, null, null);
+        brazeInstance.logOrderRefunded("order-1", "USD", "test-source", 49.99, productsObject(product), null, null, null, false);
 
         verify(mockBraze, never()).logCustomEvent(any(), any());
     }
@@ -1034,7 +1010,7 @@ public class BrazeInstanceTests {
     @Test
     public void logOrderCancelled_Skips_WhenProductsEmpty() throws JSONException {
         // A4 for a custom event: empty products arrays -> wire build throws + is caught -> skipped.
-        brazeInstance.logOrderCancelled("order-1", "USD", "test-source", 49.99, null, null, null, emptyProducts(), "customer_request", null, null, null);
+        brazeInstance.logOrderCancelled("order-1", "USD", "test-source", 49.99, null, null, null, emptyProducts(), "customer_request", null, null, null, false);
 
         verify(mockBraze, never()).logCustomEvent(any(), any());
     }
@@ -1051,7 +1027,7 @@ public class BrazeInstanceTests {
         product.put(BrazeConstants.Ecommerce.PRICE, "99.99");
         product.put(BrazeConstants.Ecommerce.QUANTITY, "2");
 
-        brazeInstance.logCheckoutStarted("checkout-1", "USD", "test-source", 49.99, null, null, null, productsObject(product), null, null);
+        brazeInstance.logCheckoutStarted("checkout-1", "USD", "test-source", 49.99, null, null, null, productsObject(product), null, null, false);
 
         verify(mockBraze).logEcommerceEvent(event.capture());
         assertEquals(1, event.getValue().getProducts().size());
