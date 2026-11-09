@@ -22,6 +22,7 @@ import org.json.JSONObject;
 import java.math.BigDecimal;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 
 /**
@@ -281,7 +282,7 @@ public class BrazeRemoteCommand extends RemoteCommand {
 
     private void parseCommands(String[] commandList, JSONObject payload) {
         for (String command : commandList) {
-            command = command.trim();
+            command = command.trim().toLowerCase(Locale.ROOT);
             Log.d(TAG, "Executing command: " + command);
             try {
                 switch (command) {

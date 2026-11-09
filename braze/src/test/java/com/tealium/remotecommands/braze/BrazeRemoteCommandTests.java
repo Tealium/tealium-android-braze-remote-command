@@ -1893,6 +1893,17 @@ public class BrazeRemoteCommandTests {
     }
 
     @Test
+    public void testCommandNameIsCaseInsensitive() throws Exception {
+        RemoteCommand.Response response = ResponseBuilder.create()
+                .addCommand("WipeData")
+                .build();
+
+        brazeRemoteCommand.onInvoke(response);
+
+        verify(mockBrazeInstance).wipeData();
+    }
+
+    @Test
     public void testLogout() throws Exception {
         RemoteCommand.Response response = ResponseBuilder.create()
                 .addCommand(Commands.LOGOUT)
