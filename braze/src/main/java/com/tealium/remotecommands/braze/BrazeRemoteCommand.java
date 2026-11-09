@@ -119,7 +119,7 @@ public class BrazeRemoteCommand extends RemoteCommand {
      * // User data
      * "user_id" : "<string>", // e.g. test@test.com
      * "user_alias" : "<string>",
-     * "user_alias_label" : "<string>",
+     * "alias_label" : "<string>", // or "user_alias_label"
      * "user_name" : "<string>",
      * "first_name" : "<string>",
      * "last_name" : "<string>",
@@ -556,16 +556,12 @@ public class BrazeRemoteCommand extends RemoteCommand {
                         );
                         break;
                     case Commands.SET_LAST_KNOWN_LOCATION:
-                        double latitude = payload.getDouble(Location.LOCATION_LATITUDE);
-                        double longitude = payload.getDouble(Location.LOCATION_LONGITUDE);
-                        double altitude = payload.optDouble(Location.LOCATION_ALTITUDE);
-                        double accuracy = payload.optDouble(Location.LOCATION_ACCURACY);
-
                         mBraze.setLastKnownLocation(
-                                latitude,
-                                longitude,
-                                Double.isNaN(altitude) ? null : altitude,
-                                Double.isNaN(accuracy) ? null : accuracy
+                                payload.getDouble(Location.LOCATION_LATITUDE),
+                                payload.getDouble(Location.LOCATION_LONGITUDE),
+                                BrazeUtils.optionalDouble(payload, Location.LOCATION_ALTITUDE),
+                                BrazeUtils.optionalDouble(payload, Location.LOCATION_HORIZONTAL_ACCURACY),
+                                BrazeUtils.optionalDouble(payload, Location.LOCATION_VERTICAL_ACCURACY)
                         );
                         break;
                     case Commands.SET_AD_TRACKING_ENABLED:

@@ -677,15 +677,16 @@ class BrazeUtils {
     }
 
     /**
-     * Reads an optional Double. Returns null when the key is absent or holds anything that is not
-     * a finite number; numeric strings are coerced, as {@link JSONObject#optDouble} does.
+     * Reads an optional Double, resolving key aliases. Returns null when the key is absent or holds
+     * anything that is not a finite number; numeric strings are coerced, as
+     * {@link JSONObject#optDouble} does.
      *
      * @param json the payload
-     * @param key  the key to read
+     * @param key  the canonical key to read
      * @return the finite value, or null
      */
     static Double optionalDouble(JSONObject json, String key) {
-        double value = json.optDouble(key);
+        double value = json.optDouble(resolveKey(json, key));
         return (Double.isNaN(value) || Double.isInfinite(value)) ? null : value;
     }
 

@@ -186,6 +186,20 @@ public class BrazeInstanceTests {
     }
 
     @Test
+    public void initialize_AcceptsEnableAutomaticGeofencesAlias() throws JSONException {
+        ArgumentCaptor<BrazeConfig> config = ArgumentCaptor.forClass(BrazeConfig.class);
+        JSONObject options = new JSONObject();
+        options.put(BrazeConstants.Config.ENABLE_AUTOMATIC_GEOFENCES, true);
+
+        brazeInstance.initialize(null, options, null);
+
+        mockedBrazeStatic.verify(() -> {
+            Braze.configure(eq(context), config.capture());
+        });
+        assertEquals(true, config.getValue().areAutomaticGeofenceRequestsEnabled);
+    }
+
+    @Test
     public void enableSdk_EnablesSdk() {
         brazeInstance.enableSdk();
 
@@ -1053,16 +1067,16 @@ public class BrazeInstanceTests {
 
     @Test
     public void setLastKnownLocation_SetsLastKnownLocation_WhenLatAndLong() {
-        brazeInstance.setLastKnownLocation(0.0, 1.1, null, null);
+        brazeInstance.setLastKnownLocation(0.0, 1.1, null, null, null);
 
-        verify(mockBrazeUser).setLastKnownLocation(0.0, 1.1, null, null);
+        verify(mockBrazeUser).setLastKnownLocation(0.0, 1.1, null, null, null);
     }
 
     @Test
     public void setLastKnownLocation_SetsLastKnownLocation() {
-        brazeInstance.setLastKnownLocation(0.0, 1.1, 2.2, 3.3);
+        brazeInstance.setLastKnownLocation(0.0, 1.1, 2.2, 3.3, 4.4);
 
-        verify(mockBrazeUser).setLastKnownLocation(0.0, 1.1, 2.2, 3.3);
+        verify(mockBrazeUser).setLastKnownLocation(0.0, 1.1, 2.2, 3.3, 4.4);
     }
 
     @Test

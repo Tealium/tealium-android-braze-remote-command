@@ -148,8 +148,9 @@ class BrazeInstance implements BrazeCommand, ActivityLifecycleCallbacks {
                 builder.setGeofencesEnabled(launchOptions.optBoolean(Config.ENABLE_GEOFENCES));
             }
 
-            if (BrazeUtils.keyHasValue(launchOptions, Config.ENABLE_AUTOMATIC_GEOFENCE_REQUESTS))  {
-                builder.setAutomaticGeofenceRequestsEnabled(launchOptions.optBoolean(Config.ENABLE_AUTOMATIC_GEOFENCE_REQUESTS));
+            String geofenceRequestsKey = BrazeUtils.resolveKey(launchOptions, Config.ENABLE_AUTOMATIC_GEOFENCE_REQUESTS);
+            if (BrazeUtils.keyHasValue(launchOptions, geofenceRequestsKey)) {
+                builder.setAutomaticGeofenceRequestsEnabled(launchOptions.optBoolean(geofenceRequestsKey));
             }
 
             if (BrazeUtils.keyHasValue(launchOptions, Config.BACKSTACK_ACTIVITY_ENABLED)) {
@@ -714,12 +715,13 @@ class BrazeInstance implements BrazeCommand, ActivityLifecycleCallbacks {
     }
 
     @Override
-    public void setLastKnownLocation(@NonNull Double latitude, @NonNull Double longitude, @Nullable Double altitude, @Nullable Double accuracy) {
+    public void setLastKnownLocation(@NonNull Double latitude, @NonNull Double longitude, @Nullable Double altitude, @Nullable Double horizontalAccuracy, @Nullable Double verticalAccuracy) {
         getBrazeUser().setLastKnownLocation(
                 latitude,
                 longitude,
                 altitude,
-                accuracy
+                horizontalAccuracy,
+                verticalAccuracy
         );
     }
 

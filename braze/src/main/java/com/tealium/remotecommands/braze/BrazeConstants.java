@@ -20,8 +20,9 @@ public final class BrazeConstants {
     /**
      * Every payload spelling accepted for a data point, keyed by its canonical key. Exists for
      * backwards compatibility: logpurchase used its own spellings before the ecommerce commands
-     * introduced the Braze ones, and one value in an app must not need two mappings. Each list is
-     * ordered and the first spelling present wins, with the canonical Braze spelling always first.
+     * introduced the Braze ones, and one value in an app must not need two mappings. The iOS
+     * remote command's spellings are accepted too, so one mapping serves both platforms. Each list
+     * is ordered and the first spelling present wins, with the canonical spelling always first.
      * Read through {@link BrazeUtils#resolveKey}.
      */
     static final Map<String, String[]> KEY_ALIASES = new HashMap<>();
@@ -30,6 +31,9 @@ public final class BrazeConstants {
         KEY_ALIASES.put(Ecommerce.CURRENCY, new String[]{Ecommerce.CURRENCY, Purchase.PRODUCT_CURRENCY, Purchase.ORDER_CURRENCY});
         KEY_ALIASES.put(Ecommerce.PRICE, new String[]{Ecommerce.PRICE, Purchase.PRODUCT_PRICE});
         KEY_ALIASES.put(Ecommerce.QUANTITY, new String[]{Ecommerce.QUANTITY, Purchase.PRODUCT_QTY});
+        KEY_ALIASES.put(User.ALIAS_LABEL, new String[]{User.ALIAS_LABEL, User.USER_ALIAS_LABEL});
+        KEY_ALIASES.put(Location.LOCATION_HORIZONTAL_ACCURACY, new String[]{Location.LOCATION_HORIZONTAL_ACCURACY, Location.LOCATION_ACCURACY});
+        KEY_ALIASES.put(Config.ENABLE_AUTOMATIC_GEOFENCE_REQUESTS, new String[]{Config.ENABLE_AUTOMATIC_GEOFENCE_REQUESTS, Config.ENABLE_AUTOMATIC_GEOFENCES});
     }
 
     public static final class Commands {
@@ -96,6 +100,7 @@ public final class BrazeConstants {
         public static final String TRIGGER_INTERVAL_SECONDS = "trigger_interval_seconds";
         public static final String ENABLE_GEOFENCES = "enable_geofences";
         public static final String ENABLE_AUTOMATIC_GEOFENCE_REQUESTS = "enable_automatic_geofence_requests";
+        public static final String ENABLE_AUTOMATIC_GEOFENCES = "enable_automatic_geofences";
         public static final String BACKSTACK_ACTIVITY_ENABLED = "backstack_activity_enabled";
         public static final String BACKSTACK_ACTIVITY_CLASS = "backstack_activity_class";
         public static final String IS_SDK_AUTHENTICATION_ENABLED = "is_sdk_authentication_enabled";
@@ -119,7 +124,8 @@ public final class BrazeConstants {
         public static final String COUNTRY = "country";
         public static final String PHONE = "phone";
         public static final String ALIAS = "user_alias";
-        public static final String ALIAS_LABEL = "user_alias_label";
+        public static final String ALIAS_LABEL = "alias_label";
+        public static final String USER_ALIAS_LABEL = "user_alias_label";
         public static final String SET_CUSTOM_ATTRIBUTE = "set_custom_attribute";
         public static final String UNSET_CUSTOM_ATTRIBUTE = "unset_custom_attribute";
         public static final String INCREMENT_CUSTOM_ATTRIBUTE = "increment_custom_attribute";
@@ -163,7 +169,9 @@ public final class BrazeConstants {
         public static final String LOCATION_LATITUDE = "location_latitude";
         public static final String LOCATION_LONGITUDE = "location_longitude";
         public static final String LOCATION_ALTITUDE = "location_altitude";
+        public static final String LOCATION_HORIZONTAL_ACCURACY = "location_horizontal_accuracy";
         public static final String LOCATION_ACCURACY = "location_accuracy";
+        public static final String LOCATION_VERTICAL_ACCURACY = "location_vertical_accuracy";
     }
 
     public static final class Ecommerce {

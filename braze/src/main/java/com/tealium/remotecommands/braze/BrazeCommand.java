@@ -484,8 +484,9 @@ interface BrazeCommand {
      * @param latitude The latitude of the users last known location
      * @param longitude The longitude of the users last known location
      * @param altitude Optional altitude of the users last known location
-     * @param accuracy Optional accuracy of the users last known location
+     * @param horizontalAccuracy Optional horizontal accuracy of the users last known location
+     * @param verticalAccuracy Optional vertical accuracy of the users last known location
      */
-    void setLastKnownLocation(@NonNull Double latitude, @NonNull Double longitude, @Nullable Double altitude, @Nullable Double accuracy);
+    void setLastKnownLocation(@NonNull Double latitude, @NonNull Double longitude, @Nullable Double altitude, @Nullable Double horizontalAccuracy, @Nullable Double verticalAccuracy);
 }
 

@@ -2088,6 +2088,21 @@ public class BrazeRemoteCommandTests {
     }
 
     @Test
+    public void testUserAlias_AcceptsUserAliasLabel() throws Exception {
+        RemoteCommand.Response response = ResponseBuilder.create()
+                .addCommand(Commands.USER_ALIAS)
+                .populatePayload((json) -> {
+                    json.put(User.ALIAS, "alias");
+                    json.put(User.USER_ALIAS_LABEL, "label");
+                })
+                .build();
+
+        brazeRemoteCommand.onInvoke(response);
+
+        verify(mockBrazeInstance).setUserAlias("alias", "label");
+    }
+
+    @Test
     public void testUserAlias_NotSet_WhenLabelIsNotString() throws Exception {
         RemoteCommand.Response response = ResponseBuilder.create()
                 .addCommand(Commands.USER_ALIAS)
@@ -2425,7 +2440,7 @@ public class BrazeRemoteCommandTests {
 
         brazeRemoteCommand.onInvoke(response);
 
-        verify(mockBrazeInstance, never()).setLastKnownLocation(any(), any(),any(), any());
+        verify(mockBrazeInstance, never()).setLastKnownLocation(any(), any(), any(), any(), any());
     }
 
     @Test
@@ -2440,7 +2455,7 @@ public class BrazeRemoteCommandTests {
 
         brazeRemoteCommand.onInvoke(response);
 
-        verify(mockBrazeInstance).setLastKnownLocation(0.0, 1.1, null, null);
+        verify(mockBrazeInstance).setLastKnownLocation(0.0, 1.1, null, null, null);
     }
 
     @Test
@@ -2451,13 +2466,30 @@ public class BrazeRemoteCommandTests {
                     json.put(Location.LOCATION_LATITUDE, 0.0);
                     json.put(Location.LOCATION_LONGITUDE, 1.1);
                     json.put(Location.LOCATION_ALTITUDE, 2.2);
+                    json.put(Location.LOCATION_HORIZONTAL_ACCURACY, 3.3);
+                    json.put(Location.LOCATION_VERTICAL_ACCURACY, 4.4);
+                })
+                .build();
+
+        brazeRemoteCommand.onInvoke(response);
+
+        verify(mockBrazeInstance).setLastKnownLocation(0.0, 1.1, 2.2, 3.3, 4.4);
+    }
+
+    @Test
+    public void testSetLastLocation_AcceptsLocationAccuracyAlias() throws Exception {
+        RemoteCommand.Response response = ResponseBuilder.create()
+                .addCommand(Commands.SET_LAST_KNOWN_LOCATION)
+                .populatePayload((json) -> {
+                    json.put(Location.LOCATION_LATITUDE, 0.0);
+                    json.put(Location.LOCATION_LONGITUDE, 1.1);
                     json.put(Location.LOCATION_ACCURACY, 3.3);
                 })
                 .build();
 
         brazeRemoteCommand.onInvoke(response);
 
-        verify(mockBrazeInstance).setLastKnownLocation(0.0, 1.1, 2.2, 3.3);
+        verify(mockBrazeInstance).setLastKnownLocation(0.0, 1.1, null, 3.3, null);
     }
 
     @Test
