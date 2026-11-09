@@ -593,13 +593,11 @@ class BrazeUtils {
         return key;
     }
 
-    // Scalar-string readers for logProductViewed, which is scalar-only (it carries no products
-    // array, unlike cart/checkout/order). These reject a JSONArray value explicitly because
-    // Android's org.json coerces a JSONArray to its literal string form (e.g. "[\"sku\"]") via
-    // getString()/optString() rather than throwing -- unlike getDouble()/getJSONArray(), and
-    // unlike the reference org.json used in off-device tests. Without this guard an array value
-    // would be logged as a corrupted scalar instead of skipping the event, and would diverge from
-    // the iOS remote command (whose `as? String` cast cleanly rejects an array).
+    // Scalar-string readers for the String fields of every command. Android's org.json turns a
+    // JSON null, a number or a JSONArray into text ("null", "123", "[\"sku\"]") via
+    // getString()/optString() rather than throwing -- unlike the reference org.json used in
+    // off-device tests. Accepting only a real String keeps such values away from Braze, as the
+    // iOS remote command's `as? String` cast does.
 
     /**
      * Reads a required scalar String. Rejects a missing key, a JSON null, an array, or any

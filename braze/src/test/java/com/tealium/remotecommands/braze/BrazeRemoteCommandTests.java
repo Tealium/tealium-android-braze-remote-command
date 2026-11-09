@@ -170,6 +170,20 @@ public class BrazeRemoteCommandTests {
     }
 
     @Test
+    public void testCustomEvent_NotLogged_WhenEventNameIsNotString() throws Exception {
+        RemoteCommand.Response response = ResponseBuilder.create()
+                .addCommand(Commands.LOG_CUSTOM_EVENT)
+                .populatePayload((json) -> {
+                    json.put(Event.EVENT_NAME, JSONObject.NULL);
+                })
+                .build();
+
+        brazeRemoteCommand.onInvoke(response);
+
+        verify(mockBrazeInstance, never()).logCustomEvent(any(), any(), anyBoolean());
+    }
+
+    @Test
     public void testCustomEventWithProperties() throws Exception {
         JSONObject eventProps = new JSONObject();
         RemoteCommand.Response response = ResponseBuilder.create()
@@ -251,6 +265,39 @@ public class BrazeRemoteCommandTests {
         brazeRemoteCommand.onInvoke(response);
 
         verify(mockBrazeInstance).logPurchase("product_id", "GBP",  BigDecimal.valueOf(10.10), 10, null, false);
+    }
+
+    @Test
+    public void testPurchaseEvent_NotLogged_WhenScalarProductIdIsNotString() throws Exception {
+        RemoteCommand.Response response = ResponseBuilder.create()
+                .addCommand(Commands.LOG_PURCHASE_EVENT)
+                .populatePayload((json) -> {
+                    json.put(Purchase.PRODUCT_ID, 123);
+                    json.put(Purchase.PRODUCT_PRICE, 10.10);
+                    json.put(Purchase.PRODUCT_CURRENCY, "GBP");
+                })
+                .build();
+
+        brazeRemoteCommand.onInvoke(response);
+
+        verify(mockBrazeInstance, never()).logPurchase(anyString(), any(), any(BigDecimal.class), any(), any(), anyBoolean());
+    }
+
+    @Test
+    public void testPurchaseEvent_NonStringCurrency_TreatedAsAbsent() throws Exception {
+        RemoteCommand.Response response = ResponseBuilder.create()
+                .addCommand(Commands.LOG_PURCHASE_EVENT)
+                .populatePayload((json) -> {
+                    json.put(Purchase.PRODUCT_ID, "product_id");
+                    json.put(Purchase.PRODUCT_QTY, 10);
+                    json.put(Purchase.PRODUCT_PRICE, 10.10);
+                    json.put(Purchase.PRODUCT_CURRENCY, 978);
+                })
+                .build();
+
+        brazeRemoteCommand.onInvoke(response);
+
+        verify(mockBrazeInstance).logPurchase("product_id", null, BigDecimal.valueOf(10.10), 10, null, false);
     }
 
     @Test
@@ -1952,6 +1999,50 @@ public class BrazeRemoteCommandTests {
     }
 
     @Test
+    public void testUserAlias_NotSet_WhenLabelIsNotString() throws Exception {
+        RemoteCommand.Response response = ResponseBuilder.create()
+                .addCommand(Commands.USER_ALIAS)
+                .populatePayload((json) -> {
+                    json.put(User.ALIAS, "alias");
+                    json.put(User.ALIAS_LABEL, JSONObject.NULL);
+                })
+                .build();
+
+        brazeRemoteCommand.onInvoke(response);
+
+        verify(mockBrazeInstance, never()).setUserAlias(any(), any());
+    }
+
+    @Test
+    public void testUserId_NotSet_WhenUserIdIsNotString() throws Exception {
+        RemoteCommand.Response response = ResponseBuilder.create()
+                .addCommand(Commands.USER_IDENTIFIER)
+                .populatePayload((json) -> {
+                    json.put(User.USER_ID, 12345);
+                })
+                .build();
+
+        brazeRemoteCommand.onInvoke(response);
+
+        verify(mockBrazeInstance, never()).setUserId(any(), any());
+    }
+
+    @Test
+    public void testUserId_NonStringSdkAuthSignature_TreatedAsAbsent() throws Exception {
+        RemoteCommand.Response response = ResponseBuilder.create()
+                .addCommand(Commands.USER_IDENTIFIER)
+                .populatePayload((json) -> {
+                    json.put(User.USER_ID, "user_id");
+                    json.put(User.SDK_AUTH_SIGNATURE, JSONObject.NULL);
+                })
+                .build();
+
+        brazeRemoteCommand.onInvoke(response);
+
+        verify(mockBrazeInstance).setUserId("user_id", null);
+    }
+
+    @Test
     public void testUserIdWithoutSdkAuth() throws Exception {
         RemoteCommand.Response response = ResponseBuilder.create()
                 .addCommand(Commands.USER_IDENTIFIER)
@@ -2008,6 +2099,22 @@ public class BrazeRemoteCommandTests {
         verify(mockBrazeInstance).setUserHomeCity("New York");
         verify(mockBrazeInstance).setUserPhone("++01234567890");
         verify(mockBrazeInstance).setUserDateOfBirth("2000-01-01");
+    }
+
+    @Test
+    public void testUserAttributes_NonStringValues_TreatedAsAbsent() throws Exception {
+        RemoteCommand.Response response = ResponseBuilder.create()
+                .addCommand(Commands.USER_ATTRIBUTE)
+                .populatePayload((json) -> {
+                    json.put(User.FIRST_NAME, JSONObject.NULL);
+                    json.put(User.PHONE, 1234567890);
+                })
+                .build();
+
+        brazeRemoteCommand.onInvoke(response);
+
+        verify(mockBrazeInstance).setUserFirstName(null);
+        verify(mockBrazeInstance).setUserPhone(null);
     }
 
     @Test
@@ -2105,6 +2212,23 @@ public class BrazeRemoteCommandTests {
 
 
     @Test
+    public void testSubscriptionTypes_NotSet_WhenValueIsNotString() throws Exception {
+        RemoteCommand.Response response = ResponseBuilder.create()
+                .addCommand(Commands.EMAIL_NOTIFICATION)
+                .addCommand(Commands.PUSH_NOTIFICATION)
+                .populatePayload((json) -> {
+                    json.put(User.EMAIL_NOTIFICATION, JSONObject.NULL);
+                    json.put(User.PUSH_NOTIFICATION, 1);
+                })
+                .build();
+
+        brazeRemoteCommand.onInvoke(response);
+
+        verify(mockBrazeInstance, never()).setEmailSubscriptionType(any());
+        verify(mockBrazeInstance, never()).setPushNotificationSubscriptionType(any());
+    }
+
+    @Test
     public void testRequestFlush() throws Exception {
         RemoteCommand.Response response = ResponseBuilder.create()
                 .addCommand(Commands.FLUSH)
@@ -2144,6 +2268,22 @@ public class BrazeRemoteCommandTests {
     }
 
     @Test
+    public void testSubscriptionGroup_NotChanged_WhenGroupIdIsNotString() throws Exception {
+        RemoteCommand.Response response = ResponseBuilder.create()
+                .addCommand(Commands.ADD_TO_SUBSCRIPTION_GROUP)
+                .addCommand(Commands.REMOVE_FROM_SUBSCRIPTION_GROUP)
+                .populatePayload((json) -> {
+                    json.put(User.SUBSCRIPTION_GROUP_ID, 12345);
+                })
+                .build();
+
+        brazeRemoteCommand.onInvoke(response);
+
+        verify(mockBrazeInstance, never()).addToSubscriptionGroup(any());
+        verify(mockBrazeInstance, never()).removeFromSubscriptionGroup(any());
+    }
+
+    @Test
     public void testSetSdkAuthSignature() throws Exception {
         RemoteCommand.Response response = ResponseBuilder.create()
                 .addCommand(Commands.SET_SDK_AUTH_SIGNATURE)
@@ -2155,6 +2295,20 @@ public class BrazeRemoteCommandTests {
         brazeRemoteCommand.onInvoke(response);
 
         verify(mockBrazeInstance).setSdkAuthSignature("12345");
+    }
+
+    @Test
+    public void testSetSdkAuthSignature_NotSet_WhenNotString() throws Exception {
+        RemoteCommand.Response response = ResponseBuilder.create()
+                .addCommand(Commands.SET_SDK_AUTH_SIGNATURE)
+                .populatePayload((json) -> {
+                    json.put(User.SDK_AUTH_SIGNATURE, JSONObject.NULL);
+                })
+                .build();
+
+        brazeRemoteCommand.onInvoke(response);
+
+        verify(mockBrazeInstance, never()).setSdkAuthSignature(any());
     }
 
     @Test
@@ -2227,6 +2381,21 @@ public class BrazeRemoteCommandTests {
         brazeRemoteCommand.onInvoke(response);
 
         verify(mockBrazeInstance, never()).setAdTrackingEnabled(anyString(), anyBoolean());
+    }
+
+    @Test
+    public void testSetAdTrackingEnabled_NotSet_WhenGoogleAdidIsNotString() throws Exception {
+        RemoteCommand.Response response = ResponseBuilder.create()
+                .addCommand(Commands.SET_AD_TRACKING_ENABLED)
+                .populatePayload((json) -> {
+                    json.put(User.GOOGLE_ADID, JSONObject.NULL);
+                    json.put(User.AD_TRACKING_ENABLED, true);
+                })
+                .build();
+
+        brazeRemoteCommand.onInvoke(response);
+
+        verify(mockBrazeInstance, never()).setAdTrackingEnabled(any(), anyBoolean());
     }
 
     private static class ResponseBuilder {

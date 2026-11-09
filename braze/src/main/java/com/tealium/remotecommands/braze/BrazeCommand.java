@@ -92,28 +92,28 @@ interface BrazeCommand {
      *
      * @param firstName The current user's first name
      */
-    void setUserFirstName(@NonNull String firstName);
+    void setUserFirstName(@Nullable String firstName);
 
     /**
      * Sets the Last Name attribute for the current user in Braze.
      *
      * @param lastName The current user's last name
      */
-    void setUserLastName(@NonNull String lastName);
+    void setUserLastName(@Nullable String lastName);
 
     /**
      * Sets the Email Address attribute for the current user in Braze.
      *
      * @param email The current user's email
      */
-    void setUserEmail(@NonNull String email);
+    void setUserEmail(@Nullable String email);
 
     /**
      * Sets the Language attribute for the current user in Braze.
      *
      * @param language The current user's language
      */
-    void setUserLanguage(@NonNull String language);
+    void setUserLanguage(@Nullable String language);
 
     /**
      * Sets the Gender attribute for the current user in Braze.
@@ -131,35 +131,35 @@ interface BrazeCommand {
      *
      * @param gender The current user's gender as a string.
      */
-    void setUserGender(@NonNull String gender);
+    void setUserGender(@Nullable String gender);
 
     /**
      * Sets the Home City attribute for the current user in Braze.
      *
      * @param city The current user's home city
      */
-    void setUserHomeCity(@NonNull String city);
+    void setUserHomeCity(@Nullable String city);
 
     /**
      * Sets the Country attribute for the current user in Braze.
      *
      * @param country The current user's country
      */
-    void setUserCountry(@NonNull String country);
+    void setUserCountry(@Nullable String country);
 
     /**
      * Sets the Phone attribute for the current user in Braze.
      *
      * @param phone The current user's phone
      */
-    void setUserPhone(@NonNull String phone);
+    void setUserPhone(@Nullable String phone);
 
     /**
      * Sets the Date of Birth for the current user in Braze.
      *
      * @param dob The current user's date of birth
      */
-    void setUserDateOfBirth(@NonNull String dob);
+    void setUserDateOfBirth(@Nullable String dob);
 
     /**
      * Sets the Push Notification Subscription Type for the current user in Braze.

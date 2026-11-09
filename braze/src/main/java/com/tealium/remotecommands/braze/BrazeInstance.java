@@ -75,9 +75,8 @@ class BrazeInstance implements BrazeCommand, ActivityLifecycleCallbacks {
     public void initialize(@Nullable String apiKey, @Nullable JSONObject launchOptions, @Nullable List<BrazeRemoteCommand.ConfigOverrider> overrides) {
         BrazeConfig.Builder builder = new BrazeConfig.Builder();
 
-        // API Key can be setup in a local resx file,
-        // So no need to make this absolutely mandatory.
-        if (apiKey != null) {
+        // The API key can come from braze.xml instead, so a blank one is not set and that applies.
+        if (apiKey != null && !apiKey.trim().isEmpty()) {
             builder.setApiKey(apiKey);
         }
 
@@ -284,7 +283,7 @@ class BrazeInstance implements BrazeCommand, ActivityLifecycleCallbacks {
     }
 
     @Override
-    public void setUserFirstName(@NonNull String firstName) {
+    public void setUserFirstName(@Nullable String firstName) {
         if (BrazeUtils.isNullOrEmpty(firstName) || getBrazeUser() == null) {
             return;
         }
@@ -293,7 +292,7 @@ class BrazeInstance implements BrazeCommand, ActivityLifecycleCallbacks {
     }
 
     @Override
-    public void setUserLastName(@NonNull String lastName) {
+    public void setUserLastName(@Nullable String lastName) {
         if (BrazeUtils.isNullOrEmpty(lastName) || getBrazeUser() == null) {
             return;
         }
@@ -302,7 +301,7 @@ class BrazeInstance implements BrazeCommand, ActivityLifecycleCallbacks {
     }
 
     @Override
-    public void setUserEmail(@NonNull String email) {
+    public void setUserEmail(@Nullable String email) {
         if (BrazeUtils.isNullOrEmpty(email) || getBrazeUser() == null) {
             return;
         }
@@ -311,7 +310,7 @@ class BrazeInstance implements BrazeCommand, ActivityLifecycleCallbacks {
     }
 
     @Override
-    public void setUserLanguage(@NonNull String language) {
+    public void setUserLanguage(@Nullable String language) {
         if (BrazeUtils.isNullOrEmpty(language) || getBrazeUser() == null) {
             return;
         }
@@ -320,7 +319,7 @@ class BrazeInstance implements BrazeCommand, ActivityLifecycleCallbacks {
     }
 
     @Override
-    public void setUserGender(@NonNull String genderString) {
+    public void setUserGender(@Nullable String genderString) {
         if (BrazeUtils.isNullOrEmpty(genderString) || getBrazeUser() == null) {
             return;
         }
@@ -332,7 +331,7 @@ class BrazeInstance implements BrazeCommand, ActivityLifecycleCallbacks {
     }
 
     @Override
-    public void setUserHomeCity(@NonNull String city) {
+    public void setUserHomeCity(@Nullable String city) {
         if (BrazeUtils.isNullOrEmpty(city) || getBrazeUser() == null) {
             return;
         }
@@ -341,7 +340,7 @@ class BrazeInstance implements BrazeCommand, ActivityLifecycleCallbacks {
     }
 
     @Override
-    public void setUserCountry(@NonNull String country) {
+    public void setUserCountry(@Nullable String country) {
         if (BrazeUtils.isNullOrEmpty(country) || getBrazeUser() == null) {
             return;
         }
@@ -350,7 +349,7 @@ class BrazeInstance implements BrazeCommand, ActivityLifecycleCallbacks {
     }
 
     @Override
-    public void setUserPhone(@NonNull String phone) {
+    public void setUserPhone(@Nullable String phone) {
         if (BrazeUtils.isNullOrEmpty(phone) || getBrazeUser() == null) {
             return;
         }
@@ -359,7 +358,7 @@ class BrazeInstance implements BrazeCommand, ActivityLifecycleCallbacks {
     }
 
     @Override
-    public void setUserDateOfBirth(@NonNull String dob) {
+    public void setUserDateOfBirth(@Nullable String dob) {
         if (BrazeUtils.isNullOrEmpty(dob) || getBrazeUser() == null) {
             return;
         }

@@ -304,45 +304,45 @@ public class BrazeRemoteCommand extends RemoteCommand {
                         mBraze.logout();
                         break;
                     case Commands.USER_IDENTIFIER:
-                        String authSignature = payload.optString(User.SDK_AUTH_SIGNATURE);
+                        String authSignature = BrazeUtils.optionalScalarString(payload, User.SDK_AUTH_SIGNATURE);
                         mBraze.setUserId(
-                                payload.optString(User.USER_ID),
-                                !authSignature.isEmpty() ? authSignature : null
+                                BrazeUtils.requireScalarString(payload, User.USER_ID),
+                                !BrazeUtils.isNullOrEmpty(authSignature) ? authSignature : null
                         );
                         break;
                     case Commands.USER_ALIAS:
                         mBraze.setUserAlias(
-                                payload.optString(User.ALIAS),
-                                payload.optString(User.ALIAS_LABEL)
+                                BrazeUtils.requireScalarString(payload, User.ALIAS),
+                                BrazeUtils.requireScalarString(payload, User.ALIAS_LABEL)
                         );
                         break;
                     case Commands.USER_ATTRIBUTE:
                         mBraze.setUserFirstName(
-                                payload.optString(User.FIRST_NAME)
+                                BrazeUtils.optionalScalarString(payload, User.FIRST_NAME)
                         );
                         mBraze.setUserLastName(
-                                payload.optString(User.LAST_NAME)
+                                BrazeUtils.optionalScalarString(payload, User.LAST_NAME)
                         );
                         mBraze.setUserEmail(
-                                payload.optString(User.EMAIL)
+                                BrazeUtils.optionalScalarString(payload, User.EMAIL)
                         );
                         mBraze.setUserLanguage(
-                                payload.optString(User.LANGUAGE)
+                                BrazeUtils.optionalScalarString(payload, User.LANGUAGE)
                         );
                         mBraze.setUserGender(
-                                payload.optString(User.GENDER)
+                                BrazeUtils.optionalScalarString(payload, User.GENDER)
                         );
                         mBraze.setUserHomeCity(
-                                payload.optString(User.HOME_CITY)
+                                BrazeUtils.optionalScalarString(payload, User.HOME_CITY)
                         );
                         mBraze.setUserCountry(
-                                payload.optString(User.COUNTRY)
+                                BrazeUtils.optionalScalarString(payload, User.COUNTRY)
                         );
                         mBraze.setUserPhone(
-                                payload.optString(User.PHONE)
+                                BrazeUtils.optionalScalarString(payload, User.PHONE)
                         );
                         mBraze.setUserDateOfBirth(
-                                payload.optString(User.DATE_OF_BIRTH)
+                                BrazeUtils.optionalScalarString(payload, User.DATE_OF_BIRTH)
                         );
                         break;
                     case Commands.SET_CUSTOM_ATTRIBUTE:
@@ -382,7 +382,7 @@ public class BrazeRemoteCommand extends RemoteCommand {
                             eventProps = payload.optJSONObject(Event.EVENT_PROPERTIES_SHORTHAND);
                         }
                         mBraze.logCustomEvent(
-                                payload.getString(Event.EVENT_NAME),
+                                BrazeUtils.requireScalarString(payload, Event.EVENT_NAME),
                                 eventProps,
                                 extractStrictPropertiesEnabled(payload, mStrictPropertiesEnabled)
                         );
@@ -411,8 +411,8 @@ public class BrazeRemoteCommand extends RemoteCommand {
                                 purchaseProps = payload.optJSONObject(Purchase.PURCHASE_PROPERTIES_SHORTHAND);
                             }
                             mBraze.logPurchase(
-                                    payload.optString(Purchase.PRODUCT_ID),
-                                    payload.optString(BrazeUtils.resolveKey(payload, Ecommerce.CURRENCY)),
+                                    BrazeUtils.requireScalarString(payload, Purchase.PRODUCT_ID),
+                                    BrazeUtils.optionalScalarString(payload, Ecommerce.CURRENCY),
                                     BigDecimal.valueOf(payload.optDouble(BrazeUtils.resolveKey(payload, Ecommerce.PRICE), 0d)),
                                     payload.optInt(BrazeUtils.resolveKey(payload, Ecommerce.QUANTITY)),
                                     purchaseProps,
@@ -526,12 +526,12 @@ public class BrazeRemoteCommand extends RemoteCommand {
                         break;
                     case Commands.EMAIL_NOTIFICATION:
                         mBraze.setEmailSubscriptionType(
-                                payload.getString(User.EMAIL_NOTIFICATION)
+                                BrazeUtils.requireScalarString(payload, User.EMAIL_NOTIFICATION)
                         );
                         break;
                     case Commands.PUSH_NOTIFICATION:
                         mBraze.setPushNotificationSubscriptionType(
-                                payload.getString(User.PUSH_NOTIFICATION)
+                                BrazeUtils.requireScalarString(payload, User.PUSH_NOTIFICATION)
                         );
                         break;
                     case Commands.FLUSH:
@@ -539,17 +539,17 @@ public class BrazeRemoteCommand extends RemoteCommand {
                         break;
                     case Commands.ADD_TO_SUBSCRIPTION_GROUP:
                         mBraze.addToSubscriptionGroup(
-                                payload.getString(User.SUBSCRIPTION_GROUP_ID)
+                                BrazeUtils.requireScalarString(payload, User.SUBSCRIPTION_GROUP_ID)
                         );
                         break;
                     case Commands.REMOVE_FROM_SUBSCRIPTION_GROUP:
                         mBraze.removeFromSubscriptionGroup(
-                                payload.getString(User.SUBSCRIPTION_GROUP_ID)
+                                BrazeUtils.requireScalarString(payload, User.SUBSCRIPTION_GROUP_ID)
                         );
                         break;
                     case Commands.SET_SDK_AUTH_SIGNATURE:
                         mBraze.setSdkAuthSignature(
-                                payload.getString(User.SDK_AUTH_SIGNATURE)
+                                BrazeUtils.requireScalarString(payload, User.SDK_AUTH_SIGNATURE)
                         );
                         break;
                     case Commands.SET_LAST_KNOWN_LOCATION:
@@ -566,14 +566,14 @@ public class BrazeRemoteCommand extends RemoteCommand {
                         );
                         break;
                     case Commands.SET_AD_TRACKING_ENABLED:
-                        String googleAdid = payload.getString(User.GOOGLE_ADID);
+                        String googleAdid = BrazeUtils.requireScalarString(payload, User.GOOGLE_ADID);
                         boolean adTrackingEnabled = payload.getBoolean(User.AD_TRACKING_ENABLED);
 
                         mBraze.setAdTrackingEnabled(googleAdid, !adTrackingEnabled);
                         break;
                 }
             } catch (Exception ex) {
-                Log.d(TAG, "Error processing command: " + command + " - " + ex.getMessage());
+                Log.w(TAG, "Error processing command: " + command + " - " + ex.getMessage());
             }
         }
     }
