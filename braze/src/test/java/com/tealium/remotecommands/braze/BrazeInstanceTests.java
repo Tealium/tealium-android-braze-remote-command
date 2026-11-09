@@ -5,6 +5,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
@@ -393,6 +394,18 @@ public class BrazeInstanceTests {
         verify(mockBrazeUser).setCustomUserAttribute("boolean", true);
         verify(mockBrazeUser).setCustomUserAttribute("array", array);
         verify(mockBrazeUser).setCustomUserAttribute("json", json);
+    }
+
+    @Test
+    public void setUserCustomAttribute_SkipsNullValue_AndSetsTheRest() throws Exception {
+        JSONObject attributes = new JSONObject();
+        attributes.put("null", JSONObject.NULL);
+        attributes.put("string", "value");
+
+        brazeInstance.setUserCustomAttributes(attributes);
+
+        verify(mockBrazeUser).setCustomUserAttribute("string", "value");
+        verify(mockBrazeUser, never()).setCustomUserAttribute(eq("null"), anyString());
     }
 
     @Test

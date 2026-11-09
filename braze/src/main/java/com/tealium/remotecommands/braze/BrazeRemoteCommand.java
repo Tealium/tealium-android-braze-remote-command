@@ -351,8 +351,10 @@ public class BrazeRemoteCommand extends RemoteCommand {
                         );
                         break;
                     case Commands.UNSET_CUSTOM_ATTRIBUTE:
+                        // A single key is accepted too, which is the only shape iOS takes.
+                        String unsetKey = BrazeUtils.optionalScalarString(payload, User.UNSET_CUSTOM_ATTRIBUTE);
                         mBraze.unsetUserCustomAttributes(
-                                payload.getJSONArray(User.UNSET_CUSTOM_ATTRIBUTE)
+                                unsetKey != null ? new JSONArray().put(unsetKey) : payload.getJSONArray(User.UNSET_CUSTOM_ATTRIBUTE)
                         );
                         break;
                     case Commands.SET_CUSTOM_ARRAY_ATTRIBUTE:

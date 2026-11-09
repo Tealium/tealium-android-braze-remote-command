@@ -403,9 +403,11 @@ class BrazeInstance implements BrazeCommand, ActivityLifecycleCallbacks {
                 user.setCustomUserAttribute(key, (JSONArray) value);
             } else if (value instanceof JSONObject) {
                 user.setCustomUserAttribute(key, (JSONObject) value);
-            } else {
-                // default to String.
+            } else if (value instanceof String) {
                 user.setCustomUserAttribute(key, (String) value);
+            } else {
+                // A JSON null or any other type: skip only this key, the rest are still set.
+                Log.w(TAG, "Skipping custom attribute '" + key + "': unsupported value " + value);
             }
         }
     }

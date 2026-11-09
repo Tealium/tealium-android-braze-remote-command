@@ -2163,6 +2163,20 @@ public class BrazeRemoteCommandTests {
     }
 
     @Test
+    public void testUnsetCustomUserAttribute_AcceptsSingleKey() throws Exception {
+        RemoteCommand.Response response = ResponseBuilder.create()
+                .addCommand(Commands.UNSET_CUSTOM_ATTRIBUTE)
+                .populatePayload((json) -> {
+                    json.put(User.UNSET_CUSTOM_ATTRIBUTE, "attr");
+                })
+                .build();
+
+        brazeRemoteCommand.onInvoke(response);
+
+        verify(mockBrazeInstance).unsetUserCustomAttributes(argThat(keys -> keys.length() == 1 && "attr".equals(keys.opt(0))));
+    }
+
+    @Test
     public void testSetCustomUserArrayAttribute() throws Exception {
         JSONObject customAttributes = new JSONObject();
 
