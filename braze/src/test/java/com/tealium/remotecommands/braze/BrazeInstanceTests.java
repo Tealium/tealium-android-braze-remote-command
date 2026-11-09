@@ -381,6 +381,20 @@ public class BrazeInstanceTests {
     }
 
     @Test
+    public void setUserDateOfBirth_KeepsLiteralDay_WestOfUtc() {
+        TimeZone original = TimeZone.getDefault();
+        try {
+            TimeZone.setDefault(TimeZone.getTimeZone("America/Los_Angeles"));
+
+            brazeInstance.setUserDateOfBirth("1990-05-20");
+
+            verify(mockBrazeUser).setDateOfBirth(1990, Month.MAY, 20);
+        } finally {
+            TimeZone.setDefault(original);
+        }
+    }
+
+    @Test
     public void setUserCustomAttribute_SetsCustomAttributes() throws Exception {
         JSONObject attributes = new JSONObject();
         attributes.put("int", 100);

@@ -12,6 +12,7 @@ import android.util.Log;
 
 import com.braze.enums.DeviceKey;
 import com.braze.enums.Gender;
+import com.braze.enums.Month;
 import com.braze.Braze;
 import com.braze.BrazeActivityLifecycleCallbackListener;
 import com.braze.BrazeUser;
@@ -37,11 +38,15 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import static com.tealium.remotecommands.braze.BrazeConstants.TAG;
 import static com.tealium.remotecommands.braze.BrazeConstants.Config;
 
 class BrazeInstance implements BrazeCommand, ActivityLifecycleCallbacks {
+
+    private static final Pattern ISO_DATE_PREFIX = Pattern.compile("(\\d{4})-(\\d{2})-(\\d{2})");
 
     Application mApplication;
     Activity mCurrentActivity;
@@ -360,6 +365,17 @@ class BrazeInstance implements BrazeCommand, ActivityLifecycleCallbacks {
     @Override
     public void setUserDateOfBirth(@Nullable String dob) {
         if (BrazeUtils.isNullOrEmpty(dob) || getBrazeUser() == null) {
+            return;
+        }
+
+        // A yyyy-MM-dd date is read from its digits: parsed into a Date it is midnight UTC, whose
+        // local day is the day before in time zones west of UTC.
+        Matcher isoDate = ISO_DATE_PREFIX.matcher(dob);
+        if (isoDate.lookingAt()) {
+            Month month = BrazeUtils.getMonthEnumFromInt(Integer.parseInt(isoDate.group(2)) - 1);
+            if (month != null) {
+                getBrazeUser().setDateOfBirth(Integer.parseInt(isoDate.group(1)), month, Integer.parseInt(isoDate.group(3)));
+            }
             return;
         }
 
