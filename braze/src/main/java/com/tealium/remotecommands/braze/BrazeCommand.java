@@ -279,7 +279,7 @@ interface BrazeCommand {
      * custom purchase properties described by key-value pairs in the purchaseProperties param
      *
      * @param productId          - productId of the product being purchased
-     * @param currency           - currency used by this purchase
+     * @param currency           - currency used by this purchase; the remote command defaults it to "USD"
      * @param unitPrice          - unit price of the product.
      * @param quantity           - number of units purchased
      * @param purchaseProperties - key-value pairs describing the custom purchase properties

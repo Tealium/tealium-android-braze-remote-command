@@ -183,11 +183,11 @@ public class BrazeRemoteCommand extends RemoteCommand {
      * "product_qty" : [ // or "quantity"
      * <integer>
      * ],
-     * "product_unit_price" : [ // or "price"; required, one per product
+     * "product_unit_price" : [ // or "price"; defaults to 0 when absent
      * <double>
      * ],
-     * "product_currency" : [ // or "currency", "order_currency"; required, a single string applies to every product
-     * "<string>" // e.g. "USD"
+     * "product_currency" : [ // or "currency", "order_currency"; a single string applies to every product
+     * "<string>" // e.g. "USD"; defaults to USD when absent
      * ],
      * "purchase_properties" : [{ // a single object applies to every product
      * "property_name_1" : "string value",
@@ -393,8 +393,7 @@ public class BrazeRemoteCommand extends RemoteCommand {
                         Object productId = payload.get(Purchase.PRODUCT_ID);
                         boolean strictPropertiesEnabled = extractStrictPropertiesEnabled(payload, mStrictPropertiesEnabled);
                         if (productId instanceof JSONArray) {
-                            // As on iOS, the whole batch is skipped when an id is not a String, or a
-                            // price or currency is missing, invalid or not one per product.
+                            // As on iOS, the whole batch is skipped when an id is not a String.
                             List<String> productIds = BrazeUtils.optionalStringList(payload, Purchase.PRODUCT_ID);
                             if (productIds == null) {
                                 throw new JSONException("Expected an array of Strings for '" + Purchase.PRODUCT_ID + "'");
@@ -415,8 +414,9 @@ public class BrazeRemoteCommand extends RemoteCommand {
                             }
                             mBraze.logPurchase(
                                     BrazeUtils.requireScalarString(payload, Purchase.PRODUCT_ID),
-                                    BrazeUtils.requireScalarString(payload, Ecommerce.CURRENCY),
-                                    BigDecimal.valueOf(BrazeUtils.requireDouble(payload, Ecommerce.PRICE)),
+                                    // 3.x keeps the USD/0 defaults for backwards compatibility.
+                                    BrazeUtils.currencyOrDefault(BrazeUtils.optionalScalarString(payload, Ecommerce.CURRENCY)),
+                                    BrazeUtils.priceOrZero(payload.optDouble(BrazeUtils.resolveKey(payload, Ecommerce.PRICE), 0d)),
                                     payload.optInt(BrazeUtils.resolveKey(payload, Ecommerce.QUANTITY)),
                                     purchaseProps,
                                     strictPropertiesEnabled

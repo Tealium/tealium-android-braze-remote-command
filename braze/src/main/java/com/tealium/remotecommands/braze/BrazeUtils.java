@@ -864,48 +864,59 @@ class BrazeUtils {
     }
 
     /**
+     * Returns the currency to log, falling back to USD when it is missing, empty or not a String.
+     * 3.x keeps the USD/0 defaults for backwards compatibility.
+     *
+     * @param raw the value read from the payload
+     * @return the currency, or "USD"
+     */
+    static String currencyOrDefault(Object raw) {
+        return raw instanceof String && !((String) raw).isEmpty() ? (String) raw : "USD";
+    }
+
+    /**
+     * Returns the price to log, falling back to 0 when it is NaN or infinite. 3.x keeps the USD/0
+     * defaults for backwards compatibility.
+     *
+     * @param value the value read from the payload, already defaulted to 0 when absent
+     * @return the price as a BigDecimal
+     */
+    static BigDecimal priceOrZero(double value) {
+        return BigDecimal.valueOf(Double.isNaN(value) || Double.isInfinite(value) ? 0d : value);
+    }
+
+    /**
      * Reads the currencies for a logpurchase with several products, resolving key aliases. A single
      * String applies to every product, as on the iOS remote command; an array is read per product.
+     * A missing, empty or invalid entry, or an array shorter than the products, defaults to USD.
      *
      * @param payload      the payload
      * @param productCount the number of products being purchased
      * @return one currency per product
-     * @throws JSONException if the currency is absent, or is neither a String nor an array of one
-     *                       String per product
      */
-    static String[] getPurchaseCurrencies(JSONObject payload, int productCount) throws JSONException {
-        String key = resolveKey(payload, BrazeConstants.Ecommerce.CURRENCY);
-        Object raw = payload.opt(key);
-        if (raw instanceof String) {
-            String[] currencies = new String[productCount];
-            Arrays.fill(currencies, (String) raw);
-            return currencies;
+    static String[] getPurchaseCurrencies(JSONObject payload, int productCount) {
+        Object raw = payload.opt(resolveKey(payload, BrazeConstants.Ecommerce.CURRENCY));
+        String[] currencies = new String[productCount];
+        for (int i = 0; i < productCount; i++) {
+            currencies[i] = currencyOrDefault(raw instanceof JSONArray ? ((JSONArray) raw).opt(i) : raw);
         }
-        List<String> currencies = raw instanceof JSONArray ? optionalStringList(payload, key) : null;
-        if (currencies == null || currencies.size() != productCount) {
-            throw new JSONException("Expected a String, or one String per product, for '" + BrazeConstants.Ecommerce.CURRENCY + "'");
-        }
-        return currencies.toArray(new String[0]);
+        return currencies;
     }
 
     /**
      * Reads the unit prices for a logpurchase with several products, resolving key aliases.
-     * Numeric strings are coerced, as {@link JSONArray#getDouble} does.
+     * Numeric strings are coerced, as {@link JSONArray#optDouble} does. A missing or invalid entry,
+     * or an array shorter than the products, defaults to 0.
      *
      * @param payload      the payload
      * @param productCount the number of products being purchased
      * @return one price per product
-     * @throws JSONException if the prices are absent, or are not an array of one finite number per
-     *                       product
      */
-    static BigDecimal[] getPurchasePrices(JSONObject payload, int productCount) throws JSONException {
-        JSONArray prices = payload.getJSONArray(resolveKey(payload, BrazeConstants.Ecommerce.PRICE));
-        if (prices.length() != productCount) {
-            throw new JSONException("Expected one '" + BrazeConstants.Ecommerce.PRICE + "' per product");
-        }
+    static BigDecimal[] getPurchasePrices(JSONObject payload, int productCount) {
+        JSONArray prices = payload.optJSONArray(resolveKey(payload, BrazeConstants.Ecommerce.PRICE));
         BigDecimal[] result = new BigDecimal[productCount];
         for (int i = 0; i < productCount; i++) {
-            result[i] = BigDecimal.valueOf(requireFinite(prices.getDouble(i), BrazeConstants.Ecommerce.PRICE));
+            result[i] = priceOrZero(prices == null ? 0d : prices.optDouble(i, 0d));
         }
         return result;
     }

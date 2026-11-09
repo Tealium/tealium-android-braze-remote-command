@@ -12,6 +12,7 @@ import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 import android.app.Activity;
@@ -284,7 +285,7 @@ public class BrazeRemoteCommandTests {
     }
 
     @Test
-    public void testPurchaseEvent_NotLogged_WhenCurrencyIsMissingOrNotString() throws Exception {
+    public void testPurchaseEvent_CurrencyDefaultsToUsd_WhenMissingOrNotString() throws Exception {
         RemoteCommand.Response missing = ResponseBuilder.create()
                 .addCommand(Commands.LOG_PURCHASE_EVENT)
                 .populatePayload((json) -> {
@@ -304,22 +305,31 @@ public class BrazeRemoteCommandTests {
         brazeRemoteCommand.onInvoke(missing);
         brazeRemoteCommand.onInvoke(number);
 
-        verify(mockBrazeInstance, never()).logPurchase(anyString(), any(), any(BigDecimal.class), any(), any(), anyBoolean());
+        verify(mockBrazeInstance, times(2)).logPurchase("product_id", "USD", BigDecimal.valueOf(10.10), 0, null, false);
     }
 
     @Test
-    public void testPurchaseEvent_NotLogged_WhenPriceIsMissing() throws Exception {
-        RemoteCommand.Response response = ResponseBuilder.create()
+    public void testPurchaseEvent_PriceDefaultsToZero_WhenMissingOrNotNumber() throws Exception {
+        RemoteCommand.Response missing = ResponseBuilder.create()
                 .addCommand(Commands.LOG_PURCHASE_EVENT)
                 .populatePayload((json) -> {
                     json.put(Purchase.PRODUCT_ID, "product_id");
                     json.put(Purchase.PRODUCT_CURRENCY, "GBP");
                 })
                 .build();
+        RemoteCommand.Response invalid = ResponseBuilder.create()
+                .addCommand(Commands.LOG_PURCHASE_EVENT)
+                .populatePayload((json) -> {
+                    json.put(Purchase.PRODUCT_ID, "product_id");
+                    json.put(Purchase.PRODUCT_CURRENCY, "GBP");
+                    json.put(Purchase.PRODUCT_PRICE, "NaN");
+                })
+                .build();
 
-        brazeRemoteCommand.onInvoke(response);
+        brazeRemoteCommand.onInvoke(missing);
+        brazeRemoteCommand.onInvoke(invalid);
 
-        verify(mockBrazeInstance, never()).logPurchase(anyString(), any(), any(BigDecimal.class), any(), any(), anyBoolean());
+        verify(mockBrazeInstance, times(2)).logPurchase("product_id", "GBP", BigDecimal.valueOf(0d), 0, null, false);
     }
 
     @Test
@@ -537,28 +547,43 @@ public class BrazeRemoteCommandTests {
     }
 
     @Test
-    public void testPurchaseEvent_MultipleProducts_NotLogged_WhenPriceOrCurrencyArrayLengthDiffers() throws Exception {
-        RemoteCommand.Response prices = ResponseBuilder.create()
+    public void testPurchaseEvent_MultipleProducts_ShortPriceAndCurrencyArraysArePadded() throws Exception {
+        RemoteCommand.Response response = ResponseBuilder.create()
                 .addCommand(Commands.LOG_PURCHASE_EVENT)
                 .populatePayload((json) -> {
                     json.put(Purchase.PRODUCT_ID, new JSONArray().put("p1").put("p2"));
                     json.put(Ecommerce.PRICE, new JSONArray().put(1.5));
-                    json.put(Ecommerce.CURRENCY, "CAD");
-                })
-                .build();
-        RemoteCommand.Response currencies = ResponseBuilder.create()
-                .addCommand(Commands.LOG_PURCHASE_EVENT)
-                .populatePayload((json) -> {
-                    json.put(Purchase.PRODUCT_ID, new JSONArray().put("p1").put("p2"));
-                    json.put(Ecommerce.PRICE, new JSONArray().put(1.5).put(2.5));
                     json.put(Ecommerce.CURRENCY, new JSONArray().put("CAD"));
                 })
                 .build();
 
-        brazeRemoteCommand.onInvoke(prices);
-        brazeRemoteCommand.onInvoke(currencies);
+        brazeRemoteCommand.onInvoke(response);
 
-        verify(mockBrazeInstance, never()).logPurchase(any(String[].class), any(), any(), any(), any(), anyBoolean());
+        verify(mockBrazeInstance).logPurchase(
+                eq(new String[]{"p1", "p2"}),
+                eq(new String[]{"CAD", "USD"}),
+                eq(new BigDecimal[]{BigDecimal.valueOf(1.5), BigDecimal.valueOf(0d)}),
+                eq(new Integer[0]),
+                eq(new JSONObject[0]),
+                eq(false));
+    }
+
+    @Test
+    public void testPurchaseEvent_MultipleProducts_MissingPriceAndCurrencyDefault() throws Exception {
+        RemoteCommand.Response response = ResponseBuilder.create()
+                .addCommand(Commands.LOG_PURCHASE_EVENT)
+                .populatePayload((json) -> json.put(Purchase.PRODUCT_ID, new JSONArray().put("p1").put("p2")))
+                .build();
+
+        brazeRemoteCommand.onInvoke(response);
+
+        verify(mockBrazeInstance).logPurchase(
+                eq(new String[]{"p1", "p2"}),
+                eq(new String[]{"USD", "USD"}),
+                eq(new BigDecimal[]{BigDecimal.valueOf(0d), BigDecimal.valueOf(0d)}),
+                eq(new Integer[0]),
+                eq(new JSONObject[0]),
+                eq(false));
     }
 
     @Test
