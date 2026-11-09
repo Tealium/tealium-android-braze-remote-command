@@ -7,6 +7,7 @@ import androidx.annotation.Nullable;
 import com.braze.enums.BrazeDateFormat;
 import com.braze.enums.Month;
 import com.braze.enums.Gender;
+import com.braze.enums.NotificationSubscriptionType;
 import com.braze.models.outgoing.BrazeProperties;
 import com.braze.models.recommended.ecommerce.EcommerceProduct;
 import com.braze.support.DateTimeUtils;
@@ -217,11 +218,11 @@ class BrazeUtils {
      * (m)ale = Gender.MALE
      * (f)emale = Gender.FEMALE
      * (o)ther = Gender.OTHER
-     * na/not_applicable = Gender.NOT_APPLICABLE
-     * no/prefer_not_to_say = Gender.PREFER_NOT_TO_SAY
-     * unknown = Gender.UNKNOWN
+     * n/na/not_applicable/notapplicable = Gender.NOT_APPLICABLE
+     * p/no/prefer_not_to_say/prefernottosay = Gender.PREFER_NOT_TO_SAY
+     * (u)nknown = Gender.UNKNOWN
      * <p>
-     * else return null
+     * else return null. The single letters and camel-case names are the iOS spellings.
      *
      * @param genderString
      * @return The Gender enum if found, or null
@@ -244,14 +245,19 @@ class BrazeUtils {
                 genderEnum = Gender.OTHER;
                 break;
             case "not_applicable":
+            case "notapplicable":
             case "na":
+            case "n":
                 genderEnum = Gender.NOT_APPLICABLE;
                 break;
             case "prefer_not_to_say":
+            case "prefernottosay":
             case "no":
+            case "p":
                 genderEnum = Gender.PREFER_NOT_TO_SAY;
                 break;
             case "unknown":
+            case "u":
                 genderEnum = Gender.UNKNOWN;
                 break;
             default:
@@ -262,6 +268,20 @@ class BrazeUtils {
         return genderEnum;
     }
 
+
+    /**
+     * Converts a subscription value to its enum, ignoring case: "opted_in" or the iOS spelling
+     * "optedin", "subscribed" and "unsubscribed".
+     *
+     * @param value the subscription value from the payload
+     * @return the NotificationSubscriptionType if found, or null
+     */
+    @Nullable
+    static NotificationSubscriptionType getSubscriptionTypeFromString(String value) {
+        return "optedin".equalsIgnoreCase(value)
+                ? NotificationSubscriptionType.OPTED_IN
+                : NotificationSubscriptionType.fromValue(value);
+    }
 
     /**
      * Builds a list of Braze EcommerceProduct objects from the nested Ecommerce.PRODUCTS object,

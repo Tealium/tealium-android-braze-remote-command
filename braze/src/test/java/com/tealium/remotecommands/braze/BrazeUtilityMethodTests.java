@@ -45,13 +45,18 @@ public class BrazeUtilityMethodTests {
         // N/A
         assertEquals(BrazeUtils.getGenderEnumFromString("not_applicable"), Gender.NOT_APPLICABLE);
         assertEquals(BrazeUtils.getGenderEnumFromString("na"), Gender.NOT_APPLICABLE);
+        assertEquals(BrazeUtils.getGenderEnumFromString("notApplicable"), Gender.NOT_APPLICABLE);
+        assertEquals(BrazeUtils.getGenderEnumFromString("N"), Gender.NOT_APPLICABLE);
 
         // Prefer not to say
         assertEquals(BrazeUtils.getGenderEnumFromString("prefer_NOT_to_say"), Gender.PREFER_NOT_TO_SAY);
         assertEquals(BrazeUtils.getGenderEnumFromString("no"), Gender.PREFER_NOT_TO_SAY);
+        assertEquals(BrazeUtils.getGenderEnumFromString("preferNotToSay"), Gender.PREFER_NOT_TO_SAY);
+        assertEquals(BrazeUtils.getGenderEnumFromString("p"), Gender.PREFER_NOT_TO_SAY);
 
         // Unknown
         assertEquals(BrazeUtils.getGenderEnumFromString("unknown"), Gender.UNKNOWN);
+        assertEquals(BrazeUtils.getGenderEnumFromString("u"), Gender.UNKNOWN);
 
         // default
         assertNull(BrazeUtils.getGenderEnumFromString("UNEXPECTED VALUE"));

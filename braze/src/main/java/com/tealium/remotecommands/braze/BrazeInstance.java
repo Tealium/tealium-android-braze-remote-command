@@ -12,7 +12,6 @@ import android.util.Log;
 
 import com.braze.enums.DeviceKey;
 import com.braze.enums.Gender;
-import com.braze.enums.NotificationSubscriptionType;
 import com.braze.Braze;
 import com.braze.BrazeActivityLifecycleCallbackListener;
 import com.braze.BrazeUser;
@@ -524,7 +523,7 @@ class BrazeInstance implements BrazeCommand, ActivityLifecycleCallbacks {
         }
 
         getBrazeUser().setPushNotificationSubscriptionType(
-                NotificationSubscriptionType.fromValue(notificationType)
+                BrazeUtils.getSubscriptionTypeFromString(notificationType)
         );
     }
 
@@ -535,7 +534,7 @@ class BrazeInstance implements BrazeCommand, ActivityLifecycleCallbacks {
         }
 
         getBrazeUser().setEmailNotificationSubscriptionType(
-                NotificationSubscriptionType.fromValue(notificationType)
+                BrazeUtils.getSubscriptionTypeFromString(notificationType)
         );
     }
 

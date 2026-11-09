@@ -489,6 +489,15 @@ public class BrazeInstanceTests {
     }
 
     @Test
+    public void setSubscriptionTypes_AcceptIosOptedInSpelling() throws Exception {
+        brazeInstance.setEmailSubscriptionType("optedIn");
+        brazeInstance.setPushNotificationSubscriptionType("OPTEDIN");
+
+        verify(mockBrazeUser).setEmailNotificationSubscriptionType(NotificationSubscriptionType.OPTED_IN);
+        verify(mockBrazeUser).setPushNotificationSubscriptionType(NotificationSubscriptionType.OPTED_IN);
+    }
+
+    @Test
     public void logCustomEvent_LogsEvent_WithoutProperties() throws Exception {
         brazeInstance.logCustomEvent("event", null, false);
 

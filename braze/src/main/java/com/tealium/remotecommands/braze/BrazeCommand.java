@@ -123,9 +123,9 @@ interface BrazeCommand {
      * (m)ale = Gender.MALE
      * (f)emale = Gender.FEMALE
      * (o)ther = Gender.OTHER
-     * na/not_applicable = Gender.NOT_APPLICABLE
-     * no/prefer_not_to_say = Gender.PREFER_NOT_TO_SAY
-     * unknown = Gender.UNKNOWN
+     * n/na/not_applicable/notapplicable = Gender.NOT_APPLICABLE
+     * p/no/prefer_not_to_say/prefernottosay = Gender.PREFER_NOT_TO_SAY
+     * (u)nknown = Gender.UNKNOWN
      * <p>
      * else returns null
      *
