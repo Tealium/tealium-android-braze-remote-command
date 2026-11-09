@@ -19,7 +19,6 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.robolectric.RobolectricTestRunner;
 
-import java.math.BigDecimal;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
@@ -986,30 +985,6 @@ public class BrazeUtilityMethodTests {
     }
 
     @Test
-    public void jsonArrayToStringArrayTests() {
-        JSONArray expectedArray = new JSONArray();
-        expectedArray.put("value1");
-        expectedArray.put("value2");
-
-        JSONArray unexpectedArray = new JSONArray();
-        unexpectedArray.put("value1");
-        unexpectedArray.put(10);
-        unexpectedArray.put(false);
-
-        String[] expectedResult = BrazeUtils.getStringArrayFromJson(expectedArray);
-        String[] unexpectedResult = BrazeUtils.getStringArrayFromJson(unexpectedArray);
-
-        assertNotNull(expectedArray);
-        assertNotNull(unexpectedArray);
-
-        assertEquals(expectedResult.length, expectedArray.length());
-        assertEquals(unexpectedResult.length, unexpectedArray.length());
-
-        assertTrue(expectedResult[0].equals("value1") && expectedResult[1].equals("value2"));
-        assertTrue(unexpectedResult[0].equals("value1") && unexpectedResult[1].equals("10") && unexpectedResult[2].equals("false"));
-    }
-
-    @Test
     public void jsonArrayToIntegerArrayTests() {
         JSONArray expectedArray = new JSONArray();
         expectedArray.put(10);
@@ -1031,30 +1006,6 @@ public class BrazeUtilityMethodTests {
 
         assertTrue(expectedResult[0] == 10 && expectedResult[1] == 20);
         assertTrue(unexpectedResult[0] == 1 && unexpectedResult[1] == 10 && unexpectedResult[2] == 1);
-    }
-
-    @Test
-    public void jsonArrayToBigDecimalArrayTests() {
-        JSONArray expectedArray = new JSONArray();
-        expectedArray.put(10);
-        expectedArray.put(20);
-
-        JSONArray unexpectedArray = new JSONArray();
-        unexpectedArray.put("value1");
-        unexpectedArray.put(10);
-        unexpectedArray.put(false);
-
-        BigDecimal[] expectedResult = BrazeUtils.getBigDecimalArrayFromJson(expectedArray);
-        BigDecimal[] unexpectedResult = BrazeUtils.getBigDecimalArrayFromJson(unexpectedArray);
-
-        assertNotNull(expectedArray);
-        assertNotNull(unexpectedArray);
-
-        assertEquals(expectedResult.length, expectedArray.length());
-        assertEquals(unexpectedResult.length, unexpectedArray.length());
-
-        assertTrue(expectedResult[0].equals(new BigDecimal(10)) && expectedResult[1].equals(new BigDecimal(20)));
-        assertTrue(unexpectedResult[0].equals(new BigDecimal(0)) && unexpectedResult[1].equals(new BigDecimal(10)) && unexpectedResult[2].equals(new BigDecimal(0)));
     }
 
     @Test

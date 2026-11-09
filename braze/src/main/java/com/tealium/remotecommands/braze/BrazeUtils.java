@@ -839,42 +839,71 @@ class BrazeUtils {
     }
 
     /**
-     * Helper to convert a JSONArray to an array of Strings
-     *
-     * @param jsonArray
-     * @return
-     */
-    static String[] getStringArrayFromJson(JSONArray jsonArray) {
-        String[] returnData;
-        if (isNullOrEmpty(jsonArray)) {
-            returnData = new String[0];
-        } else {
-            returnData = new String[jsonArray.length()];
-            for (int i = 0; i < jsonArray.length(); i++) {
-                returnData[i] = jsonArray.optString(i, "");
-            }
-        }
-
-        return returnData;
-    }
-
-    /**
      * Reads the currencies for a logpurchase with several products, resolving key aliases. A single
      * String applies to every product, as on the iOS remote command; an array is read per product.
      *
      * @param payload      the payload
      * @param productCount the number of products being purchased
-     * @return one currency per product for a single String, otherwise the array's elements (empty
-     * when the currency is absent)
+     * @return one currency per product
+     * @throws JSONException if the currency is absent, or is neither a String nor an array of one
+     *                       String per product
      */
-    static String[] getPurchaseCurrencies(JSONObject payload, int productCount) {
-        Object raw = payload.opt(resolveKey(payload, BrazeConstants.Ecommerce.CURRENCY));
+    static String[] getPurchaseCurrencies(JSONObject payload, int productCount) throws JSONException {
+        String key = resolveKey(payload, BrazeConstants.Ecommerce.CURRENCY);
+        Object raw = payload.opt(key);
         if (raw instanceof String) {
             String[] currencies = new String[productCount];
             Arrays.fill(currencies, (String) raw);
             return currencies;
         }
-        return getStringArrayFromJson(raw instanceof JSONArray ? (JSONArray) raw : null);
+        List<String> currencies = raw instanceof JSONArray ? optionalStringList(payload, key) : null;
+        if (currencies == null || currencies.size() != productCount) {
+            throw new JSONException("Expected a String, or one String per product, for '" + BrazeConstants.Ecommerce.CURRENCY + "'");
+        }
+        return currencies.toArray(new String[0]);
+    }
+
+    /**
+     * Reads the unit prices for a logpurchase with several products, resolving key aliases.
+     * Numeric strings are coerced, as {@link JSONArray#getDouble} does.
+     *
+     * @param payload      the payload
+     * @param productCount the number of products being purchased
+     * @return one price per product
+     * @throws JSONException if the prices are absent, or are not an array of one finite number per
+     *                       product
+     */
+    static BigDecimal[] getPurchasePrices(JSONObject payload, int productCount) throws JSONException {
+        JSONArray prices = payload.getJSONArray(resolveKey(payload, BrazeConstants.Ecommerce.PRICE));
+        if (prices.length() != productCount) {
+            throw new JSONException("Expected one '" + BrazeConstants.Ecommerce.PRICE + "' per product");
+        }
+        BigDecimal[] result = new BigDecimal[productCount];
+        for (int i = 0; i < productCount; i++) {
+            result[i] = BigDecimal.valueOf(requireFinite(prices.getDouble(i), BrazeConstants.Ecommerce.PRICE));
+        }
+        return result;
+    }
+
+    /**
+     * Reads the purchase properties for a logpurchase with several products, from
+     * purchase_properties or else its shorthand purchase. A single object applies to every product,
+     * as on the iOS remote command; an array is read per product.
+     *
+     * @param payload      the payload
+     * @param productCount the number of products being purchased
+     * @return the properties, one per product for a single object
+     */
+    static JSONObject[] getPurchaseProperties(JSONObject payload, int productCount) {
+        Object raw = payload.isNull(BrazeConstants.Purchase.PURCHASE_PROPERTIES)
+                ? payload.opt(BrazeConstants.Purchase.PURCHASE_PROPERTIES_SHORTHAND)
+                : payload.opt(BrazeConstants.Purchase.PURCHASE_PROPERTIES);
+        if (raw instanceof JSONObject) {
+            JSONObject[] properties = new JSONObject[productCount];
+            Arrays.fill(properties, raw);
+            return properties;
+        }
+        return getJSONObjectArrayFromJson(raw instanceof JSONArray ? (JSONArray) raw : null);
     }
 
     /**
@@ -891,26 +920,6 @@ class BrazeUtils {
             returnData = new Integer[jsonArray.length()];
             for (int i = 0; i < jsonArray.length(); i++) {
                 returnData[i] = jsonArray.optInt(i, 1);
-            }
-        }
-
-        return returnData;
-    }
-
-    /**
-     * Helper to convert a JSONArray to an array of BigDecimals
-     *
-     * @param jsonArray
-     * @return
-     */
-    static BigDecimal[] getBigDecimalArrayFromJson(JSONArray jsonArray) {
-        BigDecimal[] returnData;
-        if (isNullOrEmpty(jsonArray)) {
-            returnData = new BigDecimal[0];
-        } else {
-            returnData = new BigDecimal[jsonArray.length()];
-            for (int i = 0; i < jsonArray.length(); i++) {
-                returnData[i] = new BigDecimal(jsonArray.optDouble(i, 0));
             }
         }
 

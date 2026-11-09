@@ -279,7 +279,7 @@ interface BrazeCommand {
      * custom purchase properties described by key-value pairs in the purchaseProperties param
      *
      * @param productId          - productId of the product being purchased
-     * @param currency           - currency used by this purchase; default = "USD"
+     * @param currency           - currency used by this purchase
      * @param unitPrice          - unit price of the product.
      * @param quantity           - number of units purchased
      * @param purchaseProperties - key-value pairs describing the custom purchase properties
@@ -292,11 +292,11 @@ interface BrazeCommand {
      *   if true, all properties are passed through unaffected, else any string values will attempt
      *   to be parsed into primitive values
      */
-    void logPurchase(@NonNull String productId, @Nullable String currency, @NonNull BigDecimal unitPrice, Integer quantity, @Nullable JSONObject purchaseProperties, boolean strictPropertiesEnabled);
+    void logPurchase(@NonNull String productId, @NonNull String currency, @NonNull BigDecimal unitPrice, Integer quantity, @Nullable JSONObject purchaseProperties, boolean strictPropertiesEnabled);
 
     /**
      * Helper method that will take each bit of purchase information and attempt to log multiple
-     * purchases. Each array should be matched in length.
+     * purchases. currencies and unitPrices must hold one entry per product.
      *
      * @param productIds An array of product ids for this purchase
      * @param currencies An array of currencies for this purchase
@@ -307,7 +307,7 @@ interface BrazeCommand {
      *   if true, all properties are passed through unaffected, else any string values will attempt
      *   to be parsed into primitive values
      */
-    void logPurchase(@NonNull String[] productIds, @Nullable String[] currencies, @NonNull BigDecimal[] unitPrices, Integer[] quantities, @Nullable JSONObject[] purchaseProperties, boolean strictPropertiesEnabled);
+    void logPurchase(@NonNull String[] productIds, @NonNull String[] currencies, @NonNull BigDecimal[] unitPrices, Integer[] quantities, @Nullable JSONObject[] purchaseProperties, boolean strictPropertiesEnabled);
 
     /**
      * Logs a Braze ecommerce ProductViewedEvent for a single product. Unlike the other ecommerce

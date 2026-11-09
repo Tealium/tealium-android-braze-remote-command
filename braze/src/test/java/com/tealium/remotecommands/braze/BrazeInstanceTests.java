@@ -588,10 +588,6 @@ public class BrazeInstanceTests {
         brazeInstance.logPurchase("product1", "GBP", BigDecimal.ONE, 1, null, false);
         verify(mockBraze).logPurchase(eq("product1"), eq("GBP"), eq(BigDecimal.ONE), eq(1), brazeProps.capture());
         assertEquals(0, brazeProps.getValue().getSize());
-
-        brazeInstance.logPurchase("product1", null, BigDecimal.TEN, 10, null, false);
-        verify(mockBraze).logPurchase(eq("product1"), eq("USD"), eq(BigDecimal.TEN), eq(10), brazeProps.capture());
-        assertEquals(0, brazeProps.getValue().getSize());
     }
 
     @Test
@@ -614,7 +610,7 @@ public class BrazeInstanceTests {
 
         brazeInstance.logPurchase(
                 new String[]{"product1", "product2"},
-                new String[]{"GBP", null},
+                new String[]{"GBP", "EUR"},
                 new BigDecimal[]{BigDecimal.ONE, BigDecimal.TEN},
                 new Integer[]{10},
                 new JSONObject[]{properties},
@@ -623,7 +619,7 @@ public class BrazeInstanceTests {
 
         verify(mockBraze).logPurchase(eq("product1"), eq("GBP"), eq(BigDecimal.ONE), eq(10), brazeProps.capture());
         assertEquals("value", brazeProps.getValue().get("string-prop"));
-        verify(mockBraze).logPurchase(eq("product2"), eq("USD"), eq(BigDecimal.TEN), eq(1), brazeProps.capture());
+        verify(mockBraze).logPurchase(eq("product2"), eq("EUR"), eq(BigDecimal.TEN), eq(1), brazeProps.capture());
         assertEquals(0, brazeProps.getValue().getSize());
     }
 

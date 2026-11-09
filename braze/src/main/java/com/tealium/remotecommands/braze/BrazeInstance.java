@@ -552,21 +552,17 @@ class BrazeInstance implements BrazeCommand, ActivityLifecycleCallbacks {
     }
 
     @Override
-    public void logPurchase(@NonNull String productId, @Nullable String currency, @NonNull BigDecimal unitPrice, Integer quantity, JSONObject purchaseProperties, boolean strictPropertiesEnabled) {
-        if (BrazeUtils.isNullOrEmpty(currency)) {
-            currency = "USD";// braze default.
-        }
-
+    public void logPurchase(@NonNull String productId, @NonNull String currency, @NonNull BigDecimal unitPrice, Integer quantity, JSONObject purchaseProperties, boolean strictPropertiesEnabled) {
         getBrazeInstance().logPurchase(productId, currency, unitPrice, quantity > 0 ? quantity : 1, BrazeUtils.extractCustomProperties(purchaseProperties, strictPropertiesEnabled));
     }
 
     @Override
-    public void logPurchase(@NonNull String[] productIds, String[] currencies, @NonNull BigDecimal[] unitPrices, Integer[] quantities, JSONObject[] purchaseProperties, boolean strictPropertiesEnabled) {
+    public void logPurchase(@NonNull String[] productIds, @NonNull String[] currencies, @NonNull BigDecimal[] unitPrices, Integer[] quantities, JSONObject[] purchaseProperties, boolean strictPropertiesEnabled) {
         for (int i = 0; i < productIds.length; i++) {
             logPurchase(
                     productIds[i],
-                    currencies != null && currencies.length > i ? currencies[i] : null,
-                    unitPrices != null && unitPrices.length > i ? unitPrices[i] : BigDecimal.ZERO,
+                    currencies[i],
+                    unitPrices[i],
                     quantities != null && quantities.length > i ? quantities[i] : 1,
                     purchaseProperties != null && purchaseProperties.length > i ? purchaseProperties[i] : null,
                     strictPropertiesEnabled

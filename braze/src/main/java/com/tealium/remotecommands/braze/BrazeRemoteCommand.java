@@ -183,13 +183,13 @@ public class BrazeRemoteCommand extends RemoteCommand {
      * "product_qty" : [ // or "quantity"
      * <integer>
      * ],
-     * "product_unit_price" : [ // or "price"
+     * "product_unit_price" : [ // or "price"; required, one per product
      * <double>
      * ],
-     * "product_currency" : [ // or "currency", "order_currency"; a single string applies to every product
-     * "<string>" // e.g. "USD"; defaults to USD when absent
+     * "product_currency" : [ // or "currency", "order_currency"; required, a single string applies to every product
+     * "<string>" // e.g. "USD"
      * ],
-     * "purchase_properties" : [{
+     * "purchase_properties" : [{ // a single object applies to every product
      * "property_name_1" : "string value",
      * "property_name_2" : <boolean>, // true/false
      * "property_name_3" : <integer>, // 10
@@ -393,17 +393,18 @@ public class BrazeRemoteCommand extends RemoteCommand {
                         Object productId = payload.get(Purchase.PRODUCT_ID);
                         boolean strictPropertiesEnabled = extractStrictPropertiesEnabled(payload, mStrictPropertiesEnabled);
                         if (productId instanceof JSONArray) {
-                            JSONArray purchaseProps = payload.optJSONArray(Purchase.PURCHASE_PROPERTIES);
-                            if (purchaseProps == null) {
-                                purchaseProps = payload.optJSONArray(Purchase.PURCHASE_PROPERTIES_SHORTHAND);
+                            // As on iOS, the whole batch is skipped when an id is not a String, or a
+                            // price or currency is missing, invalid or not one per product.
+                            List<String> productIds = BrazeUtils.optionalStringList(payload, Purchase.PRODUCT_ID);
+                            if (productIds == null) {
+                                throw new JSONException("Expected an array of Strings for '" + Purchase.PRODUCT_ID + "'");
                             }
-                            String[] productIds = BrazeUtils.getStringArrayFromJson(payload.optJSONArray(Purchase.PRODUCT_ID));
                             mBraze.logPurchase(
-                                    productIds,
-                                    BrazeUtils.getPurchaseCurrencies(payload, productIds.length),
-                                    BrazeUtils.getBigDecimalArrayFromJson(payload.optJSONArray(BrazeUtils.resolveKey(payload, Ecommerce.PRICE))),
+                                    productIds.toArray(new String[0]),
+                                    BrazeUtils.getPurchaseCurrencies(payload, productIds.size()),
+                                    BrazeUtils.getPurchasePrices(payload, productIds.size()),
                                     BrazeUtils.getIntegerArrayFromJson(payload.optJSONArray(BrazeUtils.resolveKey(payload, Ecommerce.QUANTITY))),
-                                    BrazeUtils.getJSONObjectArrayFromJson(purchaseProps),
+                                    BrazeUtils.getPurchaseProperties(payload, productIds.size()),
                                     strictPropertiesEnabled
                             );
                         } else {
@@ -414,8 +415,8 @@ public class BrazeRemoteCommand extends RemoteCommand {
                             }
                             mBraze.logPurchase(
                                     BrazeUtils.requireScalarString(payload, Purchase.PRODUCT_ID),
-                                    BrazeUtils.optionalScalarString(payload, Ecommerce.CURRENCY),
-                                    BigDecimal.valueOf(payload.optDouble(BrazeUtils.resolveKey(payload, Ecommerce.PRICE), 0d)),
+                                    BrazeUtils.requireScalarString(payload, Ecommerce.CURRENCY),
+                                    BigDecimal.valueOf(BrazeUtils.requireDouble(payload, Ecommerce.PRICE)),
                                     payload.optInt(BrazeUtils.resolveKey(payload, Ecommerce.QUANTITY)),
                                     purchaseProps,
                                     strictPropertiesEnabled
