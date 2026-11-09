@@ -228,6 +228,22 @@ public class BrazeUtilityMethodTests {
     }
 
     @Test
+    public void discountsTest_SkipNonStringCodeAndType() throws JSONException {
+        JSONObject discounts = discountsObject(
+                new JSONArray().put(2024),
+                new JSONArray().put(5.0),
+                new JSONArray().put(new JSONArray().put("percentage")));
+
+        Map<String, Object> entry = BrazeUtils.getDiscountsFromNestedArrays(discounts).get(0);
+        JSONObject wire = BrazeUtils.getDiscountsAsWireJson(discounts).getJSONObject(0);
+
+        assertFalse(entry.containsKey("code"));
+        assertFalse(entry.containsKey("type"));
+        assertFalse(wire.has(BrazeConstants.Ecommerce.DISCOUNT_CODE));
+        assertFalse(wire.has(BrazeConstants.Ecommerce.DISCOUNT_TYPE));
+    }
+
+    @Test
     public void discountsFromNestedArraysTest_EmptyForNullOrEmpty() {
         assertTrue(BrazeUtils.getDiscountsFromNestedArrays(null).isEmpty());
         assertTrue(BrazeUtils.getDiscountsFromNestedArrays(new JSONObject()).isEmpty());

@@ -369,8 +369,8 @@ class BrazeUtils {
      * Builds a list of discount maps from the nested Ecommerce.DISCOUNTS object, whose values are
      * parallel arrays keyed by DISCOUNT_CODE/DISCOUNT_AMOUNT/DISCOUNT_TYPE, zipped by index -- same
      * nested-parallel-arrays convention as {@link #getProductsFromNestedArrays}. All three arrays
-     * are optional; absent or null entries are simply skipped for that discount rather than forcing
-     * all three fields.
+     * are optional; absent, null or non-String code/type entries are simply skipped for that
+     * discount rather than forcing all three fields.
      *
      * @param discounts the nested Ecommerce.DISCOUNTS object (may be null)
      * @return a list of Map<String, Object>, empty if the nested object is absent or empty
@@ -390,8 +390,9 @@ class BrazeUtils {
 
         for (int i = 0; i < count; i++) {
             Map<String, Object> entry = new HashMap<>();
-            if (codes != null && keyHasValue(codes, i)) {
-                entry.put(BrazeConstants.Ecommerce.DISCOUNT_CODE, codes.optString(i));
+            String code = optionalStringElement(codes, i);
+            if (code != null) {
+                entry.put(BrazeConstants.Ecommerce.DISCOUNT_CODE, code);
             }
             if (amounts != null && keyHasValue(amounts, i)) {
                 // A non-numeric amount coerces to NaN via optDouble, and a "Infinity" string parses to
@@ -402,8 +403,9 @@ class BrazeUtils {
                     entry.put(BrazeConstants.Ecommerce.DISCOUNT_AMOUNT, amt);
                 }
             }
-            if (types != null && keyHasValue(types, i)) {
-                entry.put(BrazeConstants.Ecommerce.DISCOUNT_TYPE, types.optString(i));
+            String type = optionalStringElement(types, i);
+            if (type != null) {
+                entry.put(BrazeConstants.Ecommerce.DISCOUNT_TYPE, type);
             }
             result.add(entry);
         }
@@ -565,8 +567,9 @@ class BrazeUtils {
         for (int i = 0; i < count; i++) {
             JSONObject discount = new JSONObject();
             try {
-                if (codes != null && keyHasValue(codes, i)) {
-                    discount.put(BrazeConstants.Ecommerce.DISCOUNT_CODE, codes.optString(i));
+                String code = optionalStringElement(codes, i);
+                if (code != null) {
+                    discount.put(BrazeConstants.Ecommerce.DISCOUNT_CODE, code);
                 }
                 if (amounts != null && keyHasValue(amounts, i)) {
                     // Only carry a finite numeric amount; a non-numeric value coerces to NaN and
@@ -578,8 +581,9 @@ class BrazeUtils {
                         discount.put(BrazeConstants.Ecommerce.DISCOUNT_AMOUNT, amt);
                     }
                 }
-                if (types != null && keyHasValue(types, i)) {
-                    discount.put(BrazeConstants.Ecommerce.DISCOUNT_TYPE, types.optString(i));
+                String type = optionalStringElement(types, i);
+                if (type != null) {
+                    discount.put(BrazeConstants.Ecommerce.DISCOUNT_TYPE, type);
                 }
             } catch (JSONException jex) {
                 Log.w(BrazeConstants.TAG, "Failed to build wire-schema ecommerce discount JSON", jex);
