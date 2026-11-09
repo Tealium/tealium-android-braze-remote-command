@@ -62,7 +62,7 @@ object TealiumHelper {
         // Optional: Set config options that may not be supported yet by the Tag in Tealium IQ
         //              or simply to override settings locally.
         brc.registerConfigOverride { builder ->
-            // builder.setIsLocationCollectionEnabled(true);
+            // builder.setIsAutomaticLocationCollectionEnabled(true);
             // builder.setGeofencesEnabled(true);
             builder.setFirebaseCloudMessagingSenderIdKey("...")
                 .setIsFirebaseCloudMessagingRegistrationEnabled(true)

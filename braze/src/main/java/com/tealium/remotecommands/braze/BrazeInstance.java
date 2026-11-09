@@ -12,14 +12,22 @@ import android.util.Log;
 
 import com.braze.enums.DeviceKey;
 import com.braze.enums.Gender;
-import com.braze.enums.NotificationSubscriptionType;
+import com.braze.enums.Month;
 import com.braze.Braze;
 import com.braze.BrazeActivityLifecycleCallbackListener;
 import com.braze.BrazeUser;
 import com.braze.configuration.BrazeConfig;
 import com.braze.models.outgoing.BrazeProperties;
+import com.braze.models.recommended.ecommerce.CartUpdatedEvent;
+import com.braze.models.recommended.ecommerce.CheckoutStartedEvent;
+import com.braze.models.recommended.ecommerce.EcommerceProduct;
+import com.braze.models.recommended.ecommerce.OrderPlacedEvent;
+import com.braze.models.recommended.ecommerce.ProductViewedEvent;
+
+import kotlin.Unit;
 
 import org.json.JSONArray;
+import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.math.BigDecimal;
@@ -30,11 +38,15 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import static com.tealium.remotecommands.braze.BrazeConstants.TAG;
 import static com.tealium.remotecommands.braze.BrazeConstants.Config;
 
 class BrazeInstance implements BrazeCommand, ActivityLifecycleCallbacks {
+
+    private static final Pattern ISO_DATE_PREFIX = Pattern.compile("(\\d{4})-(\\d{2})-(\\d{2})");
 
     Application mApplication;
     Activity mCurrentActivity;
@@ -67,9 +79,8 @@ class BrazeInstance implements BrazeCommand, ActivityLifecycleCallbacks {
     public void initialize(@Nullable String apiKey, @Nullable JSONObject launchOptions, @Nullable List<BrazeRemoteCommand.ConfigOverrider> overrides) {
         BrazeConfig.Builder builder = new BrazeConfig.Builder();
 
-        // API Key can be setup in a local resx file,
-        // So no need to make this absolutely mandatory.
-        if (apiKey != null) {
+        // The API key can come from braze.xml instead, so a blank one is not set and that applies.
+        if (apiKey != null && !apiKey.trim().isEmpty()) {
             builder.setApiKey(apiKey);
         }
 
@@ -141,8 +152,9 @@ class BrazeInstance implements BrazeCommand, ActivityLifecycleCallbacks {
                 builder.setGeofencesEnabled(launchOptions.optBoolean(Config.ENABLE_GEOFENCES));
             }
 
-            if (BrazeUtils.keyHasValue(launchOptions, Config.ENABLE_AUTOMATIC_GEOFENCE_REQUESTS))  {
-                builder.setAutomaticGeofenceRequestsEnabled(launchOptions.optBoolean(Config.ENABLE_AUTOMATIC_GEOFENCE_REQUESTS));
+            String geofenceRequestsKey = BrazeUtils.resolveKey(launchOptions, Config.ENABLE_AUTOMATIC_GEOFENCE_REQUESTS);
+            if (BrazeUtils.keyHasValue(launchOptions, geofenceRequestsKey)) {
+                builder.setAutomaticGeofenceRequestsEnabled(launchOptions.optBoolean(geofenceRequestsKey));
             }
 
             if (BrazeUtils.keyHasValue(launchOptions, Config.BACKSTACK_ACTIVITY_ENABLED)) {
@@ -238,6 +250,17 @@ class BrazeInstance implements BrazeCommand, ActivityLifecycleCallbacks {
     }
 
     @Override
+    public void logout() {
+        getBrazeInstance().logout(result -> {
+            Throwable failure = BrazeResults.failureOrNull(result);
+            if (failure != null) {
+                Log.w(TAG, "Braze: logout failed (" + failure + ")");
+            }
+            return Unit.INSTANCE;
+        });
+    }
+
+    @Override
     public void setUserId(@NonNull String userId, @Nullable String sdkAuthSignature) {
         if (BrazeUtils.isNullOrEmpty(userId)) return;
 
@@ -265,7 +288,7 @@ class BrazeInstance implements BrazeCommand, ActivityLifecycleCallbacks {
     }
 
     @Override
-    public void setUserFirstName(@NonNull String firstName) {
+    public void setUserFirstName(@Nullable String firstName) {
         if (BrazeUtils.isNullOrEmpty(firstName) || getBrazeUser() == null) {
             return;
         }
@@ -274,7 +297,7 @@ class BrazeInstance implements BrazeCommand, ActivityLifecycleCallbacks {
     }
 
     @Override
-    public void setUserLastName(@NonNull String lastName) {
+    public void setUserLastName(@Nullable String lastName) {
         if (BrazeUtils.isNullOrEmpty(lastName) || getBrazeUser() == null) {
             return;
         }
@@ -283,7 +306,7 @@ class BrazeInstance implements BrazeCommand, ActivityLifecycleCallbacks {
     }
 
     @Override
-    public void setUserEmail(@NonNull String email) {
+    public void setUserEmail(@Nullable String email) {
         if (BrazeUtils.isNullOrEmpty(email) || getBrazeUser() == null) {
             return;
         }
@@ -292,7 +315,7 @@ class BrazeInstance implements BrazeCommand, ActivityLifecycleCallbacks {
     }
 
     @Override
-    public void setUserLanguage(@NonNull String language) {
+    public void setUserLanguage(@Nullable String language) {
         if (BrazeUtils.isNullOrEmpty(language) || getBrazeUser() == null) {
             return;
         }
@@ -301,7 +324,7 @@ class BrazeInstance implements BrazeCommand, ActivityLifecycleCallbacks {
     }
 
     @Override
-    public void setUserGender(@NonNull String genderString) {
+    public void setUserGender(@Nullable String genderString) {
         if (BrazeUtils.isNullOrEmpty(genderString) || getBrazeUser() == null) {
             return;
         }
@@ -313,7 +336,7 @@ class BrazeInstance implements BrazeCommand, ActivityLifecycleCallbacks {
     }
 
     @Override
-    public void setUserHomeCity(@NonNull String city) {
+    public void setUserHomeCity(@Nullable String city) {
         if (BrazeUtils.isNullOrEmpty(city) || getBrazeUser() == null) {
             return;
         }
@@ -322,7 +345,7 @@ class BrazeInstance implements BrazeCommand, ActivityLifecycleCallbacks {
     }
 
     @Override
-    public void setUserCountry(@NonNull String country) {
+    public void setUserCountry(@Nullable String country) {
         if (BrazeUtils.isNullOrEmpty(country) || getBrazeUser() == null) {
             return;
         }
@@ -331,7 +354,7 @@ class BrazeInstance implements BrazeCommand, ActivityLifecycleCallbacks {
     }
 
     @Override
-    public void setUserPhone(@NonNull String phone) {
+    public void setUserPhone(@Nullable String phone) {
         if (BrazeUtils.isNullOrEmpty(phone) || getBrazeUser() == null) {
             return;
         }
@@ -340,8 +363,19 @@ class BrazeInstance implements BrazeCommand, ActivityLifecycleCallbacks {
     }
 
     @Override
-    public void setUserDateOfBirth(@NonNull String dob) {
+    public void setUserDateOfBirth(@Nullable String dob) {
         if (BrazeUtils.isNullOrEmpty(dob) || getBrazeUser() == null) {
+            return;
+        }
+
+        // A yyyy-MM-dd date is read from its digits: parsed into a Date it is midnight UTC, whose
+        // local day is the day before in time zones west of UTC.
+        Matcher isoDate = ISO_DATE_PREFIX.matcher(dob);
+        if (isoDate.lookingAt()) {
+            Month month = BrazeUtils.getMonthEnumFromInt(Integer.parseInt(isoDate.group(2)) - 1);
+            if (month != null) {
+                getBrazeUser().setDateOfBirth(Integer.parseInt(isoDate.group(1)), month, Integer.parseInt(isoDate.group(3)));
+            }
             return;
         }
 
@@ -385,9 +419,11 @@ class BrazeInstance implements BrazeCommand, ActivityLifecycleCallbacks {
                 user.setCustomUserAttribute(key, (JSONArray) value);
             } else if (value instanceof JSONObject) {
                 user.setCustomUserAttribute(key, (JSONObject) value);
-            } else {
-                // default to String.
+            } else if (value instanceof String) {
                 user.setCustomUserAttribute(key, (String) value);
+            } else {
+                // A JSON null or any other type: skip only this key, the rest are still set.
+                Log.w(TAG, "Skipping custom attribute '" + key + "': unsupported value " + value);
             }
         }
     }
@@ -503,7 +539,7 @@ class BrazeInstance implements BrazeCommand, ActivityLifecycleCallbacks {
         }
 
         getBrazeUser().setPushNotificationSubscriptionType(
-                NotificationSubscriptionType.fromValue(notificationType)
+                BrazeUtils.getSubscriptionTypeFromString(notificationType)
         );
     }
 
@@ -514,7 +550,7 @@ class BrazeInstance implements BrazeCommand, ActivityLifecycleCallbacks {
         }
 
         getBrazeUser().setEmailNotificationSubscriptionType(
-                NotificationSubscriptionType.fromValue(notificationType)
+                BrazeUtils.getSubscriptionTypeFromString(notificationType)
         );
     }
 
@@ -532,21 +568,17 @@ class BrazeInstance implements BrazeCommand, ActivityLifecycleCallbacks {
     }
 
     @Override
-    public void logPurchase(@NonNull String productId, @Nullable String currency, @NonNull BigDecimal unitPrice, Integer quantity, JSONObject purchaseProperties, boolean strictPropertiesEnabled) {
-        if (BrazeUtils.isNullOrEmpty(currency)) {
-            currency = "USD";// braze default.
-        }
-
+    public void logPurchase(@NonNull String productId, @NonNull String currency, @NonNull BigDecimal unitPrice, Integer quantity, JSONObject purchaseProperties, boolean strictPropertiesEnabled) {
         getBrazeInstance().logPurchase(productId, currency, unitPrice, quantity > 0 ? quantity : 1, BrazeUtils.extractCustomProperties(purchaseProperties, strictPropertiesEnabled));
     }
 
     @Override
-    public void logPurchase(@NonNull String[] productIds, String[] currencies, @NonNull BigDecimal[] unitPrices, Integer[] quantities, JSONObject[] purchaseProperties, boolean strictPropertiesEnabled) {
+    public void logPurchase(@NonNull String[] productIds, @NonNull String[] currencies, @NonNull BigDecimal[] unitPrices, Integer[] quantities, JSONObject[] purchaseProperties, boolean strictPropertiesEnabled) {
         for (int i = 0; i < productIds.length; i++) {
             logPurchase(
                     productIds[i],
-                    currencies != null && currencies.length > i ? currencies[i] : null,
-                    unitPrices != null && unitPrices.length > i ? unitPrices[i] : BigDecimal.ZERO,
+                    currencies[i],
+                    unitPrices[i],
                     quantities != null && quantities.length > i ? quantities[i] : 1,
                     purchaseProperties != null && purchaseProperties.length > i ? purchaseProperties[i] : null,
                     strictPropertiesEnabled
@@ -555,17 +587,156 @@ class BrazeInstance implements BrazeCommand, ActivityLifecycleCallbacks {
     }
 
     @Override
+    public void logProductViewed(@NonNull String productId, @NonNull String productName, @NonNull String variantId, double price, @NonNull String currency, @NonNull String source, @Nullable String imageUrl, @Nullable String productUrl, @Nullable JSONObject properties, @Nullable List<String> type, boolean strictPropertiesEnabled) {
+        getBrazeInstance().logEcommerceEvent(new ProductViewedEvent(
+                productId,
+                productName,
+                variantId,
+                price,
+                currency,
+                source,
+                imageUrl,
+                productUrl,
+                BrazeUtils.extractCustomProperties(properties, strictPropertiesEnabled),
+                type
+        ));
+    }
+
+    @Override
+    public void logCartUpdated(@NonNull String cartId, @NonNull String currency, @NonNull String source, @Nullable Double totalValue, @Nullable Double subtotalValue, @Nullable Double tax, @Nullable Double shipping, @NonNull BrazeConstants.Ecommerce.Action action, @Nullable JSONObject products, @Nullable JSONObject properties, boolean strictPropertiesEnabled) throws JSONException {
+        getBrazeInstance().logEcommerceEvent(new CartUpdatedEvent(
+                cartId,
+                currency,
+                source,
+                totalValue,
+                BrazeUtils.getProductsFromNestedArrays(products, strictPropertiesEnabled),
+                BrazeUtils.extractCustomProperties(properties, strictPropertiesEnabled),
+                action.brazeAction,
+                subtotalValue,
+                tax,
+                shipping
+        ));
+    }
+
+    @Override
+    public void logCheckoutStarted(@NonNull String checkoutId, @NonNull String currency, @NonNull String source, double totalValue, @Nullable Double subtotalValue, @Nullable Double tax, @Nullable Double shipping, @Nullable JSONObject products, @Nullable String cartId, @Nullable JSONObject properties, boolean strictPropertiesEnabled) throws JSONException {
+        getBrazeInstance().logEcommerceEvent(new CheckoutStartedEvent(
+                checkoutId,
+                currency,
+                source,
+                totalValue,
+                BrazeUtils.getProductsFromNestedArrays(products, strictPropertiesEnabled),
+                cartId,
+                BrazeUtils.extractCustomProperties(properties, strictPropertiesEnabled),
+                subtotalValue,
+                tax,
+                shipping
+        ));
+    }
+
+    @Override
+    public void logOrderPlaced(@NonNull String orderId, @NonNull String currency, @NonNull String source, double totalValue, @Nullable Double subtotalValue, @Nullable Double tax, @Nullable Double shipping, @Nullable JSONObject products, @Nullable String cartId, @Nullable Double totalDiscounts, @Nullable JSONObject discounts, @Nullable JSONObject properties, boolean strictPropertiesEnabled) throws JSONException {
+        getBrazeInstance().logEcommerceEvent(new OrderPlacedEvent(
+                orderId,
+                currency,
+                source,
+                totalValue,
+                BrazeUtils.getProductsFromNestedArrays(products, strictPropertiesEnabled),
+                cartId,
+                totalDiscounts,
+                BrazeUtils.getDiscountsFromNestedArrays(discounts),
+                BrazeUtils.extractCustomProperties(properties, strictPropertiesEnabled),
+                subtotalValue,
+                tax,
+                shipping
+        ));
+    }
+
+    @Override
+    public void logOrderCancelled(@NonNull String orderId, @NonNull String currency, @NonNull String source, double totalValue, @Nullable Double subtotalValue, @Nullable Double tax, @Nullable Double shipping, @Nullable JSONObject products, @NonNull String cancelReason, @Nullable Double totalDiscounts, @Nullable JSONObject discounts, @Nullable JSONObject properties, boolean strictPropertiesEnabled) throws JSONException {
+        JSONObject wirePayload = new JSONObject();
+        try {
+            wirePayload.put(BrazeConstants.Ecommerce.ORDER_ID, orderId);
+            wirePayload.put(BrazeConstants.Ecommerce.TOTAL_VALUE, totalValue);
+            if (subtotalValue != null) {
+                wirePayload.put(BrazeConstants.Ecommerce.SUBTOTAL_VALUE, subtotalValue);
+            }
+            if (tax != null) {
+                wirePayload.put(BrazeConstants.Ecommerce.TAX, tax);
+            }
+            if (shipping != null) {
+                wirePayload.put(BrazeConstants.Ecommerce.SHIPPING, shipping);
+            }
+            wirePayload.put(BrazeConstants.Ecommerce.CURRENCY, currency);
+            wirePayload.put(BrazeConstants.Ecommerce.CANCEL_REASON, cancelReason);
+            wirePayload.put(BrazeConstants.Ecommerce.PRODUCTS, BrazeUtils.getProductsAsWireJson(products));
+            wirePayload.put(BrazeConstants.Ecommerce.SOURCE, source);
+            if (totalDiscounts != null) {
+                wirePayload.put(BrazeConstants.Ecommerce.TOTAL_DISCOUNTS, totalDiscounts);
+            }
+            JSONArray discountsJson = BrazeUtils.getDiscountsAsWireJson(discounts);
+            if (discountsJson.length() > 0) {
+                wirePayload.put(BrazeConstants.Ecommerce.DISCOUNTS, discountsJson);
+            }
+            if (properties != null) {
+                // Route event-level metadata through extractCustomProperties for the same string
+                // coercion + strictPropertiesEnabled handling every other ecommerce path applies,
+                // rather than putting the raw payload JSON on the wire.
+                wirePayload.put(BrazeConstants.Ecommerce.METADATA,
+                        BrazeUtils.extractCustomProperties(properties, strictPropertiesEnabled).forJsonPut());
+            }
+        } catch (JSONException jex) {
+            Log.w(TAG, "Failed to build ecommerce.order_cancelled payload", jex);
+            return;
+        }
+
+        getBrazeInstance().logCustomEvent(BrazeConstants.Ecommerce.EVENT_ORDER_CANCELLED, new BrazeProperties(wirePayload));
+    }
+
+    @Override
+    public void logOrderRefunded(@NonNull String orderId, @NonNull String currency, @NonNull String source, double totalValue, @Nullable JSONObject products, @Nullable Double totalDiscounts, @Nullable JSONObject discounts, @Nullable JSONObject properties, boolean strictPropertiesEnabled) throws JSONException {
+        JSONObject wirePayload = new JSONObject();
+        try {
+            wirePayload.put(BrazeConstants.Ecommerce.ORDER_ID, orderId);
+            wirePayload.put(BrazeConstants.Ecommerce.TOTAL_VALUE, totalValue);
+            wirePayload.put(BrazeConstants.Ecommerce.CURRENCY, currency);
+            wirePayload.put(BrazeConstants.Ecommerce.PRODUCTS, BrazeUtils.getProductsAsWireJson(products));
+            wirePayload.put(BrazeConstants.Ecommerce.SOURCE, source);
+            if (totalDiscounts != null) {
+                wirePayload.put(BrazeConstants.Ecommerce.TOTAL_DISCOUNTS, totalDiscounts);
+            }
+            JSONArray discountsJson = BrazeUtils.getDiscountsAsWireJson(discounts);
+            if (discountsJson.length() > 0) {
+                wirePayload.put(BrazeConstants.Ecommerce.DISCOUNTS, discountsJson);
+            }
+            if (properties != null) {
+                // Route event-level metadata through extractCustomProperties for the same string
+                // coercion + strictPropertiesEnabled handling every other ecommerce path applies,
+                // rather than putting the raw payload JSON on the wire.
+                wirePayload.put(BrazeConstants.Ecommerce.METADATA,
+                        BrazeUtils.extractCustomProperties(properties, strictPropertiesEnabled).forJsonPut());
+            }
+        } catch (JSONException jex) {
+            Log.w(TAG, "Failed to build ecommerce.order_refunded payload", jex);
+            return;
+        }
+
+        getBrazeInstance().logCustomEvent(BrazeConstants.Ecommerce.EVENT_ORDER_REFUNDED, new BrazeProperties(wirePayload));
+    }
+
+    @Override
     public void requestFlush() {
         getBrazeInstance().requestImmediateDataFlush();
     }
 
     @Override
-    public void setLastKnownLocation(@NonNull Double latitude, @NonNull Double longitude, @Nullable Double altitude, @Nullable Double accuracy) {
+    public void setLastKnownLocation(@NonNull Double latitude, @NonNull Double longitude, @Nullable Double altitude, @Nullable Double horizontalAccuracy, @Nullable Double verticalAccuracy) {
         getBrazeUser().setLastKnownLocation(
                 latitude,
                 longitude,
                 altitude,
-                accuracy
+                horizontalAccuracy,
+                verticalAccuracy
         );
     }
 

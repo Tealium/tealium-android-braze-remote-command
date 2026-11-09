@@ -1,5 +1,11 @@
 package com.tealium.remotecommands.braze;
 
+import androidx.annotation.Nullable;
+
+import com.braze.models.recommended.ecommerce.CartUpdatedAction;
+
+import java.util.HashMap;
+import java.util.Map;
 
 public final class BrazeConstants {
 
@@ -8,6 +14,25 @@ public final class BrazeConstants {
 
     public static final String TAG = "Tealium-Braze";
     public static final String SEPARATOR = ",";
+
+    /**
+     * Every payload spelling accepted for a data point, keyed by its canonical key. Exists for
+     * backwards compatibility: logpurchase used its own spellings before the ecommerce commands
+     * introduced the Braze ones, and one value in an app must not need two mappings. The iOS
+     * remote command's spellings are accepted too, so one mapping serves both platforms. Each list
+     * is ordered and the first spelling present wins, with the canonical spelling always first.
+     * Read through {@link BrazeUtils#resolveKey}.
+     */
+    static final Map<String, String[]> KEY_ALIASES = new HashMap<>();
+
+    static {
+        KEY_ALIASES.put(Ecommerce.CURRENCY, new String[]{Ecommerce.CURRENCY, Purchase.PRODUCT_CURRENCY, Purchase.ORDER_CURRENCY});
+        KEY_ALIASES.put(Ecommerce.PRICE, new String[]{Ecommerce.PRICE, Purchase.PRODUCT_PRICE});
+        KEY_ALIASES.put(Ecommerce.QUANTITY, new String[]{Ecommerce.QUANTITY, Purchase.PRODUCT_QTY});
+        KEY_ALIASES.put(User.ALIAS_LABEL, new String[]{User.ALIAS_LABEL, User.USER_ALIAS_LABEL});
+        KEY_ALIASES.put(Location.LOCATION_HORIZONTAL_ACCURACY, new String[]{Location.LOCATION_HORIZONTAL_ACCURACY, Location.LOCATION_ACCURACY});
+        KEY_ALIASES.put(Config.ENABLE_AUTOMATIC_GEOFENCE_REQUESTS, new String[]{Config.ENABLE_AUTOMATIC_GEOFENCE_REQUESTS, Config.ENABLE_AUTOMATIC_GEOFENCES});
+    }
 
     public static final class Commands {
         private Commands() {
@@ -19,6 +44,7 @@ public final class BrazeConstants {
         public static final String ENABLE_SDK = "enablesdk";
         public static final String DISABLE_SDK = "disablesdk";
         public static final String WIPE_DATA = "wipedata";
+        public static final String LOGOUT = "logout";
         public static final String USER_IDENTIFIER = "useridentifier";
         public static final String USER_ALIAS = "useralias";
         public static final String USER_ATTRIBUTE = "userattribute";
@@ -38,6 +64,12 @@ public final class BrazeConstants {
         public static final String SET_SDK_AUTH_SIGNATURE = "setsdkauthsignature";
         public static final String SET_LAST_KNOWN_LOCATION = "setlastknownlocation";
         public static final String SET_AD_TRACKING_ENABLED = "setadtrackingenabled";
+        public static final String LOG_PRODUCT_VIEWED = "logproductviewed";
+        public static final String LOG_CART_UPDATED = "logcartupdated";
+        public static final String LOG_CHECKOUT_STARTED = "logcheckoutstarted";
+        public static final String LOG_ORDER_PLACED = "logorderplaced";
+        public static final String LOG_ORDER_CANCELLED = "logordercancelled";
+        public static final String LOG_ORDER_REFUNDED = "logorderrefunded";
     }
 
     public static final class Config {
@@ -66,6 +98,7 @@ public final class BrazeConstants {
         public static final String TRIGGER_INTERVAL_SECONDS = "trigger_interval_seconds";
         public static final String ENABLE_GEOFENCES = "enable_geofences";
         public static final String ENABLE_AUTOMATIC_GEOFENCE_REQUESTS = "enable_automatic_geofence_requests";
+        public static final String ENABLE_AUTOMATIC_GEOFENCES = "enable_automatic_geofences";
         public static final String BACKSTACK_ACTIVITY_ENABLED = "backstack_activity_enabled";
         public static final String BACKSTACK_ACTIVITY_CLASS = "backstack_activity_class";
         public static final String IS_SDK_AUTHENTICATION_ENABLED = "is_sdk_authentication_enabled";
@@ -89,7 +122,8 @@ public final class BrazeConstants {
         public static final String COUNTRY = "country";
         public static final String PHONE = "phone";
         public static final String ALIAS = "user_alias";
-        public static final String ALIAS_LABEL = "user_alias_label";
+        public static final String ALIAS_LABEL = "alias_label";
+        public static final String USER_ALIAS_LABEL = "user_alias_label";
         public static final String SET_CUSTOM_ATTRIBUTE = "set_custom_attribute";
         public static final String UNSET_CUSTOM_ATTRIBUTE = "unset_custom_attribute";
         public static final String INCREMENT_CUSTOM_ATTRIBUTE = "increment_custom_attribute";
@@ -121,6 +155,7 @@ public final class BrazeConstants {
         public static final String PRODUCT_QTY = "product_qty";
         public static final String PRODUCT_PRICE = "product_unit_price";
         public static final String PRODUCT_CURRENCY = "product_currency";
+        public static final String ORDER_CURRENCY = "order_currency";
         public static final String PURCHASE_PROPERTIES = "purchase_properties";
         public static final String PURCHASE_PROPERTIES_SHORTHAND = "purchase";
     }
@@ -132,6 +167,98 @@ public final class BrazeConstants {
         public static final String LOCATION_LATITUDE = "location_latitude";
         public static final String LOCATION_LONGITUDE = "location_longitude";
         public static final String LOCATION_ALTITUDE = "location_altitude";
+        public static final String LOCATION_HORIZONTAL_ACCURACY = "location_horizontal_accuracy";
         public static final String LOCATION_ACCURACY = "location_accuracy";
+        public static final String LOCATION_VERTICAL_ACCURACY = "location_vertical_accuracy";
+    }
+
+    public static final class Ecommerce {
+        private Ecommerce() {
+        }
+
+        public static final String PRODUCT_ID = "product_id";
+        public static final String PRODUCT_NAME = "product_name";
+        public static final String VARIANT_ID = "variant_id";
+        public static final String PRICE = "price";
+        public static final String IMAGE_URL = "image_url";
+        public static final String PRODUCT_URL = "product_url";
+        public static final String CURRENCY = "currency";
+        public static final String SOURCE = "source";
+        public static final String TYPE = "type";
+        public static final String METADATA = "metadata";
+
+        public static final String CART_ID = "cart_id";
+        public static final String ACTION = "action";
+        public static final String TOTAL_VALUE = "total_value";
+        public static final String SUBTOTAL_VALUE = "subtotal_value";
+        public static final String TAX = "tax";
+        public static final String SHIPPING = "shipping";
+
+        public static final String PRODUCTS = "products";
+        public static final String QUANTITY = "quantity";
+
+        public static final String CHECKOUT_ID = "checkout_id";
+
+        public static final String ORDER_ID = "order_id";
+        public static final String TOTAL_DISCOUNTS = "total_discounts";
+
+        public static final String DISCOUNTS = "discounts";
+        public static final String DISCOUNT_CODE = "code";
+        public static final String DISCOUNT_AMOUNT = "amount";
+        public static final String DISCOUNT_TYPE = "type";
+
+        public static final String CANCEL_REASON = "cancel_reason";
+
+        // Custom-event names for order_cancelled/order_refunded, which have no typed Braze SDK
+        // event class and are dispatched via logCustomEvent. Must stay in sync with the iOS remote
+        // command's CustomEvent names.
+        public static final String EVENT_ORDER_CANCELLED = "ecommerce.order_cancelled";
+        public static final String EVENT_ORDER_REFUNDED = "ecommerce.order_refunded";
+
+        /**
+         * The cart action for logcartupdated, read from the payload's ACTION key. Values match the
+         * Braze cart_updated schema ("add"/"remove"/"replace"), ignoring case and surrounding
+         * whitespace. An absent action defaults to REPLACE, matching a full-cart snapshot; a present
+         * but unrecognized one is rejected rather than guessed, so a typo never logs the wrong
+         * cart update.
+         */
+        public enum Action {
+            ADD("add", CartUpdatedAction.ADD),
+            REMOVE("remove", CartUpdatedAction.REMOVE),
+            REPLACE("replace", CartUpdatedAction.REPLACE);
+
+            public final String value;
+            public final CartUpdatedAction brazeAction;
+
+            Action(String value, CartUpdatedAction brazeAction) {
+                this.value = value;
+                this.brazeAction = brazeAction;
+            }
+
+            /**
+             * Maps a payload action value to an Action: REPLACE for an absent value, otherwise the
+             * Action whose value matches the trimmed string, ignoring case. A JSON null is not
+             * absent, so it is rejected, as on iOS.
+             *
+             * @param value the action read from the payload
+             * @return the corresponding Action, or null when the value is present but is not a
+             * string or not a recognized action
+             */
+            @Nullable
+            public static Action from(@Nullable Object value) {
+                if (value == null) {
+                    return REPLACE;
+                }
+                if (value instanceof String) {
+                    String trimmed = ((String) value).trim();
+                    for (Action action : values()) {
+                        if (action.value.equalsIgnoreCase(trimmed)) {
+                            return action;
+                        }
+                    }
+                }
+                return null;
+            }
+        }
     }
 }

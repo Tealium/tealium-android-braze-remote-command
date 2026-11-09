@@ -6,6 +6,7 @@ import androidx.annotation.Nullable;
 import com.tealium.remotecommands.braze.BrazeRemoteCommand.ConfigOverrider;
 
 import org.json.JSONArray;
+import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.math.BigDecimal;
@@ -54,6 +55,14 @@ interface BrazeCommand {
     void wipeData();
 
     /**
+     * Executes Braze's logout function (Braze SDK 43.0.0+), which flushes pending data,
+     * unregisters push, then wipes all local data and disables the SDK; an {@code enablesdk}
+     * command is needed afterwards to resume tracking. If push unregistration fails nothing is
+     * wiped or disabled. The SDK completes it asynchronously; a failure is only logged.
+     */
+    void logout();
+
+    /**
      * Calls the changeUser method to switch which Braze User any subsequent events are related to.
      *
      * @param userId The new user identifier
@@ -83,28 +92,28 @@ interface BrazeCommand {
      *
      * @param firstName The current user's first name
      */
-    void setUserFirstName(@NonNull String firstName);
+    void setUserFirstName(@Nullable String firstName);
 
     /**
      * Sets the Last Name attribute for the current user in Braze.
      *
      * @param lastName The current user's last name
      */
-    void setUserLastName(@NonNull String lastName);
+    void setUserLastName(@Nullable String lastName);
 
     /**
      * Sets the Email Address attribute for the current user in Braze.
      *
      * @param email The current user's email
      */
-    void setUserEmail(@NonNull String email);
+    void setUserEmail(@Nullable String email);
 
     /**
      * Sets the Language attribute for the current user in Braze.
      *
      * @param language The current user's language
      */
-    void setUserLanguage(@NonNull String language);
+    void setUserLanguage(@Nullable String language);
 
     /**
      * Sets the Gender attribute for the current user in Braze.
@@ -114,43 +123,43 @@ interface BrazeCommand {
      * (m)ale = Gender.MALE
      * (f)emale = Gender.FEMALE
      * (o)ther = Gender.OTHER
-     * na/not_applicable = Gender.NOT_APPLICABLE
-     * no/prefer_not_to_say = Gender.PREFER_NOT_TO_SAY
-     * unknown = Gender.UNKNOWN
+     * n/na/not_applicable/notapplicable = Gender.NOT_APPLICABLE
+     * p/no/prefer_not_to_say/prefernottosay = Gender.PREFER_NOT_TO_SAY
+     * (u)nknown = Gender.UNKNOWN
      * <p>
      * else returns null
      *
      * @param gender The current user's gender as a string.
      */
-    void setUserGender(@NonNull String gender);
+    void setUserGender(@Nullable String gender);
 
     /**
      * Sets the Home City attribute for the current user in Braze.
      *
      * @param city The current user's home city
      */
-    void setUserHomeCity(@NonNull String city);
+    void setUserHomeCity(@Nullable String city);
 
     /**
      * Sets the Country attribute for the current user in Braze.
      *
      * @param country The current user's country
      */
-    void setUserCountry(@NonNull String country);
+    void setUserCountry(@Nullable String country);
 
     /**
      * Sets the Phone attribute for the current user in Braze.
      *
      * @param phone The current user's phone
      */
-    void setUserPhone(@NonNull String phone);
+    void setUserPhone(@Nullable String phone);
 
     /**
      * Sets the Date of Birth for the current user in Braze.
      *
      * @param dob The current user's date of birth
      */
-    void setUserDateOfBirth(@NonNull String dob);
+    void setUserDateOfBirth(@Nullable String dob);
 
     /**
      * Sets the Push Notification Subscription Type for the current user in Braze.
@@ -270,7 +279,7 @@ interface BrazeCommand {
      * custom purchase properties described by key-value pairs in the purchaseProperties param
      *
      * @param productId          - productId of the product being purchased
-     * @param currency           - currency used by this purchase; default = "USD"
+     * @param currency           - currency used by this purchase; the remote command defaults it to "USD"
      * @param unitPrice          - unit price of the product.
      * @param quantity           - number of units purchased
      * @param purchaseProperties - key-value pairs describing the custom purchase properties
@@ -283,11 +292,11 @@ interface BrazeCommand {
      *   if true, all properties are passed through unaffected, else any string values will attempt
      *   to be parsed into primitive values
      */
-    void logPurchase(@NonNull String productId, @Nullable String currency, @NonNull BigDecimal unitPrice, Integer quantity, @Nullable JSONObject purchaseProperties, boolean strictPropertiesEnabled);
+    void logPurchase(@NonNull String productId, @NonNull String currency, @NonNull BigDecimal unitPrice, Integer quantity, @Nullable JSONObject purchaseProperties, boolean strictPropertiesEnabled);
 
     /**
      * Helper method that will take each bit of purchase information and attempt to log multiple
-     * purchases. Each array should be matched in length.
+     * purchases. currencies and unitPrices must hold one entry per product.
      *
      * @param productIds An array of product ids for this purchase
      * @param currencies An array of currencies for this purchase
@@ -298,7 +307,150 @@ interface BrazeCommand {
      *   if true, all properties are passed through unaffected, else any string values will attempt
      *   to be parsed into primitive values
      */
-    void logPurchase(@NonNull String[] productIds, @Nullable String[] currencies, @NonNull BigDecimal[] unitPrices, Integer[] quantities, @Nullable JSONObject[] purchaseProperties, boolean strictPropertiesEnabled);
+    void logPurchase(@NonNull String[] productIds, @NonNull String[] currencies, @NonNull BigDecimal[] unitPrices, Integer[] quantities, @Nullable JSONObject[] purchaseProperties, boolean strictPropertiesEnabled);
+
+    /**
+     * Logs a Braze ecommerce ProductViewedEvent for a single product. Unlike the other ecommerce
+     * events this one carries no products array, only the flat product details.
+     * <p>
+     * Note: the Braze SDK validates its inputs and will throw if, for example, currency is not a
+     * valid ISO 4217 code, price is negative, or any string field is blank or exceeds 255
+     * characters. Such events are simply not logged.
+     *
+     * @param productId   the product identifier
+     * @param productName the product name
+     * @param variantId   the product variant identifier
+     * @param price       the product price
+     * @param currency    required; trimmed+uppercased for ISO-4217 (no USD default, unlike logPurchase). The event is skipped when currency is absent, non-scalar, or not a valid ISO-4217 code (the Braze SDK base EcommerceEvent constructor rejects a null currency, and validates the value against ISO-4217).
+     * @param source      the event source
+     * @param imageUrl    an optional product image url
+     * @param productUrl  an optional product url
+     * @param properties  optional custom properties to accompany the event
+     * @param type        optional type identifiers for the product (e.g. "price_drop"); null when absent
+     * @param strictPropertiesEnabled
+     *   if true, all properties are passed through unaffected, else any string values will attempt
+     *   to be parsed into primitive values
+     */
+    void logProductViewed(@NonNull String productId, @NonNull String productName, @NonNull String variantId, double price, @NonNull String currency, @NonNull String source, @Nullable String imageUrl, @Nullable String productUrl, @Nullable JSONObject properties, @Nullable List<String> type, boolean strictPropertiesEnabled);
+
+    /**
+     * Logs a Braze ecommerce CartUpdatedEvent. products is a nested JSONObject holding parallel
+     * arrays keyed by BrazeConstants.Ecommerce (product_id/product_name/variant_id/price/quantity
+     * required, image_url/product_url/metadata optional), zipped by index into line items.
+     * <p>
+     * Note: the Braze SDK validates its inputs and will throw for invalid values (see
+     * {@link #logProductViewed}); such events are simply not logged.
+     *
+     * @param cartId     the cart identifier
+     * @param currency   required; trimmed+uppercased for ISO-4217 (no USD default, unlike logPurchase). The event is skipped when currency is absent, non-scalar, or not a valid ISO-4217 code (the Braze SDK base EcommerceEvent constructor rejects a null currency, and validates the value against ISO-4217).
+     * @param source     the event source
+     * @param totalValue the optional cart total value; may be null for add/remove actions
+     * @param subtotalValue an optional subtotal value (post-discount, pre-tax/shipping)
+     * @param tax        an optional total tax applied to the cart
+     * @param shipping   an optional total shipping cost
+     * @param action     the cart action, mapped from the payload's ACTION key (see BrazeConstants.Ecommerce.Action.from)
+     * @param products   the nested products object described above
+     * @param properties optional custom properties to accompany the event
+     * @param strictPropertiesEnabled
+     *   if true, all properties are passed through unaffected, else any string values will attempt
+     *   to be parsed into primitive values
+     */
+    void logCartUpdated(@NonNull String cartId, @NonNull String currency, @NonNull String source, @Nullable Double totalValue, @Nullable Double subtotalValue, @Nullable Double tax, @Nullable Double shipping, @NonNull BrazeConstants.Ecommerce.Action action, @Nullable JSONObject products, @Nullable JSONObject properties, boolean strictPropertiesEnabled) throws JSONException;
+
+    /**
+     * Logs a Braze ecommerce CheckoutStartedEvent. products is a nested JSONObject holding
+     * parallel arrays keyed by BrazeConstants.Ecommerce, see {@link #logCartUpdated}.
+     * <p>
+     * Note: the Braze SDK validates its inputs and will throw for invalid values (see
+     * {@link #logProductViewed}); such events are simply not logged.
+     *
+     * @param checkoutId the checkout identifier
+     * @param currency   required; trimmed+uppercased for ISO-4217 (no USD default, unlike logPurchase). The event is skipped when currency is absent, non-scalar, or not a valid ISO-4217 code (the Braze SDK base EcommerceEvent constructor rejects a null currency, and validates the value against ISO-4217).
+     * @param source     the event source
+     * @param totalValue the checkout total value
+     * @param subtotalValue an optional subtotal value (post-discount, pre-tax/shipping)
+     * @param tax        an optional total tax applied to the checkout
+     * @param shipping   an optional total shipping cost
+     * @param products   the nested products object described in {@link #logCartUpdated}
+     * @param cartId     an optional cart identifier
+     * @param properties optional custom properties to accompany the event
+     * @param strictPropertiesEnabled
+     *   if true, all properties are passed through unaffected, else any string values will attempt
+     *   to be parsed into primitive values
+     */
+    void logCheckoutStarted(@NonNull String checkoutId, @NonNull String currency, @NonNull String source, double totalValue, @Nullable Double subtotalValue, @Nullable Double tax, @Nullable Double shipping, @Nullable JSONObject products, @Nullable String cartId, @Nullable JSONObject properties, boolean strictPropertiesEnabled) throws JSONException;
+
+    /**
+     * Logs a Braze ecommerce OrderPlacedEvent. products/discounts are nested JSONObjects holding
+     * parallel arrays, see {@link #logCartUpdated} (products) and {@link #logOrderCancelled}
+     * (discounts, keyed by code/amount/type).
+     * <p>
+     * Note: the Braze SDK validates its inputs and will throw for invalid values (see
+     * {@link #logProductViewed}); such events are simply not logged.
+     *
+     * @param orderId        the order identifier
+     * @param currency       required; trimmed+uppercased for ISO-4217 (no USD default, unlike logPurchase). The event is skipped when currency is absent, non-scalar, or not a valid ISO-4217 code (the Braze SDK base EcommerceEvent constructor rejects a null currency, and validates the value against ISO-4217).
+     * @param source         the event source
+     * @param totalValue     the order total value
+     * @param subtotalValue  an optional subtotal value (post-discount, pre-tax/shipping)
+     * @param tax            an optional total tax applied to the order
+     * @param shipping       an optional total shipping cost
+     * @param products       the nested products object described in {@link #logCartUpdated}
+     * @param cartId         an optional cart identifier
+     * @param totalDiscounts an optional total discounts value
+     * @param discounts      the nested discounts object described in {@link #logOrderCancelled}
+     * @param properties     optional custom properties to accompany the event
+     * @param strictPropertiesEnabled
+     *   if true, all properties are passed through unaffected, else any string values will attempt
+     *   to be parsed into primitive values
+     */
+    void logOrderPlaced(@NonNull String orderId, @NonNull String currency, @NonNull String source, double totalValue, @Nullable Double subtotalValue, @Nullable Double tax, @Nullable Double shipping, @Nullable JSONObject products, @Nullable String cartId, @Nullable Double totalDiscounts, @Nullable JSONObject discounts, @Nullable JSONObject properties, boolean strictPropertiesEnabled) throws JSONException;
+
+    /**
+     * Logs an ecommerce.order_cancelled custom event. Unlike the other ecommerce events, this has
+     * no typed Braze SDK class, so it is logged via logCustomEvent with a JSONObject matching the
+     * documented wire schema. products/discounts are nested JSONObjects holding parallel arrays
+     * keyed by BrazeConstants.Ecommerce (products: product_id/product_name/variant_id/price/
+     * quantity required, image_url/product_url/metadata optional; discounts: code/amount/type, all
+     * optional), zipped by index.
+     *
+     * @param orderId        the order identifier
+     * @param currency       required; trimmed and uppercased, but not validated as ISO-4217 (logged via logCustomEvent, so the SDK does not check it). The event is skipped when currency is absent, non-scalar, or blank.
+     * @param source         the event source
+     * @param totalValue     the order total value
+     * @param subtotalValue  an optional subtotal value (post-discount, pre-tax/shipping)
+     * @param tax            an optional total tax applied to the order
+     * @param shipping       an optional total shipping cost
+     * @param products       the nested products object described above
+     * @param cancelReason   the reason the order was cancelled
+     * @param totalDiscounts an optional total discounts value
+     * @param discounts      the nested discounts object described above
+     * @param properties     optional metadata to accompany the event
+     * @param strictPropertiesEnabled
+     *   if true, all properties are passed through unaffected, else any string values will attempt
+     *   to be parsed into primitive values
+     */
+    void logOrderCancelled(@NonNull String orderId, @NonNull String currency, @NonNull String source, double totalValue, @Nullable Double subtotalValue, @Nullable Double tax, @Nullable Double shipping, @Nullable JSONObject products, @NonNull String cancelReason, @Nullable Double totalDiscounts, @Nullable JSONObject discounts, @Nullable JSONObject properties, boolean strictPropertiesEnabled) throws JSONException;
+
+    /**
+     * Logs an ecommerce.order_refunded custom event. Unlike the other ecommerce events, this has
+     * no typed Braze SDK class, so it is logged via logCustomEvent with a JSONObject matching the
+     * documented wire schema. products/discounts are nested JSONObjects holding parallel arrays,
+     * see {@link #logOrderCancelled}.
+     *
+     * @param orderId        the order identifier
+     * @param currency       required; trimmed and uppercased, but not validated as ISO-4217 (logged via logCustomEvent, so the SDK does not check it). The event is skipped when currency is absent, non-scalar, or blank.
+     * @param source         the event source
+     * @param totalValue     the order total value
+     * @param products       the nested products object described in {@link #logOrderCancelled}
+     * @param totalDiscounts an optional total discounts value
+     * @param discounts      the nested discounts object described in {@link #logOrderCancelled}
+     * @param properties     optional metadata to accompany the event
+     * @param strictPropertiesEnabled
+     *   if true, all properties are passed through unaffected, else any string values will attempt
+     *   to be parsed into primitive values
+     */
+    void logOrderRefunded(@NonNull String orderId, @NonNull String currency, @NonNull String source, double totalValue, @Nullable JSONObject products, @Nullable Double totalDiscounts, @Nullable JSONObject discounts, @Nullable JSONObject properties, boolean strictPropertiesEnabled) throws JSONException;
 
     /**
      * Requests an immediate flush of any queued up events within the Braze SDK.
@@ -332,8 +484,9 @@ interface BrazeCommand {
      * @param latitude The latitude of the users last known location
      * @param longitude The longitude of the users last known location
      * @param altitude Optional altitude of the users last known location
-     * @param accuracy Optional accuracy of the users last known location
-     * @param accuracy Optional accuracy of the users last known location
+     * @param horizontalAccuracy Optional horizontal accuracy of the users last known location
+     * @param verticalAccuracy Optional vertical accuracy of the users last known location
      */
-    void setLastKnownLocation(@NonNull Double latitude, @NonNull Double longitude, @Nullable Double altitude, @Nullable Double accuracy);
+    void setLastKnownLocation(@NonNull Double latitude, @NonNull Double longitude, @Nullable Double altitude, @Nullable Double horizontalAccuracy, @Nullable Double verticalAccuracy);
 }
+
